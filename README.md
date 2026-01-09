@@ -4,6 +4,15 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 
 [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Español](README-es.md) | [Français](README-fr.md)
 
+## Demo
+
+| Before (NotebookLM PDF) | After (Editable PPTX) |
+|:-----------------------:|:---------------------:|
+| ![Before](assets/demo-before.png) | ![After](assets/demo-after.png) |
+
+> Left: Original PDF from NotebookLM (text embedded in image)
+> Right: Converted PPTX with clean background + editable text layers
+
 ## Features
 
 - **AI Text Removal**: Uses Gemini 2.5 Flash to automatically remove text from images and reconstruct backgrounds

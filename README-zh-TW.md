@@ -4,6 +4,15 @@
 
 [English](README.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Español](README-es.md) | [Français](README-fr.md)
 
+## 示範
+
+| 轉換前 (NotebookLM PDF) | 轉換後 (可編輯 PPTX) |
+|:-----------------------:|:--------------------:|
+| ![Before](assets/demo-before.png) | ![After](assets/demo-after.png) |
+
+> 左：NotebookLM 原始 PDF（文字嵌入圖片中）
+> 右：轉換後的 PPTX，乾淨背景 + 可編輯文字圖層
+
 ## 功能特色
 
 - **AI 智慧去字**：使用 Gemini 2.5 Flash 自動移除圖片中的文字並重建背景

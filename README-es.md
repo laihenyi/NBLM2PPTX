@@ -4,6 +4,15 @@ Convierte PDFs exportados de NotebookLM en presentaciones PPTX con **imágenes d
 
 [English](README.md) | [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Français](README-fr.md)
 
+## Demostración
+
+| Antes (NotebookLM PDF) | Después (PPTX Editable) |
+|:----------------------:|:-----------------------:|
+| ![Before](assets/demo-before.png) | ![After](assets/demo-after.png) |
+
+> Izquierda: PDF original de NotebookLM (texto incrustado en imagen)
+> Derecha: PPTX convertido con fondo limpio + capas de texto editables
+
 ## Características
 
 - **Eliminación de Texto con IA**: Usa Gemini 2.5 Flash para eliminar automáticamente el texto de las imágenes y reconstruir los fondos

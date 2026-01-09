@@ -4,6 +4,15 @@ NotebookLM からエクスポートした PDF を**背景画像とテキスト�
 
 [English](README.md) | [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [Español](README-es.md) | [Français](README-fr.md)
 
+## デモ
+
+| 変換前 (NotebookLM PDF) | 変換後 (編集可能な PPTX) |
+|:-----------------------:|:------------------------:|
+| ![Before](assets/demo-before.png) | ![After](assets/demo-after.png) |
+
+> 左：NotebookLM の元の PDF（テキストが画像に埋め込まれている）
+> 右：変換後の PPTX、クリーンな背景 + 編集可能なテキストレイヤー
+
 ## 機能
 
 - **AI テキスト削除**：Gemini 2.5 Flash を使用して画像からテキストを自動的に削除し、背景を再構築
