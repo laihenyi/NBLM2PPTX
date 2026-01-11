@@ -11,6 +11,16 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 
 ## Demo
 
+### v1.1 - Hybrid Text Extraction
+
+| Original (NotebookLM PDF) | Output (Editable PPTX) |
+|:-------------------------:|:----------------------:|
+| <img src="assets/demo-v1.1-original.png" width="400"> | <img src="assets/demo-v1.1-output.png" width="400"> |
+
+> PDF.js native text extraction provides precise text positioning without additional API calls.
+
+### v1.0 - AI Text Removal
+
 | Before (NotebookLM PDF) | After (Editable PPTX) |
 |:-----------------------:|:---------------------:|
 | <img src="assets/demo-after.png" width="400"> | <img src="assets/demo-before.png" width="400"> |

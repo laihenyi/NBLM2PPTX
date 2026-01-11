@@ -11,6 +11,16 @@
 
 ## 演示
 
+### v1.1 - 混合文字提取
+
+| 原始 (NotebookLM PDF) | 输出 (可编辑 PPTX) |
+|:---------------------:|:------------------:|
+| <img src="assets/demo-v1.1-original.png" width="400"> | <img src="assets/demo-v1.1-output.png" width="400"> |
+
+> PDF.js 原生文字提取提供精确的文字定位，无需额外 API 调用。
+
+### v1.0 - AI 智能去字
+
 | 转换前 (NotebookLM PDF) | 转换后 (可编辑 PPTX) |
 |:-----------------------:|:--------------------:|
 | <img src="assets/demo-after.png" width="400"> | <img src="assets/demo-before.png" width="400"> |

@@ -11,6 +11,16 @@ Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **image
 
 ## Démonstration
 
+### v1.1 - Extraction de Texte Hybride
+
+| Original (NotebookLM PDF) | Sortie (PPTX Éditable) |
+|:-------------------------:|:----------------------:|
+| <img src="assets/demo-v1.1-original.png" width="400"> | <img src="assets/demo-v1.1-output.png" width="400"> |
+
+> L'extraction native de texte PDF.js fournit un positionnement précis du texte sans appels API supplémentaires.
+
+### v1.0 - Suppression de Texte par IA
+
 | Avant (NotebookLM PDF) | Après (PPTX Éditable) |
 |:----------------------:|:---------------------:|
 | <img src="assets/demo-after.png" width="400"> | <img src="assets/demo-before.png" width="400"> |

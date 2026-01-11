@@ -11,6 +11,16 @@ NotebookLM からエクスポートした PDF を**背景画像とテキスト�
 
 ## デモ
 
+### v1.1 - ハイブリッドテキスト抽出
+
+| 原本 (NotebookLM PDF) | 出力 (編集可能な PPTX) |
+|:---------------------:|:----------------------:|
+| <img src="assets/demo-v1.1-original.png" width="400"> | <img src="assets/demo-v1.1-output.png" width="400"> |
+
+> PDF.js ネイティブテキスト抽出により、追加の API 呼び出しなしで正確なテキスト配置を提供します。
+
+### v1.0 - AI テキスト削除
+
 | 変換前 (NotebookLM PDF) | 変換後 (編集可能な PPTX) |
 |:-----------------------:|:------------------------:|
 | <img src="assets/demo-after.png" width="400"> | <img src="assets/demo-before.png" width="400"> |
