@@ -85,6 +85,8 @@ const apiKey = "YOUR_GEMINI_API_KEY";
 - Progress is displayed in real-time
 - Each page takes approximately 3-5 seconds (including API latency)
 
+> **Note**: Gemini text removal may sometimes be incomplete. If you notice excessive text residue, you can try processing again.
+
 ### Step 4: Export PPTX
 - Select presentation ratio (16:9 / 9:16 / 4:3)
 - Click "Export PPTX" to download

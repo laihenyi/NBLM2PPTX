@@ -85,6 +85,8 @@ const apiKey = "VOTRE_CLE_API_GEMINI";
 - La progression est affichée en temps réel
 - Chaque page prend environ 3-5 secondes (y compris la latence API)
 
+> **Note** : La suppression de texte par Gemini peut parfois être incomplète. Si vous remarquez trop de texte résiduel, vous pouvez réessayer le traitement.
+
 ### Étape 4 : Exporter PPTX
 - Sélectionnez le ratio de présentation (16:9 / 9:16 / 4:3)
 - Cliquez sur "Exporter PPTX" pour télécharger
