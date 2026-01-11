@@ -190,89 +190,76 @@
         async function extractTextFromPdf(page, scale = 2.0) {
             const viewport = page.getViewport({ scale });
             const textContent = await page.getTextContent();
-
-            // 取得頁面原始尺寸
             const pageWidth = viewport.width;
             const pageHeight = viewport.height;
 
-            // 將文字項目轉換為標準格式
-            const textBlocks = textContent.items.map(item => {
-                // PDF.js transform: [scaleX, skewX, skewY, scaleY, translateX, translateY]
-                const tx = item.transform[4] * scale;
-                const ty = item.transform[5] * scale;
+            const textBlocks = textContent.items
+                .map(item => {
+                    const [scaleX, skewX] = item.transform;
+                    const tx = item.transform[4] * scale;
+                    const ty = item.transform[5] * scale;
+                    const fontSize = Math.sqrt(scaleX * scaleX + skewX * skewX) * scale;
 
-                // 計算字體大小（從 transform 矩陣）
-                const fontSize = Math.sqrt(
-                    item.transform[0] * item.transform[0] +
-                    item.transform[1] * item.transform[1]
-                ) * scale;
+                    // PDF 座標系 y 軸從底部開始，需要轉換
+                    const x = tx;
+                    const y = pageHeight - ty;
+                    const height = fontSize * 1.2;
 
-                // PDF 座標系 y 軸從底部開始，需要轉換
-                const x = tx;
-                const y = pageHeight - ty;
+                    // 估算文字寬度（PDF.js 可能返回 0 或 undefined）
+                    const rawWidth = item.width || 0;
+                    const estimatedWidth = fontSize * item.str.length * 0.6;
+                    const width = (rawWidth > 0 ? rawWidth : estimatedWidth) * scale;
 
-                // 估算文字寬度和高度
-                // PDF.js 可能返回 0 或 undefined 的 width，使用估算值作為備用
-                const rawWidth = item.width || 0;
-                const estimatedWidth = fontSize * item.str.length * 0.6; // 估算：每字元約 0.6 倍字體大小
-                const width = (rawWidth > 0 ? rawWidth : estimatedWidth) * scale;
-                const height = fontSize * 1.2; // 行高約 1.2 倍
-
-                return {
-                    text: item.str,
-                    x: x,
-                    y: y - height, // 調整 y 到文字頂部
-                    width: width,
-                    height: height,
-                    fontSize: fontSize,
-                    fontName: item.fontName || '',
-                    // 轉換為百分比座標 (0-100)
-                    xPercent: (x / pageWidth) * 100,
-                    yPercent: ((y - height) / pageHeight) * 100,
-                    widthPercent: (width / pageWidth) * 100,
-                    heightPercent: (height / pageHeight) * 100
-                };
-            }).filter(block => block.text.trim().length > 0);
-
-            // 合併同一行的文字（x 座標相近且 y 座標相同）
-            const mergedBlocks = mergeTextBlocks(textBlocks, pageWidth, pageHeight);
+                    return {
+                        text: item.str,
+                        x,
+                        y: y - height,
+                        width,
+                        height,
+                        fontSize,
+                        fontName: item.fontName || ''
+                    };
+                })
+                .filter(block => block.text.trim().length > 0);
 
             return {
-                blocks: mergedBlocks,
+                blocks: mergeTextBlocks(textBlocks, pageWidth, pageHeight),
                 pageWidth,
                 pageHeight
             };
         }
 
         // 合併相鄰的文字區塊（同一行的文字）
-        function mergeTextBlocks(blocks, pageWidth, pageHeight) {
-            if (!blocks || blocks.length === 0) return [];
-
-            // 過濾無效區塊
-            const validBlocks = blocks.filter(b =>
+        function mergeTextBlocks(blocks) {
+            const validBlocks = (blocks || []).filter(b =>
                 b && b.text && b.text.trim() && isFinite(b.x) && isFinite(b.y)
             );
-
             if (validBlocks.length === 0) return [];
 
-            // 計算平均字體大小
             const avgFontSize = validBlocks.reduce((sum, b) => sum + (b.fontSize || 12), 0) / validBlocks.length;
+
+            function getFontSize(block) {
+                return block.fontSize || avgFontSize;
+            }
+
+            function estimateWidth(block) {
+                return block.width || getFontSize(block) * block.text.length * 0.6;
+            }
 
             // 步驟 1: 按 y 座標分組（使用字體大小的 80% 作為容差）
             const lines = [];
             const sortedBlocks = [...validBlocks].sort((a, b) => a.y - b.y);
 
-            sortedBlocks.forEach(block => {
-                const blockFontSize = block.fontSize || avgFontSize;
+            for (const block of sortedBlocks) {
                 let bestLine = null;
                 let minDiff = Infinity;
 
                 for (const line of lines) {
                     const lineAvgY = line.items.reduce((sum, item) => sum + item.y, 0) / line.items.length;
-                    const lineFontSize = line.items.reduce((sum, item) => sum + (item.fontSize || avgFontSize), 0) / line.items.length;
-                    const tolerance = Math.max(lineFontSize, blockFontSize) * 0.8;
-
+                    const lineFontSize = line.items.reduce((sum, item) => sum + getFontSize(item), 0) / line.items.length;
+                    const tolerance = Math.max(lineFontSize, getFontSize(block)) * 0.8;
                     const diff = Math.abs(lineAvgY - block.y);
+
                     if (diff < tolerance && diff < minDiff) {
                         minDiff = diff;
                         bestLine = line;
@@ -284,61 +271,49 @@
                 } else {
                     lines.push({ items: [block] });
                 }
-            });
+            }
 
             // 步驟 2: 每行內按 x 座標排序並合併相鄰文字
             const merged = [];
 
-            lines.forEach(line => {
+            for (const line of lines) {
                 line.items.sort((a, b) => a.x - b.x);
                 const lineAvgY = line.items.reduce((sum, item) => sum + item.y, 0) / line.items.length;
 
                 let current = null;
 
-                line.items.forEach(item => {
-                    const itemWidth = item.width || (item.fontSize || avgFontSize) * item.text.length * 0.6;
+                for (const item of line.items) {
+                    const itemWidth = estimateWidth(item);
 
                     if (!current) {
                         current = { ...item, width: itemWidth };
-                    } else {
-                        const currentWidth = current.width || avgFontSize;
-                        // 計算間距：允許負值（重疊）和正值
-                        const gap = item.x - (current.x + currentWidth);
-                        // 容差：字體大小的 1.5 倍（允許較大間距和輕微重疊）
-                        const gapTolerance = Math.max(current.fontSize || avgFontSize, item.fontSize || avgFontSize) * 1.5;
-
-                        // 關鍵：允許 gap 為負值（重疊）只要不超過容差
-                        if (gap < gapTolerance && gap > -gapTolerance) {
-                            // 合併文字
-                            current.text += item.text;
-                            // 更新寬度為從 current.x 到 item 結尾
-                            current.width = Math.max((item.x + itemWidth) - current.x, currentWidth);
-                            // 更新其他屬性
-                            if ((item.height || 0) > (current.height || 0)) {
-                                current.height = item.height;
-                                current.heightPercent = item.heightPercent;
-                            }
-                            if ((item.fontSize || 0) > (current.fontSize || 0)) {
-                                current.fontSize = item.fontSize;
-                            }
-                        } else {
-                            // 間距太大，視為新區塊
-                            merged.push(current);
-                            current = { ...item, width: itemWidth };
-                        }
+                        continue;
                     }
-                });
+
+                    const currentWidth = current.width || avgFontSize;
+                    const gap = item.x - (current.x + currentWidth);
+                    const gapTolerance = Math.max(getFontSize(current), getFontSize(item)) * 1.5;
+
+                    if (Math.abs(gap) < gapTolerance) {
+                        // 合併文字
+                        current.text += item.text;
+                        current.width = Math.max((item.x + itemWidth) - current.x, currentWidth);
+                        current.height = Math.max(current.height || 0, item.height || 0);
+                        current.fontSize = Math.max(current.fontSize || 0, item.fontSize || 0);
+                    } else {
+                        // 間距太大，視為新區塊
+                        merged.push(current);
+                        current = { ...item, width: itemWidth };
+                    }
+                }
 
                 if (current) {
                     current.y = lineAvgY;
                     merged.push(current);
                 }
-            });
+            }
 
-            // 步驟 3: 按 y 座標排序結果
-            merged.sort((a, b) => a.y - b.y);
-
-            return merged;
+            return merged.sort((a, b) => a.y - b.y);
         }
 
         async function fetchWithRetry(url, options, maxRetries = 5) {
