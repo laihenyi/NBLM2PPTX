@@ -75,6 +75,8 @@ const apiKey = "TU_GEMINI_API_KEY";
 - También soporta formatos de imagen JPG, PNG, WebP
 - Se pueden subir múltiples archivos a la vez
 
+> **Consejo**: Los PDFs exportados de NotebookLM pueden ser bastante grandes. Puede usar servicios gratuitos de compresión de PDF para reducir el tamaño del archivo antes de subir, lo que mejorará mucho la eficiencia.
+
 ### Paso 2: Seleccionar Páginas
 - El sistema genera automáticamente miniaturas de todas las páginas
 - Marca las páginas que deseas procesar (todas seleccionadas por defecto)

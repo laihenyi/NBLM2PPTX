@@ -75,6 +75,8 @@ const apiKey = "YOUR_GEMINI_API_KEY";
 - Also supports JPG, PNG, WebP and other image formats
 - Multiple files can be uploaded at once
 
+> **Tip**: NotebookLM exported PDFs can be quite large. You can use free PDF compression services to reduce file size before uploading for much better efficiency.
+
 ### Step 2: Select Pages
 - System automatically generates thumbnails for all pages
 - Check the pages you want to process (all selected by default)

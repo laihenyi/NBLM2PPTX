@@ -75,6 +75,8 @@ const apiKey = "VOTRE_CLE_API_GEMINI";
 - Prend également en charge les formats d'image JPG, PNG, WebP
 - Plusieurs fichiers peuvent être téléchargés à la fois
 
+> **Conseil** : Les PDF exportés de NotebookLM peuvent être assez volumineux. Vous pouvez utiliser des services gratuits de compression PDF pour réduire la taille du fichier avant de télécharger, ce qui améliorera considérablement l'efficacité.
+
 ### Étape 2 : Sélectionner les Pages
 - Le système génère automatiquement des miniatures pour toutes les pages
 - Cochez les pages que vous souhaitez traiter (toutes sélectionnées par défaut)
