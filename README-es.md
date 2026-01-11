@@ -21,7 +21,7 @@ Convierte PDFs exportados de NotebookLM en presentaciones PPTX con **imágenes d
 ## Características
 
 - **Eliminación de Texto con IA**: Usa Gemini 2.5 Flash para eliminar automáticamente el texto de las imágenes y reconstruir los fondos
-- **Posicionamiento de Texto OCR**: Reconoce con precisión las posiciones, tamaños y colores del texto original
+- **Extracción de Texto Híbrida**: Fuentes PDF usan extracción nativa de PDF.js para coordenadas precisas; fuentes de imagen usan Gemini OCR mejorado
 - **Capas Separadas**: El PPTX exportado contiene imágenes de fondo y texto como capas independientes para facilitar la edición
 - **Procesamiento por Lotes**: Soporta el procesamiento de múltiples páginas PDF o imágenes a la vez
 - **Selección de Páginas**: Selecciona libremente qué páginas procesar, ahorrando tiempo y cuota de API
@@ -78,7 +78,9 @@ const apiKey = "TU_GEMINI_API_KEY";
 ### Paso 4: Exportar PPTX
 - Selecciona la proporción de la presentación (16:9 / 9:16 / 4:3)
 - Haz clic en "Exportar PPTX" para descargar
-- El OCR se ejecuta nuevamente durante la exportación para posicionar el texto con precisión
+- El posicionamiento de texto usa estrategia híbrida:
+  - **Fuentes PDF**: Usa coordenadas pre-extraídas de PDF.js (instantáneo, sin llamada API)
+  - **Fuentes de imagen**: Usa Gemini OCR con detección de estilo mejorada
 
 ## Estructura de Salida
 
@@ -104,14 +106,16 @@ Esta estructura en capas te permite:
 | Generación PPTX | PptxGenJS 3.12.0 |
 | Resolución de Renderizado | Miniatura 0.5x / Procesamiento 2.0x |
 | Formatos Soportados | PDF, JPG, PNG, WebP, BMP |
+| Extracción de Texto | Híbrido: PDF.js nativo (PDF) / Gemini OCR (Imágenes) |
 
 ## Notas
 
-1. **Cuota de API**: Cada llamada de procesamiento usa Gemini API; monitorea tu uso si ejecutas fuera de Canvas
+1. **Cuota de API**: Eliminación de texto usa Gemini API; extracción de texto PDF es procesamiento local (sin costo API)
 2. **Límite de Velocidad**: El sistema espera automáticamente y reintenta en errores 429
 3. **Tiempo de Procesamiento**: Para grandes cantidades de páginas, considera procesar en lotes
 4. **Red**: Requiere conexión a internet estable
 5. **Navegador**: Se recomienda Chrome o Edge (última versión)
+6. **Ventaja PDF**: Fuentes PDF exportan más rápido con posicionamiento de texto más preciso
 
 ## Preguntas Frecuentes
 

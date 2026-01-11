@@ -186,6 +186,161 @@
 
         const wait = (ms) => new Promise(res => setTimeout(res, ms));
 
+        // PDF.js 直接提取文字資訊（比 OCR 更準確）
+        async function extractTextFromPdf(page, scale = 2.0) {
+            const viewport = page.getViewport({ scale });
+            const textContent = await page.getTextContent();
+
+            // 取得頁面原始尺寸
+            const pageWidth = viewport.width;
+            const pageHeight = viewport.height;
+
+            // 將文字項目轉換為標準格式
+            const textBlocks = textContent.items.map(item => {
+                // PDF.js transform: [scaleX, skewX, skewY, scaleY, translateX, translateY]
+                const tx = item.transform[4] * scale;
+                const ty = item.transform[5] * scale;
+
+                // 計算字體大小（從 transform 矩陣）
+                const fontSize = Math.sqrt(
+                    item.transform[0] * item.transform[0] +
+                    item.transform[1] * item.transform[1]
+                ) * scale;
+
+                // PDF 座標系 y 軸從底部開始，需要轉換
+                const x = tx;
+                const y = pageHeight - ty;
+
+                // 估算文字寬度和高度
+                // PDF.js 可能返回 0 或 undefined 的 width，使用估算值作為備用
+                const rawWidth = item.width || 0;
+                const estimatedWidth = fontSize * item.str.length * 0.6; // 估算：每字元約 0.6 倍字體大小
+                const width = (rawWidth > 0 ? rawWidth : estimatedWidth) * scale;
+                const height = fontSize * 1.2; // 行高約 1.2 倍
+
+                return {
+                    text: item.str,
+                    x: x,
+                    y: y - height, // 調整 y 到文字頂部
+                    width: width,
+                    height: height,
+                    fontSize: fontSize,
+                    fontName: item.fontName || '',
+                    // 轉換為百分比座標 (0-100)
+                    xPercent: (x / pageWidth) * 100,
+                    yPercent: ((y - height) / pageHeight) * 100,
+                    widthPercent: (width / pageWidth) * 100,
+                    heightPercent: (height / pageHeight) * 100
+                };
+            }).filter(block => block.text.trim().length > 0);
+
+            // 合併同一行的文字（x 座標相近且 y 座標相同）
+            const mergedBlocks = mergeTextBlocks(textBlocks, pageWidth, pageHeight);
+
+            return {
+                blocks: mergedBlocks,
+                pageWidth,
+                pageHeight
+            };
+        }
+
+        // 合併相鄰的文字區塊（同一行的文字）
+        function mergeTextBlocks(blocks, pageWidth, pageHeight) {
+            if (!blocks || blocks.length === 0) return [];
+
+            // 過濾無效區塊
+            const validBlocks = blocks.filter(b =>
+                b && b.text && b.text.trim() && isFinite(b.x) && isFinite(b.y)
+            );
+
+            if (validBlocks.length === 0) return [];
+
+            // 計算平均字體大小
+            const avgFontSize = validBlocks.reduce((sum, b) => sum + (b.fontSize || 12), 0) / validBlocks.length;
+
+            // 步驟 1: 按 y 座標分組（使用字體大小的 80% 作為容差）
+            const lines = [];
+            const sortedBlocks = [...validBlocks].sort((a, b) => a.y - b.y);
+
+            sortedBlocks.forEach(block => {
+                const blockFontSize = block.fontSize || avgFontSize;
+                let bestLine = null;
+                let minDiff = Infinity;
+
+                for (const line of lines) {
+                    const lineAvgY = line.items.reduce((sum, item) => sum + item.y, 0) / line.items.length;
+                    const lineFontSize = line.items.reduce((sum, item) => sum + (item.fontSize || avgFontSize), 0) / line.items.length;
+                    const tolerance = Math.max(lineFontSize, blockFontSize) * 0.8;
+
+                    const diff = Math.abs(lineAvgY - block.y);
+                    if (diff < tolerance && diff < minDiff) {
+                        minDiff = diff;
+                        bestLine = line;
+                    }
+                }
+
+                if (bestLine) {
+                    bestLine.items.push(block);
+                } else {
+                    lines.push({ items: [block] });
+                }
+            });
+
+            // 步驟 2: 每行內按 x 座標排序並合併相鄰文字
+            const merged = [];
+
+            lines.forEach(line => {
+                line.items.sort((a, b) => a.x - b.x);
+                const lineAvgY = line.items.reduce((sum, item) => sum + item.y, 0) / line.items.length;
+
+                let current = null;
+
+                line.items.forEach(item => {
+                    const itemWidth = item.width || (item.fontSize || avgFontSize) * item.text.length * 0.6;
+
+                    if (!current) {
+                        current = { ...item, width: itemWidth };
+                    } else {
+                        const currentWidth = current.width || avgFontSize;
+                        // 計算間距：允許負值（重疊）和正值
+                        const gap = item.x - (current.x + currentWidth);
+                        // 容差：字體大小的 1.5 倍（允許較大間距和輕微重疊）
+                        const gapTolerance = Math.max(current.fontSize || avgFontSize, item.fontSize || avgFontSize) * 1.5;
+
+                        // 關鍵：允許 gap 為負值（重疊）只要不超過容差
+                        if (gap < gapTolerance && gap > -gapTolerance) {
+                            // 合併文字
+                            current.text += item.text;
+                            // 更新寬度為從 current.x 到 item 結尾
+                            current.width = Math.max((item.x + itemWidth) - current.x, currentWidth);
+                            // 更新其他屬性
+                            if ((item.height || 0) > (current.height || 0)) {
+                                current.height = item.height;
+                                current.heightPercent = item.heightPercent;
+                            }
+                            if ((item.fontSize || 0) > (current.fontSize || 0)) {
+                                current.fontSize = item.fontSize;
+                            }
+                        } else {
+                            // 間距太大，視為新區塊
+                            merged.push(current);
+                            current = { ...item, width: itemWidth };
+                        }
+                    }
+                });
+
+                if (current) {
+                    current.y = lineAvgY;
+                    merged.push(current);
+                }
+            });
+
+            // 步驟 3: 按 y 座標排序結果
+            merged.sort((a, b) => a.y - b.y);
+
+            return merged;
+        }
+
         async function fetchWithRetry(url, options, maxRetries = 5) {
             const delays = [2000, 4000, 8000, 16000, 32000];
             for (let i = 0; i < maxRetries; i++) {
@@ -380,7 +535,8 @@
                 progressCount.textContent = `${i + 1}/${items.length}`;
                 progressBar.style.width = `${((i + 1) / items.length) * 100}%`;
 
-                // 如果是 PDF，這裡才進行高清渲染 (Scale 2.0)
+                // 如果是 PDF，這裡才進行高清渲染 (Scale 2.0) 並提取原始文字
+                let pdfTextData = null;
                 if (item.type === 'pdf') {
                     progressDetail.textContent = "正在生成高解析影像...";
                     try {
@@ -392,6 +548,10 @@
                         canvas.width = viewport.width;
                         await page.render({ canvasContext: ctx, viewport }).promise;
                         processBase64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+
+                        // 提取 PDF 原始文字資訊（比 OCR 更準確）
+                        progressDetail.textContent = "正在提取原始文字座標...";
+                        pdfTextData = await extractTextFromPdf(page, 2.0);
                     } catch (e) {
                         console.error("Re-render error", e);
                         // 若失敗則降級使用縮圖
@@ -404,13 +564,26 @@
 
                 try {
                     const cleaned = await removeTextWithGemini(processBase64);
-                    results.push({ name: item.name, original: processBase64, cleaned });
+                    results.push({
+                        name: item.name,
+                        original: processBase64,
+                        cleaned,
+                        sourceType: item.type, // 'pdf' 或 'image'
+                        pdfTextData: pdfTextData // PDF 來源的精確文字資訊（圖片為 null）
+                    });
                     addResultCard(i, item.name, cleaned);
                 } catch (e) {
                     console.error(e);
                     const isAuthError = e.message.includes("400") || e.message.includes("403") || e.message.includes("key");
                     const errMsg = isAuthError ? "API Key 無效或環境異常" : e.message;
-                    results.push({ name: item.name, original: processBase64, cleaned: null, error: errMsg });
+                    results.push({
+                        name: item.name,
+                        original: processBase64,
+                        cleaned: null,
+                        error: errMsg,
+                        sourceType: item.type,
+                        pdfTextData: pdfTextData
+                    });
                     addResultCard(i, item.name, null, errMsg);
                 }
 
@@ -456,7 +629,20 @@
             const payload = {
                 contents: [{
                     parts: [
-                        { text: "Extract text blocks with positions [ymin, xmin, ymax, xmax] (0-1000). Return JSON array." },
+                        {
+                            text: `Analyze this image and extract all text blocks with precise positioning and styling.
+For each text block, provide:
+- text: the exact text content
+- box_2d: bounding box as [ymin, xmin, ymax, xmax] in 0-1000 coordinate system
+- font_size_pt: estimated font size in points (typical range: 8-72)
+- font_weight: "normal" or "bold"
+- font_style: "normal" or "italic"
+- text_align: "left", "center", or "right" (based on text position in its container)
+- color: hex color code like "000000" or "FFFFFF"
+- line_height: line height multiplier (typically 1.0-2.0)
+
+Return as JSON array. Be precise with bounding boxes.`
+                        },
                         { inlineData: { mimeType: "image/png", data: base64 } }
                     ]
                 }],
@@ -469,8 +655,12 @@
                             properties: {
                                 text: { type: "STRING" },
                                 box_2d: { type: "ARRAY", items: { type: "NUMBER" }, minItems: 4, maxItems: 4 },
-                                font_size: { type: "NUMBER" },
-                                color: { type: "STRING" }
+                                font_size_pt: { type: "NUMBER" },
+                                font_weight: { type: "STRING" },
+                                font_style: { type: "STRING" },
+                                text_align: { type: "STRING" },
+                                color: { type: "STRING" },
+                                line_height: { type: "NUMBER" }
                             }
                         }
                     }
@@ -513,37 +703,107 @@
 
             const btn = document.getElementById('export-combined-btn');
             btn.disabled = true;
-            btn.innerHTML = "正在辨識文字...";
+            btn.innerHTML = "正在處理文字...";
 
             try {
                 const pptx = new PptxGenJS();
                 const ratio = document.getElementById('ratio-select').value;
                 pptx.layout = ratio === '16:9' ? 'LAYOUT_WIDE' : ratio === '4:3' ? 'LAYOUT_4x3' : 'LAYOUT_WIDE';
 
+                // 取得簡報實際尺寸（英吋）
+                const slideWidth = ratio === '16:9' ? 13.333 : ratio === '4:3' ? 10 : 13.333;
+                const slideHeight = ratio === '16:9' ? 7.5 : ratio === '4:3' ? 7.5 : 7.5;
+
                 for (let i = 0; i < valid.length; i++) {
                     const r = valid[i];
-                    showToast(`辨識中 (${i+1}/${valid.length})...`);
                     const slide = pptx.addSlide();
                     slide.addImage({ data: `data:image/png;base64,${r.cleaned}`, x: 0, y: 0, w: '100%', h: '100%' });
 
                     try {
-                        const blocks = await ocrWithGemini(r.original);
-                        blocks.forEach(b => {
-                            const [ymin, xmin, ymax, xmax] = b.box_2d;
-                            slide.addText(b.text || "", {
-                                x: `${xmin/10}%`, y: `${ymin/10}%`,
-                                w: `${(xmax-xmin)/10}%`, h: `${(ymax-ymin)/10}%`,
-                                fontSize: b.font_size || 14,
-                                color: (b.color || "000000").replace("#", ""),
-                                fontFace: 'Microsoft JhengHei'
+                        // 根據來源類型選擇文字提取方式
+                        if (r.sourceType === 'pdf' && r.pdfTextData && r.pdfTextData.blocks.length > 0) {
+                            // PDF 來源：使用已提取的精確文字資訊（無需 API 調用）
+                            showToast(`使用 PDF 原始文字 (${i+1}/${valid.length})...`);
+
+                            const { blocks, pageWidth, pageHeight } = r.pdfTextData;
+                            blocks.forEach(block => {
+                                if (!block.text.trim()) return;
+
+                                // 將像素座標轉換為簡報百分比座標
+                                const xPercent = (block.x / pageWidth) * 100;
+                                const yPercent = (block.y / pageHeight) * 100;
+                                const wPercent = (block.width / pageWidth) * 100;
+                                const hPercent = (block.height / pageHeight) * 100;
+
+                                // 根據簡報尺寸計算字體大小（pt）
+                                // PDF 字體大小是相對於 2.0 scale，需要轉換為簡報實際大小
+                                const scaleFactor = (slideHeight * 72) / pageHeight; // 72 pt per inch
+                                const fontSize = Math.max(6, Math.min(72, block.fontSize * scaleFactor * 0.8));
+
+                                slide.addText(block.text, {
+                                    x: `${xPercent}%`,
+                                    y: `${yPercent}%`,
+                                    w: `${Math.max(wPercent, 5)}%`,
+                                    h: `${Math.max(hPercent, 2)}%`,
+                                    fontSize: Math.round(fontSize),
+                                    color: '000000',
+                                    fontFace: 'Microsoft JhengHei',
+                                    valign: 'top'
+                                });
                             });
-                        });
-                    } catch (e) { console.warn("OCR skip"); }
-                    if (i < valid.length - 1) await wait(3500);
+                        } else {
+                            // 圖片來源：使用增強版 Gemini OCR
+                            showToast(`AI 辨識文字中 (${i+1}/${valid.length})...`);
+
+                            const blocks = await ocrWithGemini(r.original);
+                            blocks.forEach(b => {
+                                if (!b.text || !b.text.trim()) return;
+
+                                const [ymin, xmin, ymax, xmax] = b.box_2d;
+
+                                // 構建文字樣式
+                                const textOptions = {
+                                    x: `${xmin/10}%`,
+                                    y: `${ymin/10}%`,
+                                    w: `${Math.max((xmax-xmin)/10, 5)}%`,
+                                    h: `${Math.max((ymax-ymin)/10, 2)}%`,
+                                    fontSize: b.font_size_pt || 14,
+                                    color: (b.color || "000000").replace("#", ""),
+                                    fontFace: 'Microsoft JhengHei',
+                                    valign: 'top'
+                                };
+
+                                // 套用字重
+                                if (b.font_weight === 'bold') {
+                                    textOptions.bold = true;
+                                }
+
+                                // 套用斜體
+                                if (b.font_style === 'italic') {
+                                    textOptions.italic = true;
+                                }
+
+                                // 套用對齊
+                                if (b.text_align) {
+                                    textOptions.align = b.text_align;
+                                }
+
+                                slide.addText(b.text, textOptions);
+                            });
+
+                            // 圖片來源需要等待 API 冷卻
+                            if (i < valid.length - 1) await wait(3500);
+                        }
+                    } catch (e) {
+                        console.warn("Text extraction failed for slide", i, e);
+                    }
                 }
                 pptx.writeFile({ fileName: `Result_${Date.now()}.pptx` });
                 showToast('導出成功');
-            } catch (e) { showToast("導出失敗", true); }
+            } catch (e) {
+                console.error("Export error", e);
+                showToast("導出失敗: " + e.message, true);
+            }
             btn.disabled = false;
             btn.innerHTML = "合併 PPTX ⭐";
         };

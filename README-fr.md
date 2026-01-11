@@ -21,7 +21,7 @@ Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **image
 ## Fonctionnalités
 
 - **Suppression de Texte par IA** : Utilise Gemini 2.5 Flash pour supprimer automatiquement le texte des images et reconstruire les arrière-plans
-- **Positionnement de Texte OCR** : Reconnaît avec précision les positions, tailles et couleurs du texte original
+- **Extraction de Texte Hybride** : Les sources PDF utilisent l'extraction native PDF.js pour des coordonnées précises ; les sources d'images utilisent Gemini OCR amélioré
 - **Couches Séparées** : Le PPTX exporté contient les images d'arrière-plan et le texte comme couches indépendantes pour faciliter l'édition
 - **Traitement par Lots** : Prend en charge le traitement de plusieurs pages PDF ou images à la fois
 - **Sélection de Pages** : Sélectionnez librement les pages à traiter, économisant temps et quota API
@@ -78,7 +78,9 @@ const apiKey = "VOTRE_CLE_API_GEMINI";
 ### Étape 4 : Exporter PPTX
 - Sélectionnez le ratio de présentation (16:9 / 9:16 / 4:3)
 - Cliquez sur "Exporter PPTX" pour télécharger
-- L'OCR est exécuté à nouveau pendant l'exportation pour positionner le texte avec précision
+- Le positionnement du texte utilise une stratégie hybride :
+  - **Sources PDF** : Utilise les coordonnées pré-extraites de PDF.js (instantané, sans appel API)
+  - **Sources d'images** : Utilise Gemini OCR avec détection de style améliorée
 
 ## Structure de Sortie
 
@@ -104,14 +106,16 @@ Cette structure en couches vous permet de :
 | Génération PPTX | PptxGenJS 3.12.0 |
 | Résolution de Rendu | Miniature 0.5x / Traitement 2.0x |
 | Formats Supportés | PDF, JPG, PNG, WebP, BMP |
+| Extraction de Texte | Hybride : PDF.js natif (PDF) / Gemini OCR (Images) |
 
 ## Notes
 
-1. **Quota API** : Chaque appel de traitement utilise l'API Gemini ; surveillez votre utilisation si vous exécutez en dehors de Canvas
+1. **Quota API** : La suppression de texte utilise l'API Gemini ; l'extraction de texte PDF est un traitement local (sans coût API)
 2. **Limite de Débit** : Le système attend automatiquement et réessaie sur les erreurs 429
 3. **Temps de Traitement** : Pour de grandes quantités de pages, envisagez le traitement par lots
 4. **Réseau** : Nécessite une connexion internet stable
 5. **Navigateur** : Chrome ou Edge (dernière version) recommandé
+6. **Avantage PDF** : Les sources PDF s'exportent plus rapidement avec un positionnement de texte plus précis
 
 ## FAQ
 

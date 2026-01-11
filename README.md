@@ -21,7 +21,7 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 ## Features
 
 - **AI Text Removal**: Uses Gemini 2.5 Flash to automatically remove text from images and reconstruct backgrounds
-- **OCR Text Positioning**: Accurately recognizes original text positions, sizes, and colors
+- **Hybrid Text Extraction**: PDF sources use native PDF.js extraction for precise coordinates; image sources use enhanced Gemini OCR
 - **Separated Layers**: Exported PPTX contains background images and text as independent layers for easy editing
 - **Batch Processing**: Supports processing multiple PDF pages or images at once
 - **Page Selection**: Freely select which pages to process, saving time and API quota
@@ -78,7 +78,9 @@ const apiKey = "YOUR_GEMINI_API_KEY";
 ### Step 4: Export PPTX
 - Select presentation ratio (16:9 / 9:16 / 4:3)
 - Click "Export PPTX" to download
-- OCR is performed again during export to position text accurately
+- Text positioning uses hybrid strategy:
+  - **PDF sources**: Uses pre-extracted coordinates from PDF.js (instant, no API call)
+  - **Image sources**: Uses Gemini OCR with enhanced styling detection
 
 ## Output Structure
 
@@ -104,14 +106,16 @@ This layered structure allows you to:
 | PPTX Generation | PptxGenJS 3.12.0 |
 | Render Resolution | Thumbnail 0.5x / Processing 2.0x |
 | Supported Formats | PDF, JPG, PNG, WebP, BMP |
+| Text Extraction | Hybrid: PDF.js native (PDF) / Gemini OCR (Images) |
 
 ## Notes
 
-1. **API Quota**: Each processing call uses Gemini API; monitor your usage if running outside Canvas
+1. **API Quota**: Text removal uses Gemini API; PDF text extraction is local (no API cost)
 2. **Rate Limiting**: System automatically waits and retries on 429 errors
 3. **Processing Time**: For large numbers of pages, consider processing in batches
 4. **Network**: Requires stable internet connection
 5. **Browser**: Chrome or Edge (latest version) recommended
+6. **PDF Advantage**: PDF sources export faster with more accurate text positioning
 
 ## FAQ
 
