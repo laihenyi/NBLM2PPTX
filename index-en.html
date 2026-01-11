@@ -488,7 +488,7 @@
 
         async function removeTextWithGemini(base64) {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE_EDIT}:generateContent?key=${apiKey}`;
-            const payload = { contents: [{ parts: [{ text: "Remove all text and numbers. Reconstruct background. Return only image." }, { inlineData: { mimeType: "image/png", data: base64 } }] }], generationConfig: { responseModalities: ['IMAGE'] } };
+            const payload = { contents: [{ parts: [{ text: "Erase ALL text completely. Zero readable characters remaining. Inpaint background. Return only image." }, { inlineData: { mimeType: "image/png", data: base64 } }] }], generationConfig: { responseModalities: ['IMAGE'] } };
             const data = await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
             if (!part) throw new Error(data.error?.message || i18n.apiNoImage);

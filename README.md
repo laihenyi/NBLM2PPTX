@@ -116,6 +116,7 @@ This layered structure allows you to:
 | Item | Description |
 |------|-------------|
 | AI Model | Gemini 2.5 Flash (Image Edit + Text Gen) |
+| Text Removal | Optimized prompt for complete text erasure with inpainting |
 | PDF Parsing | PDF.js 3.11.174 |
 | PPTX Generation | PptxGenJS 3.12.0 |
 | Render Resolution | Thumbnail 0.5x / Processing 2.0x |

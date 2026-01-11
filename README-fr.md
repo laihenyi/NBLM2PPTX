@@ -116,6 +116,7 @@ Cette structure en couches vous permet de :
 | Élément | Description |
 |---------|-------------|
 | Modèle IA | Gemini 2.5 Flash (Image Edit + Text Gen) |
+| Suppression de Texte | Prompt optimisé pour suppression complète avec inpainting |
 | Analyse PDF | PDF.js 3.11.174 |
 | Génération PPTX | PptxGenJS 3.12.0 |
 | Résolution de Rendu | Miniature 0.5x / Traitement 2.0x |

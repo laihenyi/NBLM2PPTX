@@ -116,6 +116,7 @@ Esta estructura en capas te permite:
 | Elemento | Descripción |
 |----------|-------------|
 | Modelo IA | Gemini 2.5 Flash (Image Edit + Text Gen) |
+| Eliminación de Texto | Prompt optimizado para eliminación completa con inpainting |
 | Análisis PDF | PDF.js 3.11.174 |
 | Generación PPTX | PptxGenJS 3.12.0 |
 | Resolución de Renderizado | Miniatura 0.5x / Procesamiento 2.0x |

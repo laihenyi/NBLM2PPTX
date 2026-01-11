@@ -116,6 +116,7 @@ const apiKey = "YOUR_GEMINI_API_KEY";
 | 項目 | 説明 |
 |------|------|
 | AI モデル | Gemini 2.5 Flash (Image Edit + Text Gen) |
+| テキスト削除 | 完全な削除と背景修復のための最適化プロンプト |
 | PDF 解析 | PDF.js 3.11.174 |
 | PPTX 生成 | PptxGenJS 3.12.0 |
 | レンダリング解像度 | サムネイル 0.5x / 処理 2.0x |
