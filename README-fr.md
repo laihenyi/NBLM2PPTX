@@ -15,7 +15,7 @@ Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **image
 
 | Original (NotebookLM PDF) | Sortie (PPTX Éditable) |
 |:-------------------------:|:----------------------:|
-| <img src="assets/demo-v1.1-original.png" width="400"> | <img src="assets/demo-v1.1-output.png" width="400"> |
+| <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-v1.1-output.jpg" width="400"> |
 
 > L'extraction native de texte PDF.js fournit un positionnement précis du texte sans appels API supplémentaires.
 

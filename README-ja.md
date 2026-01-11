@@ -15,7 +15,7 @@ NotebookLM からエクスポートした PDF を**背景画像とテキスト�
 
 | 原本 (NotebookLM PDF) | 出力 (編集可能な PPTX) |
 |:---------------------:|:----------------------:|
-| <img src="assets/demo-v1.1-original.png" width="400"> | <img src="assets/demo-v1.1-output.png" width="400"> |
+| <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-v1.1-output.jpg" width="400"> |
 
 > PDF.js ネイティブテキスト抽出により、追加の API 呼び出しなしで正確なテキスト配置を提供します。
 
