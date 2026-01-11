@@ -43,7 +43,7 @@ NotebookLM からエクスポートした PDF を**背景画像とテキスト�
 1. [Google Gemini](https://gemini.google.com/) を開く
 2. 以下のようなプロンプトを入力：
    ```
-   PDF を PPTX に変換する Web ツールを作成してください
+   そのまま実行してください。修正は不要です
    ```
 3. Gemini が **Canvas モード**に入ったら（右側にコードエディタが表示される）
 4. プロジェクトの `index-ja.html`（または好みの言語バージョン）の完全なコードを Canvas に貼り付け

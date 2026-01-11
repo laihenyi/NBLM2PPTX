@@ -43,7 +43,7 @@
 1. 打开 [Google Gemini](https://gemini.google.com/)
 2. 在对话中输入类似以下的提示：
    ```
-   帮我创建一个可以将 PDF 转换成 PPTX 的网页工具
+   直接执行，不要修改
    ```
 3. 当 Gemini 进入 **Canvas 模式**（屏幕右侧出现代码编辑区）
 4. 将本项目的 `index-zh-CN.html`（或你偏好的语言版本）完整代码粘贴到 Canvas

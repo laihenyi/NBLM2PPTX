@@ -43,7 +43,7 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 1. Open [Google Gemini](https://gemini.google.com/)
 2. Enter a prompt like:
    ```
-   Help me create a web tool to convert PDF to PPTX
+   Execute directly, do not modify
    ```
 3. When Gemini enters **Canvas mode** (code editor appears on the right side)
 4. Paste the complete code from the project's `index.html` (or your preferred language version) into Canvas

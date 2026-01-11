@@ -43,7 +43,7 @@ Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **image
 1. Ouvrez [Google Gemini](https://gemini.google.com/)
 2. Entrez une invite comme :
    ```
-   Aidez-moi à créer un outil web pour convertir PDF en PPTX
+   Exécuter directement, ne pas modifier
    ```
 3. Quand Gemini entre en **mode Canvas** (l'éditeur de code apparaît sur le côté droit)
 4. Collez le code complet du `index-fr.html` du projet (ou votre version de langue préférée) dans Canvas
