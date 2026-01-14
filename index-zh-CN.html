@@ -131,11 +131,15 @@
             analyzing: "分析中",
             generatingHD: "正在生成高解析影像...",
             aiRemoving: "AI 正在移除文字并重建背景...",
+            aiRemovingAndOcr: "AI 正在移除文字并同步识别内容...",
+            applyingTextLayer: "套用文字层 ({current}/{total})...",
+            noOcrData: "无 OCR 数据，仅导出背景图",
             unsupportedFormat: "不支持的文件格式",
             readFailed: "文件读取失败",
             apiKeyInvalid: "API Key 无效或环境异常",
             ocrFailed: "OCR 识别失败或无文字内容",
             apiNoImage: "API 未返回影像数据",
+            aiReturnedText: "AI 返回文字回应而非图像，请重试",
             rateLimit: "API 频率限制 (429)，第 {count} 次，等待 {sec} 秒...",
             warmingUp: "正在预热 API 连接...",
             processingComplete: "处理完成：{success} 成功",
@@ -459,30 +463,65 @@
                     processBase64 = item.original;
                 }
 
-                progressDetail.textContent = i18n.aiRemoving;
+                // 决定是否需要 OCR（PDF 没有文字图层时也需要）
+                const needsOcr = item.type !== 'pdf' || !pdfTextData || pdfTextData.blocks.length === 0;
+
+                // 统一处理：平行调用文字移除与 OCR（如需要）
+                progressDetail.textContent = needsOcr ? i18n.aiRemovingAndOcr : i18n.aiRemoving;
+
                 try {
-                    const cleaned = await removeTextWithGemini(processBase64);
-                    results.push({
-                        name: item.name,
-                        original: processBase64,
-                        cleaned,
-                        sourceType: item.type, // 'pdf' 或 'image'
-                        pdfTextData: pdfTextData // PDF 来源的精确文字资讯（图片为 null）
-                    });
-                    addResultCard(i, item.name, cleaned);
+                    // 准备 OCR 用的图片（PDF 用高清渲染图，图片用原图）
+                    const ocrBase64 = item.type === 'pdf' ? processBase64 : item.original;
+
+                    const [cleanedResult, ocrResult] = await Promise.allSettled([
+                        removeTextWithGemini(processBase64),
+                        needsOcr ? ocrWithGemini(ocrBase64) : Promise.resolve([])
+                    ]);
+
+                    const cleaned = cleanedResult.status === 'fulfilled' ? cleanedResult.value : null;
+                    const ocrBlocks = ocrResult.status === 'fulfilled' ? ocrResult.value : [];
+
+                    if (cleanedResult.status === 'rejected') {
+                        console.error("文字移除失败:", cleanedResult.reason);
+                    }
+                    if (ocrResult.status === 'rejected') {
+                        console.warn("OCR 失败，汇出时将跳过文字层:", ocrResult.reason);
+                    }
+
+                    // 决定文字来源：优先使用 pdfTextData，否则使用 ocrBlocks
+                    const finalPdfTextData = (pdfTextData?.blocks?.length > 0) ? pdfTextData : null;
+                    const finalOcrBlocks = finalPdfTextData ? null : ocrBlocks;
+
+                    if (cleaned) {
+                        results.push({
+                            name: item.name,
+                            original: processBase64,
+                            cleaned,
+                            sourceType: item.type,
+                            pdfTextData: finalPdfTextData,
+                            ocrBlocks: finalOcrBlocks
+                        });
+                        addResultCard(i, item.name, cleaned);
+                    } else {
+                        const isAuthError = cleanedResult.reason?.message?.includes("400") ||
+                                           cleanedResult.reason?.message?.includes("403") ||
+                                           cleanedResult.reason?.message?.includes("key");
+                        const errMsg = isAuthError ? i18n.apiKeyInvalid : (cleanedResult.reason?.message || "处理失败");
+                        results.push({
+                            name: item.name,
+                            original: processBase64,
+                            cleaned: null,
+                            error: errMsg,
+                            sourceType: item.type,
+                            pdfTextData: finalPdfTextData,
+                            ocrBlocks: finalOcrBlocks
+                        });
+                        addResultCard(i, item.name, null, errMsg);
+                    }
                 } catch (e) {
                     console.error(e);
-                    const isAuthError = e.message.includes("400") || e.message.includes("403") || e.message.includes("key");
-                    const errMsg = isAuthError ? i18n.apiKeyInvalid : e.message;
-                    results.push({
-                        name: item.name,
-                        original: processBase64,
-                        cleaned: null,
-                        error: errMsg,
-                        sourceType: item.type,
-                        pdfTextData: pdfTextData
-                    });
-                    addResultCard(i, item.name, null, errMsg);
+                    results.push({ name: item.name, original: processBase64, cleaned: null, error: e.message, sourceType: item.type, pdfTextData: null, ocrBlocks: [] });
+                    addResultCard(i, item.name, null, e.message);
                 }
                 if (i < items.length - 1) await wait(3500);
             }
@@ -506,10 +545,15 @@
 
         async function removeTextWithGemini(base64) {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE_EDIT}:generateContent?key=${apiKey}`;
-            const payload = { contents: [{ parts: [{ text: "Erase ALL text completely. Zero readable characters remaining. Inpaint background. Return only image." }, { inlineData: { mimeType: "image/png", data: base64 } }] }], generationConfig: { responseModalities: ['IMAGE'] } };
+            const payload = { contents: [{ role: "user", parts: [{ text: "Remove all text and numbers. Reconstruct background. Return only image." }, { inlineData: { mimeType: "image/png", data: base64 } }] }], generationConfig: { responseModalities: ['IMAGE', 'TEXT'] } };
             const data = await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-            if (!part) throw new Error(data.error?.message || i18n.apiNoImage);
+            if (!part) {
+                const textPart = data.candidates?.[0]?.content?.parts?.find(p => p.text);
+                if (textPart) { console.warn("API 返回文字而非图像:", textPart.text); throw new Error(i18n.aiReturnedText); }
+                console.error("API 回应结构:", JSON.stringify(data, null, 2));
+                throw new Error(data.error?.message || i18n.apiNoImage);
+            }
             return part.inlineData.data;
         }
 
@@ -631,48 +675,28 @@ Return as JSON array. Be precise with bounding boxes.`
                                     valign: 'top'
                                 });
                             });
-                        } else {
-                            // 图片来源：使用增强版 Gemini OCR
-                            showToast(`AI 识别文字中 (${i+1}/${valid.length})...`);
+                        } else if (r.ocrBlocks && r.ocrBlocks.length > 0) {
+                            // 图片来源：使用预先取得的 OCR 结果（无需再呼叫 API）
+                            showToast(i18n.applyingTextLayer.replace('{current}', i+1).replace('{total}', valid.length));
 
-                            const blocks = await ocrWithGemini(r.original);
-                            blocks.forEach(b => {
+                            r.ocrBlocks.forEach(b => {
                                 if (!b.text || !b.text.trim()) return;
-
+                                if (!b.box_2d || b.box_2d.length !== 4) return;
                                 const [ymin, xmin, ymax, xmax] = b.box_2d;
-
-                                // 构建文字样式
                                 const textOptions = {
-                                    x: `${xmin/10}%`,
-                                    y: `${ymin/10}%`,
-                                    w: `${Math.max((xmax-xmin)/10, 5)}%`,
-                                    h: `${Math.max((ymax-ymin)/10, 2)}%`,
+                                    x: `${xmin/10}%`, y: `${ymin/10}%`,
+                                    w: `${Math.max((xmax-xmin)/10, 5)}%`, h: `${Math.max((ymax-ymin)/10, 2)}%`,
                                     fontSize: b.font_size_pt || 14,
                                     color: (b.color || "000000").replace("#", ""),
-                                    fontFace: 'Microsoft YaHei',
-                                    valign: 'top'
+                                    fontFace: 'Microsoft YaHei', valign: 'top'
                                 };
-
-                                // 套用字重
-                                if (b.font_weight === 'bold') {
-                                    textOptions.bold = true;
-                                }
-
-                                // 套用斜体
-                                if (b.font_style === 'italic') {
-                                    textOptions.italic = true;
-                                }
-
-                                // 套用对齐
-                                if (b.text_align) {
-                                    textOptions.align = b.text_align;
-                                }
-
+                                if (b.font_weight === 'bold') textOptions.bold = true;
+                                if (b.font_style === 'italic') textOptions.italic = true;
+                                if (b.text_align) textOptions.align = b.text_align;
                                 slide.addText(b.text, textOptions);
                             });
-
-                            // 图片来源需要等待 API 冷却
-                            if (i < valid.length - 1) await wait(3500);
+                        } else {
+                            console.warn(`第 ${i+1} 页无 OCR 数据，仅导出背景图`);
                         }
                     } catch (e) {
                         console.warn("Text extraction failed for slide", i, e);

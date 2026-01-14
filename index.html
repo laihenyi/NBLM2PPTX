@@ -546,31 +546,75 @@
                     processBase64 = item.original;
                 }
 
-                progressDetail.textContent = "AI 正在移除文字並重建背景...";
+                // 決定是否需要 OCR（PDF 沒有文字圖層時也需要）
+                const needsOcr = item.type !== 'pdf' || !pdfTextData || pdfTextData.blocks.length === 0;
+
+                // 統一處理：平行調用文字移除與 OCR（如需要）
+                progressDetail.textContent = needsOcr
+                    ? "AI 正在移除文字並同步辨識內容..."
+                    : "AI 正在移除文字並重建背景...";
 
                 try {
-                    const cleaned = await removeTextWithGemini(processBase64);
-                    results.push({
-                        name: item.name,
-                        original: processBase64,
-                        cleaned,
-                        sourceType: item.type, // 'pdf' 或 'image'
-                        pdfTextData: pdfTextData // PDF 來源的精確文字資訊（圖片為 null）
-                    });
-                    addResultCard(i, item.name, cleaned);
+                    // 準備 OCR 用的圖片（PDF 用高清渲染圖，圖片用原圖）
+                    const ocrBase64 = item.type === 'pdf' ? processBase64 : item.original;
+
+                    const [cleanedResult, ocrResult] = await Promise.allSettled([
+                        removeTextWithGemini(processBase64),
+                        needsOcr ? ocrWithGemini(ocrBase64) : Promise.resolve([])
+                    ]);
+
+                    const cleaned = cleanedResult.status === 'fulfilled' ? cleanedResult.value : null;
+                    const ocrBlocks = ocrResult.status === 'fulfilled' ? ocrResult.value : [];
+
+                    if (cleanedResult.status === 'rejected') {
+                        console.error("文字移除失敗:", cleanedResult.reason);
+                    }
+                    if (ocrResult.status === 'rejected') {
+                        console.warn("OCR 失敗，匯出時將跳過文字層:", ocrResult.reason);
+                    }
+
+                    // 決定文字來源：優先使用 pdfTextData，否則使用 ocrBlocks
+                    const finalPdfTextData = (pdfTextData?.blocks?.length > 0) ? pdfTextData : null;
+                    const finalOcrBlocks = finalPdfTextData ? null : ocrBlocks;
+
+                    if (cleaned) {
+                        results.push({
+                            name: item.name,
+                            original: processBase64,
+                            cleaned,
+                            sourceType: item.type,
+                            pdfTextData: finalPdfTextData,
+                            ocrBlocks: finalOcrBlocks
+                        });
+                        addResultCard(i, item.name, cleaned);
+                    } else {
+                        const isAuthError = cleanedResult.reason?.message?.includes("400") ||
+                                           cleanedResult.reason?.message?.includes("403") ||
+                                           cleanedResult.reason?.message?.includes("key");
+                        const errMsg = isAuthError ? "API Key 無效或環境異常" : (cleanedResult.reason?.message || "處理失敗");
+                        results.push({
+                            name: item.name,
+                            original: processBase64,
+                            cleaned: null,
+                            error: errMsg,
+                            sourceType: item.type,
+                            pdfTextData: finalPdfTextData,
+                            ocrBlocks: finalOcrBlocks
+                        });
+                        addResultCard(i, item.name, null, errMsg);
+                    }
                 } catch (e) {
                     console.error(e);
-                    const isAuthError = e.message.includes("400") || e.message.includes("403") || e.message.includes("key");
-                    const errMsg = isAuthError ? "API Key 無效或環境異常" : e.message;
                     results.push({
                         name: item.name,
                         original: processBase64,
                         cleaned: null,
-                        error: errMsg,
+                        error: e.message,
                         sourceType: item.type,
-                        pdfTextData: pdfTextData
+                        pdfTextData: null,
+                        ocrBlocks: []
                     });
-                    addResultCard(i, item.name, null, errMsg);
+                    addResultCard(i, item.name, null, e.message);
                 }
 
                 if (i < items.length - 1) await wait(3500);
@@ -600,12 +644,13 @@
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE_EDIT}:generateContent?key=${apiKey}`;
             const payload = {
                 contents: [{
+                    role: "user",
                     parts: [
-                        { text: "Erase ALL text completely. Zero readable characters remaining. Inpaint background. Return only image." },
+                        { text: "Remove all text and numbers. Reconstruct background. Return only image." },
                         { inlineData: { mimeType: "image/png", data: base64 } }
                     ]
                 }],
-                generationConfig: { responseModalities: ['IMAGE'] }
+                generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
             };
 
             const data = await fetchWithRetry(url, {
@@ -615,7 +660,16 @@
             });
 
             const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-            if (!part) throw new Error(data.error?.message || "API 未返回影像數據");
+            if (!part) {
+                // 檢查是否返回了文字而非圖像
+                const textPart = data.candidates?.[0]?.content?.parts?.find(p => p.text);
+                if (textPart) {
+                    console.warn("API 返回文字而非圖像:", textPart.text);
+                    throw new Error("AI 返回文字回應而非圖像，請重試");
+                }
+                console.error("API 回應結構:", JSON.stringify(data, null, 2));
+                throw new Error(data.error?.message || "API 未返回影像數據");
+            }
             return part.inlineData.data;
         }
 
@@ -746,13 +800,13 @@ Return as JSON array. Be precise with bounding boxes.`
                                     valign: 'top'
                                 });
                             });
-                        } else {
-                            // 圖片來源：使用增強版 Gemini OCR
-                            showToast(`AI 辨識文字中 (${i+1}/${valid.length})...`);
+                        } else if (r.ocrBlocks && r.ocrBlocks.length > 0) {
+                            // 使用預先取得的 OCR 結果
+                            showToast(`套用文字層 (${i+1}/${valid.length})...`);
 
-                            const blocks = await ocrWithGemini(r.original);
-                            blocks.forEach(b => {
+                            r.ocrBlocks.forEach(b => {
                                 if (!b.text || !b.text.trim()) return;
+                                if (!b.box_2d || b.box_2d.length !== 4) return;
 
                                 const [ymin, xmin, ymax, xmax] = b.box_2d;
 
@@ -785,9 +839,9 @@ Return as JSON array. Be precise with bounding boxes.`
 
                                 slide.addText(b.text, textOptions);
                             });
-
-                            // 圖片來源需要等待 API 冷卻
-                            if (i < valid.length - 1) await wait(3500);
+                        } else {
+                            // 無 OCR 資料，跳過文字層
+                            console.warn(`第 ${i+1} 頁無 OCR 資料，僅匯出背景圖`);
                         }
                     } catch (e) {
                         console.warn("Text extraction failed for slide", i, e);

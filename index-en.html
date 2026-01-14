@@ -132,11 +132,15 @@
             generatingHD: "Generating high-resolution image...",
             extractingText: "Extracting original text coordinates...",
             aiRemoving: "AI is removing text and rebuilding background...",
+            aiRemovingAndOcr: "AI is removing text and recognizing content in parallel...",
+            applyingTextLayer: "Applying text layer ({current}/{total})...",
+            noOcrData: "No OCR data, exporting background only",
             unsupportedFormat: "Unsupported file format",
             readFailed: "File read failed",
             apiKeyInvalid: "API Key invalid or environment error",
             ocrFailed: "OCR recognition failed or no text content",
             apiNoImage: "API did not return image data",
+            aiReturnedText: "AI returned text response instead of image, please retry",
             rateLimit: "API rate limit (429), #{count}, waiting {sec} seconds...",
             warmingUp: "Warming up API connection...",
             processingComplete: "Complete: {success} succeeded",
@@ -462,30 +466,37 @@
                     processBase64 = item.original;
                 }
 
-                progressDetail.textContent = i18n.aiRemoving;
+                // Determine if OCR is needed (also needed when PDF has no text layer)
+                const needsOcr = item.type !== 'pdf' || !pdfTextData || pdfTextData.blocks.length === 0;
+                progressDetail.textContent = needsOcr ? i18n.aiRemovingAndOcr : i18n.aiRemoving;
+
                 try {
-                    const cleaned = await removeTextWithGemini(processBase64);
-                    results.push({
-                        name: item.name,
-                        original: processBase64,
-                        cleaned,
-                        sourceType: item.type, // 'pdf' or 'image'
-                        pdfTextData: pdfTextData // Precise text info for PDF source (null for images)
-                    });
-                    addResultCard(i, item.name, cleaned);
+                    const ocrBase64 = item.type === 'pdf' ? processBase64 : item.original;
+                    const [cleanedResult, ocrResult] = await Promise.allSettled([
+                        removeTextWithGemini(processBase64),
+                        needsOcr ? ocrWithGemini(ocrBase64) : Promise.resolve([])
+                    ]);
+                    const cleaned = cleanedResult.status === 'fulfilled' ? cleanedResult.value : null;
+                    const ocrBlocks = ocrResult.status === 'fulfilled' ? ocrResult.value : [];
+                    if (cleanedResult.status === 'rejected') console.error("Text removal failed:", cleanedResult.reason);
+                    if (ocrResult.status === 'rejected') console.warn("OCR failed:", ocrResult.reason);
+
+                    const finalPdfTextData = (pdfTextData?.blocks?.length > 0) ? pdfTextData : null;
+                    const finalOcrBlocks = finalPdfTextData ? null : ocrBlocks;
+
+                    if (cleaned) {
+                        results.push({ name: item.name, original: processBase64, cleaned, sourceType: item.type, pdfTextData: finalPdfTextData, ocrBlocks: finalOcrBlocks });
+                        addResultCard(i, item.name, cleaned);
+                    } else {
+                        const isAuthError = cleanedResult.reason?.message?.includes("400") || cleanedResult.reason?.message?.includes("403") || cleanedResult.reason?.message?.includes("key");
+                        const errMsg = isAuthError ? i18n.apiKeyInvalid : (cleanedResult.reason?.message || "Processing failed");
+                        results.push({ name: item.name, original: processBase64, cleaned: null, error: errMsg, sourceType: item.type, pdfTextData: finalPdfTextData, ocrBlocks: finalOcrBlocks });
+                        addResultCard(i, item.name, null, errMsg);
+                    }
                 } catch (e) {
                     console.error(e);
-                    const isAuthError = e.message.includes("400") || e.message.includes("403") || e.message.includes("key");
-                    const errMsg = isAuthError ? i18n.apiKeyInvalid : e.message;
-                    results.push({
-                        name: item.name,
-                        original: processBase64,
-                        cleaned: null,
-                        error: errMsg,
-                        sourceType: item.type,
-                        pdfTextData: pdfTextData
-                    });
-                    addResultCard(i, item.name, null, errMsg);
+                    results.push({ name: item.name, original: processBase64, cleaned: null, error: e.message, sourceType: item.type, pdfTextData: null, ocrBlocks: [] });
+                    addResultCard(i, item.name, null, e.message);
                 }
                 if (i < items.length - 1) await wait(3500);
             }
@@ -511,10 +522,15 @@
 
         async function removeTextWithGemini(base64) {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE_EDIT}:generateContent?key=${apiKey}`;
-            const payload = { contents: [{ parts: [{ text: "Erase ALL text completely. Zero readable characters remaining. Inpaint background. Return only image." }, { inlineData: { mimeType: "image/png", data: base64 } }] }], generationConfig: { responseModalities: ['IMAGE'] } };
+            const payload = { contents: [{ role: "user", parts: [{ text: "Remove all text and numbers. Reconstruct background. Return only image." }, { inlineData: { mimeType: "image/png", data: base64 } }] }], generationConfig: { responseModalities: ['IMAGE', 'TEXT'] } };
             const data = await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-            if (!part) throw new Error(data.error?.message || i18n.apiNoImage);
+            if (!part) {
+                const textPart = data.candidates?.[0]?.content?.parts?.find(p => p.text);
+                if (textPart) { console.warn("API returned text instead of image:", textPart.text); throw new Error(i18n.aiReturnedText); }
+                console.error("API response structure:", JSON.stringify(data, null, 2));
+                throw new Error(data.error?.message || i18n.apiNoImage);
+            }
             return part.inlineData.data;
         }
 
@@ -636,48 +652,28 @@ Return as JSON array. Be precise with bounding boxes.`
                                     valign: 'top'
                                 });
                             });
-                        } else {
-                            // Image source: use enhanced Gemini OCR
-                            showToast(i18n.recognizing.replace('{current}', i+1).replace('{total}', valid.length));
+                        } else if (r.ocrBlocks && r.ocrBlocks.length > 0) {
+                            // Image source: use pre-fetched OCR results (no API call needed)
+                            showToast(i18n.applyingTextLayer.replace('{current}', i+1).replace('{total}', valid.length));
 
-                            const blocks = await ocrWithGemini(r.original);
-                            blocks.forEach(b => {
+                            r.ocrBlocks.forEach(b => {
                                 if (!b.text || !b.text.trim()) return;
-
+                                if (!b.box_2d || b.box_2d.length !== 4) return;
                                 const [ymin, xmin, ymax, xmax] = b.box_2d;
-
-                                // Build text style options
                                 const textOptions = {
-                                    x: `${xmin/10}%`,
-                                    y: `${ymin/10}%`,
-                                    w: `${Math.max((xmax-xmin)/10, 5)}%`,
-                                    h: `${Math.max((ymax-ymin)/10, 2)}%`,
+                                    x: `${xmin/10}%`, y: `${ymin/10}%`,
+                                    w: `${Math.max((xmax-xmin)/10, 5)}%`, h: `${Math.max((ymax-ymin)/10, 2)}%`,
                                     fontSize: b.font_size_pt || 14,
                                     color: (b.color || "000000").replace("#", ""),
-                                    fontFace: 'Arial',
-                                    valign: 'top'
+                                    fontFace: 'Arial', valign: 'top'
                                 };
-
-                                // Apply font weight
-                                if (b.font_weight === 'bold') {
-                                    textOptions.bold = true;
-                                }
-
-                                // Apply italic
-                                if (b.font_style === 'italic') {
-                                    textOptions.italic = true;
-                                }
-
-                                // Apply alignment
-                                if (b.text_align) {
-                                    textOptions.align = b.text_align;
-                                }
-
+                                if (b.font_weight === 'bold') textOptions.bold = true;
+                                if (b.font_style === 'italic') textOptions.italic = true;
+                                if (b.text_align) textOptions.align = b.text_align;
                                 slide.addText(b.text, textOptions);
                             });
-
-                            // Image source needs API cooldown
-                            if (i < valid.length - 1) await wait(3500);
+                        } else {
+                            console.warn(`Slide ${i+1} has no OCR data, exporting background only`);
                         }
                     } catch (e) {
                         console.warn("Text extraction failed for slide", i, e);
