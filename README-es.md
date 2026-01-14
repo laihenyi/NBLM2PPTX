@@ -11,13 +11,13 @@ Convierte PDFs exportados de NotebookLM en presentaciones PPTX con **imágenes d
 
 ## Demostración
 
-### v2.0.2 - Eliminación de Marca de Agua
+### v1.1 - Extracción de Texto Híbrida
 
 | Original (NotebookLM PDF) | Salida (PPTX Editable) |
 |:-------------------------:|:----------------------:|
-| <img src="assets/demo-v1.1-original.jpg" width="300"> | <img src="assets/demo-v1.1-output.jpg" width="300"> |
+| <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-v1.1-output.jpg" width="400"> |
 
-> PPTX convertido con marca de agua eliminada y capas de texto editables.
+> La extracción nativa de texto PDF.js proporciona posicionamiento preciso del texto sin llamadas API adicionales.
 
 ### v1.0 - Eliminación de Texto con IA
 
@@ -27,30 +27,6 @@ Convierte PDFs exportados de NotebookLM en presentaciones PPTX con **imágenes d
 
 > Izquierda: PDF original de NotebookLM (texto incrustado en imagen)
 > Derecha: PPTX convertido con fondo limpio + capas de texto editables
-
-## Novedades en v2.0
-
-### Aviso Importante (v2.0.1)
-
-Dado que la IA de reconocimiento de imágenes determina la calidad del resultado, **no se recomienda convertir muchas páginas a la vez**. Para obtener resultados óptimos, procese **5 páginas o menos por lote**.
-
-### Procesamiento Paralelo
-
-La eliminación de texto y el reconocimiento OCR ahora se ejecutan simultáneamente, reduciendo significativamente el tiempo de procesamiento para fuentes de imagen.
-
-### Procesamiento por Lotes con Protección de Límite de Velocidad
-
-Las páginas se procesan en lotes de 3 con un período de enfriamiento de 6 segundos entre lotes, reduciendo los errores API 429 al procesar PDFs grandes.
-
-### Respaldo OCR para PDFs
-
-Detecta automáticamente PDFs sin capa de texto extraíble (como exportaciones de NotebookLM) y recurre a OCR, garantizando la generación de capa de texto para todos los tipos de PDF.
-
-### Estabilidad Mejorada
-
-- Eliminación de texto mejorada con mejor preservación de elementos no textuales
-- Validación añadida para omitir resultados OCR inválidos
-- Manejo de errores más robusto para casos extremos
 
 ## Características
 

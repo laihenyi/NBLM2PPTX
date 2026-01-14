@@ -11,13 +11,13 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 
 ## Demo
 
-### v2.0.2 - Watermark Removal
+### v1.1 - Hybrid Text Extraction
 
 | Original (NotebookLM PDF) | Output (Editable PPTX) |
 |:-------------------------:|:----------------------:|
-| <img src="assets/demo-v1.1-original.jpg" width="300"> | <img src="assets/demo-v1.1-output.jpg" width="300"> |
+| <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-v1.1-output.jpg" width="400"> |
 
-> Converted PPTX with watermark removed and editable text layers.
+> PDF.js native text extraction provides precise text positioning without additional API calls.
 
 ### v1.0 - AI Text Removal
 
@@ -27,30 +27,6 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 
 > Left: Original PDF from NotebookLM (text embedded in image)
 > Right: Converted PPTX with clean background + editable text layers
-
-## What's New in v2.0
-
-### Important Notice (v2.0.1)
-
-Since the image recognition AI determines the output quality, it is **not recommended to convert many pages at once**. For optimal results, process **5 pages or fewer per batch**.
-
-### Parallel Processing
-
-Text removal and OCR recognition now run simultaneously, significantly reducing processing time for image sources.
-
-### Batch Processing with Rate Limit Protection
-
-Pages are processed in batches of 3 with a 6-second cooling period between batches, reducing API 429 errors when processing larger PDFs.
-
-### OCR Fallback for PDFs
-
-Automatically detects PDFs without extractable text layer (like NotebookLM exports) and falls back to OCR, ensuring text layer generation for all PDF types.
-
-### Improved Stability
-
-- Enhanced text removal with better preservation of non-text elements
-- Added validation to skip invalid OCR results
-- More robust error handling for edge cases
 
 ## Features
 

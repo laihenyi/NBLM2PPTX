@@ -75,10 +75,6 @@
                         選擇要處理的頁面
                     </h2>
                     <p class="text-slate-400 text-sm mt-1 ml-10">僅勾選需要的頁面以節省時間</p>
-                    <label class="flex items-center gap-2 cursor-pointer group mt-2 ml-10">
-                        <input type="checkbox" id="remove-watermark" class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer" checked>
-                        <span class="text-sm text-slate-300 group-hover:text-blue-400 transition">移除右下角浮水印 (NotebookLM)</span>
-                    </label>
                 </div>
                 <div class="flex gap-3">
                     <button id="select-all-btn" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-sm font-bold transition">全選</button>
@@ -515,13 +511,11 @@
             resultsSection.classList.remove('hidden');
             rateLimitCount = 0; // 重置 429 計數器
 
-            // 讀取浮水印移除選項
-            const removeWatermark = document.getElementById('remove-watermark').checked;
-
-            // 批次處理設定
-            const BATCH_SIZE = 3;
-            const COOLING_PERIOD = 6000; // 批次間冷卻 6 秒
-
+            // 5 頁以上啟用 API 預熱延遲
+            if (items.length >= 5) {
+                progressDetail.textContent = "正在預熱 API 連線...";
+                await wait(2000);
+            }
 
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
@@ -548,44 +542,6 @@
                         // 提取 PDF 原始文字資訊（比 OCR 更準確）
                         progressDetail.textContent = "正在提取原始文字座標...";
                         pdfTextData = await extractTextFromPdf(page, 2.0);
-
-                        // 過濾 pdfTextData 中的浮水印文字（積極版）
-                        if (removeWatermark && pdfTextData && pdfTextData.blocks) {
-                            const { pageWidth, pageHeight } = pdfTextData;
-                            console.log('[PDF Watermark Filter] 過濾前區塊數量:', pdfTextData.blocks.length);
-                            pdfTextData.blocks = pdfTextData.blocks.filter(block => {
-                                const text = (block.text || '').toLowerCase().trim();
-                                const originalText = (block.text || '').trim();
-
-                                // 1. 全局過濾：明確的浮水印關鍵字
-                                const isWatermarkKeyword = text.includes('notebooklm') || text.includes('notebook') ||
-                                    text.includes('©') || text === 'lm' || text.endsWith(' lm') ||
-                                    text.includes('(c)') || text.includes('ⓒ') || /note.*book/i.test(text) ||
-                                    /\blm\b/.test(text) || text.includes('google');
-                                if (isWatermarkKeyword) {
-                                    console.log('[PDF Watermark Filter] 關鍵字過濾:', text);
-                                    return false;
-                                }
-
-                                // 2. 右下角區域積極過濾
-                                if (block.x !== undefined && block.y !== undefined) {
-                                    // 右下角區域：x > 60%, y > 75%，過濾短文字
-                                    if (block.x > pageWidth * 0.60 && block.y > pageHeight * 0.75) {
-                                        if (originalText.length < 20) {
-                                            console.log('[PDF Watermark Filter] 右下角短文字過濾:', text);
-                                            return false;
-                                        }
-                                    }
-                                    // 更寬鬆區域：x > 70%, y > 80%，過濾所有文字
-                                    if (block.x > pageWidth * 0.70 && block.y > pageHeight * 0.80) {
-                                        console.log('[PDF Watermark Filter] 右下角區域過濾:', text);
-                                        return false;
-                                    }
-                                }
-                                return true;
-                            });
-                            console.log('[PDF Watermark Filter] 過濾後區塊數量:', pdfTextData.blocks.length);
-                        }
                     } catch (e) {
                         console.error("Re-render error", e);
                         // 若失敗則降級使用縮圖
@@ -598,18 +554,17 @@
                 const needsOcr = item.type !== 'pdf' || !pdfTextData || pdfTextData.blocks.length === 0;
 
                 // 統一處理：平行調用文字移除與 OCR（如需要）
-                const watermarkNote = removeWatermark ? "及浮水印" : "";
                 progressDetail.textContent = needsOcr
-                    ? `AI 正在移除文字${watermarkNote}並同步辨識內容...`
-                    : `AI 正在移除文字${watermarkNote}並重建背景...`;
+                    ? "AI 正在移除文字並同步辨識內容..."
+                    : "AI 正在移除文字並重建背景...";
 
                 try {
                     // 準備 OCR 用的圖片（PDF 用高清渲染圖，圖片用原圖）
                     const ocrBase64 = item.type === 'pdf' ? processBase64 : item.original;
 
                     const [cleanedResult, ocrResult] = await Promise.allSettled([
-                        removeTextWithGemini(processBase64, removeWatermark),
-                        needsOcr ? ocrWithGemini(ocrBase64, removeWatermark) : Promise.resolve([])
+                        removeTextWithGemini(processBase64),
+                        needsOcr ? ocrWithGemini(ocrBase64) : Promise.resolve([])
                     ]);
 
                     const cleaned = cleanedResult.status === 'fulfilled' ? cleanedResult.value : null;
@@ -666,17 +621,7 @@
                     addResultCard(i, item.name, null, e.message);
                 }
 
-                // 批次處理延遲邏輯（批次內無延遲，依靠 API 處理時間作為自然間隔）
-                const isEndOfBatch = (i + 1) % BATCH_SIZE === 0;
-                const hasMoreItems = i < items.length - 1;
-
-                if (hasMoreItems && isEndOfBatch) {
-                    // 批次結束，進入冷卻期
-                    const batchNum = Math.floor((i + 1) / BATCH_SIZE);
-                    const totalBatches = Math.ceil(items.length / BATCH_SIZE);
-                    progressDetail.textContent = `批次 ${batchNum}/${totalBatches} 完成，API 冷卻中...`;
-                    await wait(COOLING_PERIOD);
-                }
+                if (i < items.length - 1) await wait(3500);
             }
 
             // 顯示處理完成摘要
@@ -699,19 +644,13 @@
             });
         }
 
-        async function removeTextWithGemini(base64, removeWatermark = false) {
+        async function removeTextWithGemini(base64) {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE_EDIT}:generateContent?key=${apiKey}`;
-
-            // 根據是否需要移除浮水印調整 prompt
-            const prompt = removeWatermark
-                ? "Remove all text, numbers, and the watermark/logo in the bottom-right corner (including any '© NotebookLM' text and icon). Reconstruct background seamlessly. Return only image."
-                : "Remove all text and numbers. Reconstruct background. Return only image.";
-
             const payload = {
                 contents: [{
                     role: "user",
                     parts: [
-                        { text: prompt },
+                        { text: "Remove all text and numbers. Reconstruct background. Return only image." },
                         { inlineData: { mimeType: "image/png", data: base64 } }
                     ]
                 }],
@@ -735,15 +674,11 @@
                 console.error("API 回應結構:", JSON.stringify(data, null, 2));
                 throw new Error(data.error?.message || "API 未返回影像數據");
             }
-
             return part.inlineData.data;
         }
 
-        async function ocrWithGemini(base64, removeWatermark = false) {
+        async function ocrWithGemini(base64) {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_TEXT_GEN}:generateContent?key=${apiKey}`;
-            const watermarkExclusion = removeWatermark
-                ? "\n\nCRITICAL EXCLUSION RULE: You MUST completely ignore and exclude ALL text in the bottom-right corner of the image. Specifically exclude: any text containing '©', 'NotebookLM', 'Notebook', 'LM', or any branding/watermark text. Do NOT include these in your results under any circumstances. Any text block with box_2d coordinates where xmax > 850 AND ymax > 900 should be excluded."
-                : "";
             const payload = {
                 contents: [{
                     parts: [
@@ -757,7 +692,7 @@ For each text block, provide:
 - font_style: "normal" or "italic"
 - text_align: "left", "center", or "right" (based on text position in its container)
 - color: hex color code like "000000" or "FFFFFF"
-- line_height: line height multiplier (typically 1.0-2.0)${watermarkExclusion}
+- line_height: line height multiplier (typically 1.0-2.0)
 
 Return as JSON array. Be precise with bounding boxes.`
                         },
@@ -795,48 +730,7 @@ Return as JSON array. Be precise with bounding boxes.`
                 throw new Error("OCR 辨識失敗或無文字內容");
             }
 
-            let ocrResults = JSON.parse(data.candidates[0].content.parts[0].text);
-
-            // 程式化過濾浮水印區域的文字（積極版）
-            if (removeWatermark && Array.isArray(ocrResults)) {
-                console.log('[Watermark Filter] 過濾前 OCR 結果數量:', ocrResults.length);
-                ocrResults = ocrResults.filter(block => {
-                    const text = (block.text || '').toLowerCase().trim();
-                    const originalText = (block.text || '').trim();
-
-                    // 1. 全局過濾：明確的浮水印關鍵字（無論位置）
-                    const isWatermarkKeyword = text.includes('notebooklm') || text.includes('notebook') ||
-                        text.includes('©') || text === 'lm' || text.endsWith(' lm') ||
-                        text.includes('(c)') || text.includes('ⓒ') || /note.*book/i.test(text) ||
-                        /\blm\b/.test(text) || text.includes('google');
-                    if (isWatermarkKeyword) {
-                        console.log('[Watermark Filter] 關鍵字過濾:', text);
-                        return false;
-                    }
-
-                    // 2. 右下角區域積極過濾：過濾所有短文字（< 20 字元）
-                    if (block.box_2d && block.box_2d.length >= 4) {
-                        const [ymin, xmin, ymax, xmax] = block.box_2d;
-                        // 右下角區域：x > 60%, y > 75%
-                        if (xmax > 600 && ymax > 750) {
-                            // 短文字直接過濾（浮水印通常是短文字）
-                            if (originalText.length < 20) {
-                                console.log('[Watermark Filter] 右下角短文字過濾:', text, block.box_2d);
-                                return false;
-                            }
-                        }
-                        // 更寬鬆的右下角區域：x > 70%, y > 80%，過濾所有文字
-                        if (xmax > 700 && ymax > 800) {
-                            console.log('[Watermark Filter] 右下角區域過濾:', text, block.box_2d);
-                            return false;
-                        }
-                    }
-                    return true;
-                });
-                console.log('[Watermark Filter] 過濾後 OCR 結果數量:', ocrResults.length);
-            }
-
-            return ocrResults;
+            return JSON.parse(data.candidates[0].content.parts[0].text);
         }
 
         function addResultCard(index, name, cleaned, error) {
