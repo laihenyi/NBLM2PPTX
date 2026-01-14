@@ -443,10 +443,6 @@
             const BATCH_SIZE = 3;
             const COOLING_PERIOD = 6000; // 批次间冷却 6 秒
 
-            if (items.length >= 5) {
-                progressDetail.textContent = i18n.warmingUp;
-                await wait(2000);
-            }
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
                 let processBase64 = item.thumb;

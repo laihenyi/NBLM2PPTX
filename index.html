@@ -522,11 +522,6 @@
             const BATCH_SIZE = 3;
             const COOLING_PERIOD = 6000; // 批次間冷卻 6 秒
 
-            // 5 頁以上啟用 API 預熱延遲
-            if (items.length >= 5) {
-                progressDetail.textContent = "正在預熱 API 連線...";
-                await wait(2000);
-            }
 
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];

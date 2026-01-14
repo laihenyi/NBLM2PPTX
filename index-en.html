@@ -446,11 +446,6 @@
             const BATCH_SIZE = 3;
             const COOLING_PERIOD = 6000; // 6 seconds cooling between batches
 
-            if (items.length >= 5) {
-                progressDetail.textContent = i18n.warmingUp;
-                await wait(2000);
-            }
-
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
                 let processBase64 = item.thumb;
