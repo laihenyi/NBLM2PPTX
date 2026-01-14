@@ -28,6 +28,30 @@ Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **image
 > Gauche : PDF original de NotebookLM (texte intégré dans l'image)
 > Droite : PPTX converti avec arrière-plan propre + couches de texte éditables
 
+## Nouveautés de la v2.0
+
+### Avis Important (v2.0.1)
+
+L'IA de reconnaissance d'images déterminant la qualité de sortie, **il n'est pas recommandé de convertir de nombreuses pages à la fois**. Pour des résultats optimaux, traitez **5 pages ou moins par lot**.
+
+### Traitement Parallèle
+
+La suppression de texte et la reconnaissance OCR s'exécutent désormais simultanément, réduisant considérablement le temps de traitement pour les sources d'images.
+
+### Traitement par Lots avec Protection contre les Limites de Débit
+
+Les pages sont traitées par lots de 3 avec une période de refroidissement de 6 secondes entre les lots, réduisant les erreurs API 429 lors du traitement de PDFs volumineux.
+
+### Repli OCR pour les PDFs
+
+Détecte automatiquement les PDFs sans couche de texte extractible (comme les exports NotebookLM) et bascule vers l'OCR, garantissant la génération de couche de texte pour tous les types de PDF.
+
+### Stabilité Améliorée
+
+- Suppression de texte améliorée avec meilleure préservation des éléments non textuels
+- Validation ajoutée pour ignorer les résultats OCR invalides
+- Gestion d'erreurs plus robuste pour les cas limites
+
 ## Fonctionnalités
 
 - **Suppression de Texte par IA** : Utilise Gemini 2.5 Flash pour supprimer automatiquement le texte des images et reconstruire les arrière-plans

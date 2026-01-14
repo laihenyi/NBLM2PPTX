@@ -28,6 +28,30 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 > Left: Original PDF from NotebookLM (text embedded in image)
 > Right: Converted PPTX with clean background + editable text layers
 
+## What's New in v2.0
+
+### Important Notice (v2.0.1)
+
+Since the image recognition AI determines the output quality, it is **not recommended to convert many pages at once**. For optimal results, process **5 pages or fewer per batch**.
+
+### Parallel Processing
+
+Text removal and OCR recognition now run simultaneously, significantly reducing processing time for image sources.
+
+### Batch Processing with Rate Limit Protection
+
+Pages are processed in batches of 3 with a 6-second cooling period between batches, reducing API 429 errors when processing larger PDFs.
+
+### OCR Fallback for PDFs
+
+Automatically detects PDFs without extractable text layer (like NotebookLM exports) and falls back to OCR, ensuring text layer generation for all PDF types.
+
+### Improved Stability
+
+- Enhanced text removal with better preservation of non-text elements
+- Added validation to skip invalid OCR results
+- More robust error handling for edge cases
+
 ## Features
 
 - **AI Text Removal**: Uses Gemini 2.5 Flash to automatically remove text from images and reconstruct backgrounds
