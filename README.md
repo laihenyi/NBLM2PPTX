@@ -15,9 +15,9 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 
 | Original (NotebookLM PDF) | Output (Editable PPTX) |
 |:-------------------------:|:----------------------:|
-| <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-v1.1-output.jpg" width="400"> |
+| <img src="assets/demo-v1.1-original.jpg" width="350"> | <img src="assets/demo-v1.1-output.jpg" width="350"> |
 
-> PDF.js native text extraction provides precise text positioning without additional API calls.
+> Converted PPTX with watermark removed and editable text layers.
 
 ### v1.0 - AI Text Removal
 

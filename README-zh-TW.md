@@ -15,9 +15,9 @@
 
 | 原始 (NotebookLM PDF) | 輸出 (可編輯 PPTX) |
 |:---------------------:|:------------------:|
-| <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-v1.1-output.jpg" width="400"> |
+| <img src="assets/demo-v1.1-original.jpg" width="350"> | <img src="assets/demo-v1.1-output.jpg" width="350"> |
 
-> PDF.js 原生文字提取提供精確的文字定位，無需額外 API 調用。
+> 轉換後的 PPTX 已移除浮水印，並保留可編輯的文字圖層。
 
 ### v1.0 - AI 智能去字
 

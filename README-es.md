@@ -15,9 +15,9 @@ Convierte PDFs exportados de NotebookLM en presentaciones PPTX con **imágenes d
 
 | Original (NotebookLM PDF) | Salida (PPTX Editable) |
 |:-------------------------:|:----------------------:|
-| <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-v1.1-output.jpg" width="400"> |
+| <img src="assets/demo-v1.1-original.jpg" width="350"> | <img src="assets/demo-v1.1-output.jpg" width="350"> |
 
-> La extracción nativa de texto PDF.js proporciona posicionamiento preciso del texto sin llamadas API adicionales.
+> PPTX convertido con marca de agua eliminada y capas de texto editables.
 
 ### v1.0 - Eliminación de Texto con IA
 
