@@ -64,6 +64,10 @@
                         Sélectionner les Pages à Traiter
                     </h2>
                     <p class="text-slate-400 text-sm mt-1 ml-10">Cochez uniquement les pages nécessaires pour gagner du temps</p>
+                    <label class="flex items-center gap-2 cursor-pointer group mt-2 ml-10">
+                        <input type="checkbox" id="remove-watermark" class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer" checked>
+                        <span class="text-sm text-slate-300 group-hover:text-blue-400 transition">Supprimer le filigrane (NotebookLM)</span>
+                    </label>
                 </div>
                 <div class="flex gap-3">
                     <button id="select-all-btn" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-sm font-bold transition">Tout Sélectionner</button>
@@ -431,6 +435,9 @@
             resultsSection.classList.remove('hidden');
             rateLimitCount = 0;
 
+            // Lire l'option de suppression du filigrane
+            const removeWatermark = document.getElementById('remove-watermark').checked;
+
             // Configuration du traitement par lots
             const BATCH_SIZE = 3;
             const COOLING_PERIOD = 6000; // Refroidissement de 6 secondes entre les lots
@@ -465,6 +472,44 @@
                         // 提取 PDF 原始文字資訊（比 OCR 更準確）
                         progressDetail.textContent = "Extraction des coordonnées du texte original...";
                         pdfTextData = await extractTextFromPdf(page, 2.0);
+
+                        // Filtrer le texte du filigrane de pdfTextData (version agressive)
+                        if (removeWatermark && pdfTextData && pdfTextData.blocks) {
+                            const { pageWidth, pageHeight } = pdfTextData;
+                            console.log('[PDF Watermark Filter] Blocs avant filtrage:', pdfTextData.blocks.length);
+                            pdfTextData.blocks = pdfTextData.blocks.filter(block => {
+                                const text = (block.text || '').toLowerCase().trim();
+                                const originalText = (block.text || '').trim();
+
+                                // 1. Filtre global: mots-clés de filigrane
+                                const isWatermarkKeyword = text.includes('notebooklm') || text.includes('notebook') ||
+                                    text.includes('©') || text === 'lm' || text.endsWith(' lm') ||
+                                    text.includes('(c)') || text.includes('ⓒ') || /note.*book/i.test(text) ||
+                                    /\blm\b/.test(text) || text.includes('google');
+                                if (isWatermarkKeyword) {
+                                    console.log('[PDF Watermark Filter] Mot-clé:', text);
+                                    return false;
+                                }
+
+                                // 2. Filtre agressif coin inférieur droit
+                                if (block.x !== undefined && block.y !== undefined) {
+                                    // Zone: x > 60%, y > 75%, filtrer texte court
+                                    if (block.x > pageWidth * 0.60 && block.y > pageHeight * 0.75) {
+                                        if (originalText.length < 20) {
+                                            console.log('[PDF Watermark Filter] Texte court inf-dr:', text);
+                                            return false;
+                                        }
+                                    }
+                                    // Zone plus large: x > 70%, y > 80%, filtrer tout
+                                    if (block.x > pageWidth * 0.70 && block.y > pageHeight * 0.80) {
+                                        console.log('[PDF Watermark Filter] Zone inf-dr:', text);
+                                        return false;
+                                    }
+                                }
+                                return true;
+                            });
+                            console.log('[PDF Watermark Filter] Blocs après filtrage:', pdfTextData.blocks.length);
+                        }
                     } catch (e) {
                         console.error("Re-render error", e);
                         // 若失敗則降級使用縮圖
@@ -477,15 +522,18 @@
                 const needsOcr = item.type !== 'pdf' || !pdfTextData || pdfTextData.blocks.length === 0;
 
                 // 統一處理：平行調用文字移除與 OCR（如需要）
-                progressDetail.textContent = needsOcr ? i18n.aiRemovingAndOcr : i18n.aiRemoving;
+                const watermarkNote = removeWatermark ? " et filigrane" : "";
+                progressDetail.textContent = needsOcr
+                    ? `IA supprime le texte${watermarkNote} et reconnaît le contenu...`
+                    : `IA supprime le texte${watermarkNote} et reconstruit l'arrière-plan...`;
 
                 try {
                     // 準備 OCR 用的圖片（PDF 用高清渲染圖，圖片用原圖）
                     const ocrBase64 = item.type === 'pdf' ? processBase64 : item.original;
 
                     const [cleanedResult, ocrResult] = await Promise.allSettled([
-                        removeTextWithGemini(processBase64),
-                        needsOcr ? ocrWithGemini(ocrBase64) : Promise.resolve([])
+                        removeTextWithGemini(processBase64, removeWatermark),
+                        needsOcr ? ocrWithGemini(ocrBase64, removeWatermark) : Promise.resolve([])
                     ]);
 
                     const cleaned = cleanedResult.status === 'fulfilled' ? cleanedResult.value : null;
@@ -563,9 +611,12 @@
             });
         }
 
-        async function removeTextWithGemini(base64) {
+        async function removeTextWithGemini(base64, removeWatermark = false) {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE_EDIT}:generateContent?key=${apiKey}`;
-            const payload = { contents: [{ role: "user", parts: [{ text: "Remove all text and numbers. Reconstruct background. Return only image." }, { inlineData: { mimeType: "image/png", data: base64 } }] }], generationConfig: { responseModalities: ['IMAGE', 'TEXT'] } };
+            const prompt = removeWatermark
+                ? "Remove all text, numbers, and the watermark/logo in the bottom-right corner (including any '© NotebookLM' text and icon). Reconstruct background seamlessly. Return only image."
+                : "Remove all text and numbers. Reconstruct background. Return only image.";
+            const payload = { contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { mimeType: "image/png", data: base64 } }] }], generationConfig: { responseModalities: ['IMAGE', 'TEXT'] } };
             const data = await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
             if (!part) {
@@ -577,8 +628,11 @@
             return part.inlineData.data;
         }
 
-        async function ocrWithGemini(base64) {
+        async function ocrWithGemini(base64, removeWatermark = false) {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_TEXT_GEN}:generateContent?key=${apiKey}`;
+            const watermarkExclusion = removeWatermark
+                ? "\n\nCRITICAL EXCLUSION RULE: You MUST completely ignore and exclude ALL text in the bottom-right corner of the image. Specifically exclude: any text containing '©', 'NotebookLM', 'Notebook', 'LM', or any branding/watermark text. Do NOT include these in your results under any circumstances. Any text block with box_2d coordinates where xmax > 850 AND ymax > 900 should be excluded."
+                : "";
             const payload = {
                 contents: [{
                     parts: [
@@ -592,7 +646,7 @@ For each text block, provide:
 - font_style: "normal" or "italic"
 - text_align: "left", "center", or "right" (based on text position in its container)
 - color: hex color code like "000000" or "FFFFFF"
-- line_height: line height multiplier (typically 1.0-2.0)
+- line_height: line height multiplier (typically 1.0-2.0)${watermarkExclusion}
 
 Return as JSON array. Be precise with bounding boxes.`
                         },
@@ -630,7 +684,48 @@ Return as JSON array. Be precise with bounding boxes.`
                 throw new Error(i18n.ocrFailed);
             }
 
-            return JSON.parse(data.candidates[0].content.parts[0].text);
+            let ocrResults = JSON.parse(data.candidates[0].content.parts[0].text);
+
+            // Filtrer par programmation le texte du filigrane (version agressive)
+            if (removeWatermark && Array.isArray(ocrResults)) {
+                console.log('[Watermark Filter] Avant filtrage:', ocrResults.length);
+                ocrResults = ocrResults.filter(block => {
+                    const text = (block.text || '').toLowerCase().trim();
+                    const originalText = (block.text || '').trim();
+
+                    // 1. Filtre global: mots-clés de filigrane (toute position)
+                    const isWatermarkKeyword = text.includes('notebooklm') || text.includes('notebook') ||
+                        text.includes('©') || text === 'lm' || text.endsWith(' lm') ||
+                        text.includes('(c)') || text.includes('ⓒ') || /note.*book/i.test(text) ||
+                        /\blm\b/.test(text) || text.includes('google');
+                    if (isWatermarkKeyword) {
+                        console.log('[Watermark Filter] Mot-clé:', text);
+                        return false;
+                    }
+
+                    // 2. Filtre agressif coin inférieur droit: filtrer texte court (< 20 chars)
+                    if (block.box_2d && block.box_2d.length >= 4) {
+                        const [ymin, xmin, ymax, xmax] = block.box_2d;
+                        // Zone inférieure droite: x > 60%, y > 75%
+                        if (xmax > 600 && ymax > 750) {
+                            // Filtrer texte court (filigrane est généralement court)
+                            if (originalText.length < 20) {
+                                console.log('[Watermark Filter] Texte court inf-dr:', text, block.box_2d);
+                                return false;
+                            }
+                        }
+                        // Zone plus large: x > 70%, y > 80%, filtrer tout
+                        if (xmax > 700 && ymax > 800) {
+                            console.log('[Watermark Filter] Zone inf-dr:', text, block.box_2d);
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+                console.log('[Watermark Filter] Après filtrage:', ocrResults.length);
+            }
+
+            return ocrResults;
         }
 
         function addResultCard(index, name, cleaned, error) {
