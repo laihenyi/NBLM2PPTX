@@ -11,7 +11,7 @@ Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **image
 
 ## Démonstration
 
-### v1.1 - Extraction de Texte Hybride
+### v2.0.2 - Suppression du Filigrane
 
 | Original (NotebookLM PDF) | Sortie (PPTX Éditable) |
 |:-------------------------:|:----------------------:|

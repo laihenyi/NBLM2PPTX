@@ -11,7 +11,7 @@ Convierte PDFs exportados de NotebookLM en presentaciones PPTX con **imágenes d
 
 ## Demostración
 
-### v1.1 - Extracción de Texto Híbrida
+### v2.0.2 - Eliminación de Marca de Agua
 
 | Original (NotebookLM PDF) | Salida (PPTX Editable) |
 |:-------------------------:|:----------------------:|
