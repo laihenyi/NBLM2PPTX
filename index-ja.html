@@ -431,6 +431,10 @@
             resultsSection.classList.remove('hidden');
             rateLimitCount = 0;
 
+            // バッチ処理設定
+            const BATCH_SIZE = 3;
+            const COOLING_PERIOD = 6000; // バッチ間クールダウン 6 秒
+
             if (items.length >= 5) {
                 progressDetail.textContent = i18n.warmingUp;
                 await wait(2000);
@@ -529,7 +533,17 @@
                     results.push({ name: item.name, original: processBase64, cleaned: null, error: e.message, sourceType: item.type, pdfTextData: null, ocrBlocks: [] });
                     addResultCard(i, item.name, null, e.message);
                 }
-                if (i < items.length - 1) await wait(3500);
+                // バッチ処理遅延ロジック（バッチ内遅延なし、API処理時間を自然な間隔として利用）
+                const isEndOfBatch = (i + 1) % BATCH_SIZE === 0;
+                const hasMoreItems = i < items.length - 1;
+
+                if (hasMoreItems && isEndOfBatch) {
+                    // バッチ終了、クールダウン開始
+                    const batchNum = Math.floor((i + 1) / BATCH_SIZE);
+                    const totalBatches = Math.ceil(items.length / BATCH_SIZE);
+                    progressDetail.textContent = `バッチ ${batchNum}/${totalBatches} 完了、APIクールダウン中...`;
+                    await wait(COOLING_PERIOD);
+                }
             }
 
             const successCount = results.filter(r => r.cleaned).length;

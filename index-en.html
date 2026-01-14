@@ -433,6 +433,10 @@
             resultsSection.classList.remove('hidden');
             rateLimitCount = 0;
 
+            // Batch processing settings
+            const BATCH_SIZE = 3;
+            const COOLING_PERIOD = 6000; // 6 seconds cooling between batches
+
             if (items.length >= 5) {
                 progressDetail.textContent = i18n.warmingUp;
                 await wait(2000);
@@ -502,7 +506,17 @@
                     results.push({ name: item.name, original: processBase64, cleaned: null, error: e.message, sourceType: item.type, pdfTextData: null, ocrBlocks: [] });
                     addResultCard(i, item.name, null, e.message);
                 }
-                if (i < items.length - 1) await wait(3500);
+                // Batch processing delay logic (no in-batch delay, API processing time serves as natural interval)
+                const isEndOfBatch = (i + 1) % BATCH_SIZE === 0;
+                const hasMoreItems = i < items.length - 1;
+
+                if (hasMoreItems && isEndOfBatch) {
+                    // End of batch, enter cooling period
+                    const batchNum = Math.floor((i + 1) / BATCH_SIZE);
+                    const totalBatches = Math.ceil(items.length / BATCH_SIZE);
+                    progressDetail.textContent = `Batch ${batchNum}/${totalBatches} complete, API cooling...`;
+                    await wait(COOLING_PERIOD);
+                }
             }
 
             const successCount = results.filter(r => r.cleaned).length;

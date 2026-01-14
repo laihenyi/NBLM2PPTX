@@ -511,6 +511,10 @@
             resultsSection.classList.remove('hidden');
             rateLimitCount = 0; // 重置 429 計數器
 
+            // 批次處理設定
+            const BATCH_SIZE = 3;
+            const COOLING_PERIOD = 6000; // 批次間冷卻 6 秒
+
             // 5 頁以上啟用 API 預熱延遲
             if (items.length >= 5) {
                 progressDetail.textContent = "正在預熱 API 連線...";
@@ -621,7 +625,17 @@
                     addResultCard(i, item.name, null, e.message);
                 }
 
-                if (i < items.length - 1) await wait(3500);
+                // 批次處理延遲邏輯（批次內無延遲，依靠 API 處理時間作為自然間隔）
+                const isEndOfBatch = (i + 1) % BATCH_SIZE === 0;
+                const hasMoreItems = i < items.length - 1;
+
+                if (hasMoreItems && isEndOfBatch) {
+                    // 批次結束，進入冷卻期
+                    const batchNum = Math.floor((i + 1) / BATCH_SIZE);
+                    const totalBatches = Math.ceil(items.length / BATCH_SIZE);
+                    progressDetail.textContent = `批次 ${batchNum}/${totalBatches} 完成，API 冷卻中...`;
+                    await wait(COOLING_PERIOD);
+                }
             }
 
             // 顯示處理完成摘要
