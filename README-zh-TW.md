@@ -15,7 +15,7 @@
 
 | 原始 (NotebookLM PDF) | 輸出 (可編輯 PPTX) |
 |:---------------------:|:------------------:|
-| <img src="assets/demo-v1.1-original.jpg" width="350"> | <img src="assets/demo-v1.1-output.jpg" width="350"> |
+| <img src="assets/demo-v1.1-original.jpg" width="300"> | <img src="assets/demo-v1.1-output.jpg" width="300"> |
 
 > 轉換後的 PPTX 已移除浮水印，並保留可編輯的文字圖層。
 

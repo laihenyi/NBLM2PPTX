@@ -15,7 +15,7 @@ Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **image
 
 | Original (NotebookLM PDF) | Sortie (PPTX Éditable) |
 |:-------------------------:|:----------------------:|
-| <img src="assets/demo-v1.1-original.jpg" width="350"> | <img src="assets/demo-v1.1-output.jpg" width="350"> |
+| <img src="assets/demo-v1.1-original.jpg" width="300"> | <img src="assets/demo-v1.1-output.jpg" width="300"> |
 
 > PPTX converti avec filigrane supprimé et couches de texte éditables.
 

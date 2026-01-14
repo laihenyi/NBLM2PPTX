@@ -15,7 +15,7 @@ NotebookLM からエクスポートした PDF を**背景画像とテキスト�
 
 | 原本 (NotebookLM PDF) | 出力 (編集可能な PPTX) |
 |:---------------------:|:----------------------:|
-| <img src="assets/demo-v1.1-original.jpg" width="350"> | <img src="assets/demo-v1.1-output.jpg" width="350"> |
+| <img src="assets/demo-v1.1-original.jpg" width="300"> | <img src="assets/demo-v1.1-output.jpg" width="300"> |
 
 > 変換後の PPTX は透かしが削除され、編集可能なテキストレイヤーを保持。
 

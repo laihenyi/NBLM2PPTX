@@ -15,7 +15,7 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 
 | Original (NotebookLM PDF) | Output (Editable PPTX) |
 |:-------------------------:|:----------------------:|
-| <img src="assets/demo-v1.1-original.jpg" width="350"> | <img src="assets/demo-v1.1-output.jpg" width="350"> |
+| <img src="assets/demo-v1.1-original.jpg" width="300"> | <img src="assets/demo-v1.1-output.jpg" width="300"> |
 
 > Converted PPTX with watermark removed and editable text layers.
 

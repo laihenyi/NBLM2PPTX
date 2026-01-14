@@ -15,7 +15,7 @@ Convierte PDFs exportados de NotebookLM en presentaciones PPTX con **imágenes d
 
 | Original (NotebookLM PDF) | Salida (PPTX Editable) |
 |:-------------------------:|:----------------------:|
-| <img src="assets/demo-v1.1-original.jpg" width="350"> | <img src="assets/demo-v1.1-output.jpg" width="350"> |
+| <img src="assets/demo-v1.1-original.jpg" width="300"> | <img src="assets/demo-v1.1-output.jpg" width="300"> |
 
 > PPTX convertido con marca de agua eliminada y capas de texto editables.
 
