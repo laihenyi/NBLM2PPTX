@@ -137,7 +137,11 @@
             apiKeyInvalid: "API Key invalid or environment error",
             ocrFailed: "OCR recognition failed or no text content",
             apiNoImage: "API did not return image data",
-            rateLimit: "API rate limit (429), waiting {sec} seconds to retry...",
+            rateLimit: "API rate limit (429), #{count}, waiting {sec} seconds...",
+            warmingUp: "Warming up API connection...",
+            processingComplete: "Complete: {success} succeeded",
+            processingFailed: ", {fail} failed",
+            rateLimitSummary: " (encountered {count} rate limits)",
             recognizing: "AI recognizing text ({current}/{total})...",
             usingPdfText: "Using PDF original text ({current}/{total})...",
             exportSuccess: "Export successful",
@@ -313,6 +317,9 @@
 
             return merged.sort((a, b) => a.y - b.y);
         }
+
+        let rateLimitCount = 0;
+
         async function fetchWithRetry(url, options, maxRetries = 5) {
             const delays = [2000, 4000, 8000, 16000, 32000];
             for (let i = 0; i < maxRetries; i++) {
@@ -321,8 +328,9 @@
                     const data = await response.json();
                     if (response.ok) return data;
                     if (response.status === 429) {
+                        rateLimitCount++;
                         const waitTime = delays[i] || 10000;
-                        showToast(i18n.rateLimit.replace('{sec}', waitTime/1000), true);
+                        showToast(i18n.rateLimit.replace('{count}', rateLimitCount).replace('{sec}', waitTime/1000), true);
                         await wait(waitTime);
                         continue;
                     }
@@ -415,6 +423,13 @@
             results = [];
             resultsGrid.innerHTML = '';
             resultsSection.classList.remove('hidden');
+            rateLimitCount = 0;
+
+            if (items.length >= 5) {
+                progressDetail.textContent = i18n.warmingUp;
+                await wait(2000);
+            }
+
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
                 let processBase64 = item.thumb;
@@ -474,6 +489,14 @@
                 }
                 if (i < items.length - 1) await wait(3500);
             }
+
+            const successCount = results.filter(r => r.cleaned).length;
+            const failCount = results.filter(r => !r.cleaned).length;
+            let summary = i18n.processingComplete.replace('{success}', successCount);
+            if (failCount > 0) summary += i18n.processingFailed.replace('{fail}', failCount);
+            if (rateLimitCount > 0) summary += i18n.rateLimitSummary.replace('{count}', rateLimitCount);
+            showToast(summary, failCount > 0 || rateLimitCount > 3);
+
             setTimeout(() => progressSection.classList.add('hidden'), 1000);
         }
 

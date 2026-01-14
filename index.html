@@ -316,6 +316,9 @@
             return merged.sort((a, b) => a.y - b.y);
         }
 
+        // 429 錯誤計數器
+        let rateLimitCount = 0;
+
         async function fetchWithRetry(url, options, maxRetries = 5) {
             const delays = [2000, 4000, 8000, 16000, 32000];
             for (let i = 0; i < maxRetries; i++) {
@@ -326,8 +329,9 @@
                     if (response.ok) return data;
 
                     if (response.status === 429) {
+                        rateLimitCount++;
                         const waitTime = delays[i] || 10000;
-                        showToast(`API 頻率限制 (429)，等待 ${waitTime/1000} 秒後重試...`, true);
+                        showToast(`API 頻率限制 (429)，第 ${rateLimitCount} 次，等待 ${waitTime/1000} 秒...`, true);
                         await wait(waitTime);
                         continue;
                     }
@@ -501,6 +505,13 @@
             results = [];
             resultsGrid.innerHTML = '';
             resultsSection.classList.remove('hidden');
+            rateLimitCount = 0; // 重置 429 計數器
+
+            // 5 頁以上啟用 API 預熱延遲
+            if (items.length >= 5) {
+                progressDetail.textContent = "正在預熱 API 連線...";
+                await wait(2000);
+            }
 
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
@@ -564,6 +575,15 @@
 
                 if (i < items.length - 1) await wait(3500);
             }
+
+            // 顯示處理完成摘要
+            const successCount = results.filter(r => r.cleaned).length;
+            const failCount = results.filter(r => !r.cleaned).length;
+            let summary = `處理完成：${successCount} 成功`;
+            if (failCount > 0) summary += `，${failCount} 失敗`;
+            if (rateLimitCount > 0) summary += `（遭遇 ${rateLimitCount} 次頻率限制）`;
+            showToast(summary, failCount > 0 || rateLimitCount > 3);
+
             setTimeout(() => progressSection.classList.add('hidden'), 1000);
         }
 

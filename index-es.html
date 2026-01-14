@@ -136,7 +136,11 @@
             apiKeyInvalid: "API Key inválida o error de entorno",
             ocrFailed: "Reconocimiento OCR fallido o sin contenido de texto",
             apiNoImage: "API no devolvió datos de imagen",
-            rateLimit: "Límite de API (429), esperando {sec} segundos para reintentar...",
+            rateLimit: "Límite de API (429), #{count}, esperando {sec} segundos...",
+            warmingUp: "Calentando conexión API...",
+            processingComplete: "Completo: {success} exitosos",
+            processingFailed: ", {fail} fallidos",
+            rateLimitSummary: " (encontró {count} límites de frecuencia)",
             recognizing: "Reconociendo ({current}/{total})...",
             exportSuccess: "Exportación exitosa",
             exportFailed: "Exportación fallida",
@@ -312,6 +316,8 @@
             return merged.sort((a, b) => a.y - b.y);
         }
 
+        let rateLimitCount = 0;
+
         async function fetchWithRetry(url, options, maxRetries = 5) {
             const delays = [2000, 4000, 8000, 16000, 32000];
             for (let i = 0; i < maxRetries; i++) {
@@ -320,8 +326,9 @@
                     const data = await response.json();
                     if (response.ok) return data;
                     if (response.status === 429) {
+                        rateLimitCount++;
                         const waitTime = delays[i] || 10000;
-                        showToast(i18n.rateLimit.replace('{sec}', waitTime/1000), true);
+                        showToast(i18n.rateLimit.replace('{count}', rateLimitCount).replace('{sec}', waitTime/1000), true);
                         await wait(waitTime);
                         continue;
                     }
@@ -414,6 +421,12 @@
             results = [];
             resultsGrid.innerHTML = '';
             resultsSection.classList.remove('hidden');
+            rateLimitCount = 0;
+
+            if (items.length >= 5) {
+                progressDetail.textContent = i18n.warmingUp;
+                await wait(2000);
+            }
 
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
@@ -477,6 +490,14 @@
 
                 if (i < items.length - 1) await wait(3500);
             }
+
+            const successCount = results.filter(r => r.cleaned).length;
+            const failCount = results.filter(r => !r.cleaned).length;
+            let summary = i18n.processingComplete.replace('{success}', successCount);
+            if (failCount > 0) summary += i18n.processingFailed.replace('{fail}', failCount);
+            if (rateLimitCount > 0) summary += i18n.rateLimitSummary.replace('{count}', rateLimitCount);
+            showToast(summary, failCount > 0 || rateLimitCount > 3);
+
             setTimeout(() => progressSection.classList.add('hidden'), 1000);
         }
 
