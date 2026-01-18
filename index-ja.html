@@ -125,8 +125,9 @@
 
     <script>
         const apiKey = "";
-        const MODEL_IMAGE_EDIT = "gemini-2.5-flash-image-preview";
-        const MODEL_TEXT_GEN = "gemini-2.5-flash-preview-09-2025";
+        // Canvas環境では安定版モデルを使用
+        const MODEL_IMAGE_EDIT = "gemini-2.5-flash-image";  // 画像生成/編集
+        const MODEL_TEXT_GEN = "gemini-2.5-flash";           // テキスト生成 (OCR)
         let pendingItems = [];
         let results = [];
 
@@ -154,7 +155,10 @@
             exportFailed: "エクスポート失敗",
             readingFiles: "ファイルを読み込み、サムネイルを生成中...",
             success: "成功",
-            failed: "失敗"
+            failed: "失敗",
+            apiKeyNotSet: "APIキーを先に設定してください（コード131行目）",
+            apiKeyInvalidCheck: "APIキーが無効です。Gemini APIキーを確認してください",
+            apiResponseError: "APIレスポンス形式エラー: {preview}..."
         };
 
         function initPdfLibrary() {
@@ -331,7 +335,23 @@
             for (let i = 0; i < maxRetries; i++) {
                 try {
                     const response = await fetch(url, options);
-                    const data = await response.json();
+                    const text = await response.text();
+
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (parseError) {
+                        const preview = text.substring(0, 200);
+                        console.error(`JSON parse failed, response: ${preview}`);
+                        if (text.includes('API key not valid') || text.includes('API_KEY_INVALID')) {
+                            throw new Error(i18n.apiKeyInvalidCheck);
+                        }
+                        if (text.includes('PERMISSION_DENIED') || text.includes('authenticate')) {
+                            throw new Error('API認証失敗、APIキーまたは環境を確認してください');
+                        }
+                        throw new Error(i18n.apiResponseError.replace('{preview}', preview));
+                    }
+
                     if (response.ok) return data;
                     if (response.status === 429) {
                         rateLimitCount++;
@@ -552,7 +572,8 @@
         }
 
         async function removeTextWithGemini(base64) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE_EDIT}:generateContent?key=${apiKey}`;
+            const baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE_EDIT}:generateContent`;
+            const url = apiKey ? `${baseUrl}?key=${apiKey}` : baseUrl;
             const payload = { contents: [{ role: "user", parts: [{ text: "Remove all text and numbers. Reconstruct background. Return only image." }, { inlineData: { mimeType: "image/png", data: base64 } }] }], generationConfig: { responseModalities: ['IMAGE', 'TEXT'] } };
             const data = await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
@@ -566,7 +587,8 @@
         }
 
         async function ocrWithGemini(base64) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_TEXT_GEN}:generateContent?key=${apiKey}`;
+            const baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_TEXT_GEN}:generateContent`;
+            const url = apiKey ? `${baseUrl}?key=${apiKey}` : baseUrl;
             const payload = {
                 contents: [{
                     parts: [
@@ -618,7 +640,14 @@ Return as JSON array. Be precise with bounding boxes.`
                 throw new Error(i18n.ocrFailed);
             }
 
-            return JSON.parse(data.candidates[0].content.parts[0].text);
+            const ocrText = data.candidates[0].content.parts[0].text;
+            try {
+                return JSON.parse(ocrText);
+            } catch (parseError) {
+                console.error('OCR JSON解析失敗:', ocrText.substring(0, 500));
+                console.warn('OCR結果を解析できません、背景のみ保持します');
+                return [];
+            }
         }
 
         function addResultCard(index, name, cleaned, error) {

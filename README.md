@@ -5,6 +5,10 @@
 [![GitHub forks](https://img.shields.io/github/forks/laihenyi/NBLM2PPTX)](https://github.com/laihenyi/NBLM2PPTX/network/members)
 [![GitHub issues](https://img.shields.io/github/issues/laihenyi/NBLM2PPTX)](https://github.com/laihenyi/NBLM2PPTX/issues)
 
+> ⚠️ **URGENT NOTICE (2026-01-18)**
+>
+> Due to recent restrictions on the Google Gemini API, this system is **temporarily unavailable**. We are actively investigating solutions and will post updates as they become available. Thank you for your patience.
+
 Convert NotebookLM exported PDFs into PPTX presentations with **separated background images and editable text layers**.
 
 [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Español](README-es.md) | [Français](README-fr.md)

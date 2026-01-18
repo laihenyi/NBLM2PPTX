@@ -5,6 +5,10 @@
 [![GitHub forks](https://img.shields.io/github/forks/laihenyi/NBLM2PPTX)](https://github.com/laihenyi/NBLM2PPTX/network/members)
 [![GitHub issues](https://img.shields.io/github/issues/laihenyi/NBLM2PPTX)](https://github.com/laihenyi/NBLM2PPTX/issues)
 
+> ⚠️ **緊急公告 (2026-01-18)**
+>
+> 由於 Google Gemini API 近期進行了相關限制，本系統**暫時無法使用**。我們正在積極尋找解決方案，如有更新將會發布新的公告。感謝您的耐心等待。
+
 將 NotebookLM 產出的 PDF 轉換成**底圖與文字分離**的 PPTX 簡報檔案。
 
 [English](README.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Español](README-es.md) | [Français](README-fr.md)
