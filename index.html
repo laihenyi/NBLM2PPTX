@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 圖片文字移除 PRO - Canvas 版</title>
+    <title>AI 圖片文字移除 PRO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
@@ -36,7 +36,7 @@
         <!-- 標題 -->
         <header class="text-center mb-12">
             <h1 class="text-4xl md:text-5xl font-black tracking-tight mb-3">
-                AI 圖片文字移除 <span class="text-blue-400">PRO</span> <span class="text-xs align-top bg-emerald-600/30 text-emerald-400 px-2 py-1 rounded-md ml-2 border border-emerald-500/30">Canvas</span>
+                AI 圖片文字移除 <span class="text-blue-400">PRO</span>
             </h1>
             <p class="text-slate-400 text-lg">上傳 PDF 或圖片 → 選擇頁面 → 自動去字 → 導出雙 PPTX</p>
             <div class="flex items-center justify-center gap-4 mt-4">
@@ -46,8 +46,11 @@
                 </span>
             </div>
             <div class="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                <span class="text-emerald-400 text-xs font-bold">v2.0</span>
-                <span class="text-slate-300 text-xs">圖片去文字與 OCR 文字辨識同步執行，處理速度提升 40%</span>
+                <span class="text-emerald-400 text-xs font-bold">v2.2</span>
+                <span class="text-slate-300 text-xs">軟重置保留 API Key + 速度優化 + IMAGE_RECITATION 修復</span>
+            </div>
+            <div id="api-key-status" class="mt-6 mx-auto max-w-2xl rounded-2xl p-4 text-sm hidden">
+                <!-- 動態顯示 API Key 狀態 -->
             </div>
         </header>
 
@@ -139,10 +142,130 @@
 
     <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-2xl shadow-2xl opacity-0 transition-all pointer-events-none z-50 text-sm font-bold border border-slate-700"></div>
 
-    <script>
-        const apiKey = "";
+    <!-- API Key 設定模態視窗 -->
+    <div id="api-key-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass rounded-3xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-black">🔑 設定 Gemini API Key</h2>
+                <button id="close-modal" class="text-slate-400 hover:text-white transition text-2xl">&times;</button>
+            </div>
 
-        // Canvas 環境使用穩定版模型
+            <div class="space-y-6">
+                <!-- 步驟說明 -->
+                <div class="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-5">
+                    <h3 class="font-bold text-blue-400 mb-3 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        為什麼需要 API Key？
+                    </h3>
+                    <p class="text-sm text-slate-300 leading-relaxed">
+                        本工具使用 Google Gemini AI 進行圖片處理。為了讓每位使用者都能享有穩定的服務品質，請使用您自己的 API Key。
+                        <strong class="text-blue-400">Google 提供免費額度</strong>，每月可處理大量圖片，完全免費！
+                    </p>
+                </div>
+
+                <!-- 申請步驟 -->
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-lg">📝 如何取得 API Key（3 步驟）</h3>
+                        <span class="text-xs text-slate-400">首次申請或找回既有的 Key</span>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex gap-4 bg-slate-700/30 rounded-xl p-4">
+                            <div class="flex-shrink-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center font-bold">1</div>
+                            <div class="flex-1">
+                                <p class="font-bold mb-1">前往 Google AI Studio</p>
+                                <a href="https://aistudio.google.com/apikey" target="_blank" class="text-blue-400 hover:text-blue-300 underline text-sm flex items-center gap-1">
+                                    https://aistudio.google.com/apikey
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                </a>
+                                <p class="text-xs text-slate-400 mt-1">使用你的 Google 帳號登入</p>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-4 bg-slate-700/30 rounded-xl p-4">
+                            <div class="flex-shrink-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center font-bold">2</div>
+                            <div class="flex-1">
+                                <p class="font-bold mb-1">取得或建立 API Key</p>
+                                <p class="text-sm text-slate-300">
+                                    • <strong>已有 Key？</strong>在列表中找到並點擊「複製」圖示<br>
+                                    • <strong>首次使用？</strong>點擊「Create API Key」建立新的
+                                </p>
+                                <p class="text-xs text-slate-400 mt-1">💡 建立時選擇「Create API key in new project」即可</p>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-4 bg-slate-700/30 rounded-xl p-4">
+                            <div class="flex-shrink-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center font-bold">3</div>
+                            <div class="flex-1">
+                                <p class="font-bold mb-1">複製並貼上 API Key</p>
+                                <p class="text-sm text-slate-300">
+                                    將您的 API Key 貼上到下方欄位，點擊「<strong class="text-blue-400">💾 儲存並開始使用</strong>」即可
+                                </p>
+                                <p class="text-xs text-emerald-400 mt-1">✓ API Key 只會儲存在您的瀏覽器中，非常安全</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Key 輸入 -->
+                <div>
+                    <label class="block text-sm font-bold mb-2">您的 API Key</label>
+                    <div class="flex gap-2">
+                        <input
+                            type="password"
+                            id="api-key-input"
+                            placeholder="貼上你的 API Key（以 AIza 開頭）"
+                            class="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition font-mono text-sm"
+                        >
+                        <button id="toggle-visibility" class="px-4 bg-slate-700 hover:bg-slate-600 rounded-xl transition" title="顯示/隱藏">
+                            👁️
+                        </button>
+                    </div>
+                    <div class="flex items-start gap-2 mt-2 text-xs">
+                        <svg class="w-4 h-4 inline text-slate-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                        <p class="text-slate-400">
+                            您的 API Key 僅儲存在本地瀏覽器，不會上傳到任何伺服器。
+                            <span class="text-blue-400 cursor-pointer hover:underline" id="show-existing-key-tip">已有 API Key 在哪找？</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 儲存按鈕 -->
+                <div class="flex gap-3 pt-4">
+                    <button id="save-api-key" class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition">
+                        💾 儲存並開始使用
+                    </button>
+                </div>
+
+                <!-- 免費額度說明 -->
+                <div class="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 text-xs text-slate-300">
+                    <p class="font-bold text-emerald-400 mb-1">✨ 免費額度說明</p>
+                    <p>Gemini API 免費方案每分鐘可處理 15 張圖片，每天 1500 張。對一般使用來說綽綽有餘！</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 調試：檢查 localStorage 可用性
+        try {
+            localStorage.setItem('test', 'test');
+            localStorage.removeItem('test');
+            console.log('✓ localStorage 可用');
+        } catch (e) {
+            console.error('❌ localStorage 不可用:', e);
+        }
+
+        // API Key 由用戶在介面中輸入，儲存在 localStorage
+        let apiKey = localStorage.getItem('gemini_api_key') || "";
+        console.log('頁面載入: 從 localStorage 讀取 API Key');
+        console.log('  - 長度:', apiKey.length);
+        console.log('  - 前8碼:', apiKey.substring(0, 8));
+        console.log('  - 是否為空:', apiKey === "");
+        console.log('  - localStorage 所有 key:', Object.keys(localStorage));
+
+        // 使用穩定版模型
         const MODEL_IMAGE_EDIT = "gemini-2.5-flash-image";  // 圖像生成/編輯
         const MODEL_TEXT_GEN = "gemini-2.5-flash";           // 文字生成 (OCR)
 
@@ -177,9 +300,127 @@
         const toast = document.getElementById('toast');
         const selectedCountSpan = document.getElementById('selected-count');
 
-        // 初始化檢查 (Window Load)
-        window.onload = () => {
-            initPdfLibrary();
+        function showApiKeyModal() {
+            const modal = document.getElementById('api-key-modal');
+            const input = document.getElementById('api-key-input');
+            if (modal) modal.classList.remove('hidden');
+            if (input) {
+                input.value = apiKey;
+                input.focus();
+            }
+        }
+
+        function hideApiKeyModal() {
+            const modal = document.getElementById('api-key-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function saveApiKey() {
+            const input = document.getElementById('api-key-input');
+            if (!input) {
+                showToast('❌ 系統錯誤：找不到輸入欄位', true);
+                console.error('saveApiKey: 找不到 api-key-input 元素');
+                return;
+            }
+
+            const newKey = input.value.trim();
+            console.log('saveApiKey: 準備儲存 API Key，長度:', newKey.length);
+
+            if (!newKey) {
+                showToast('請輸入 API Key', true);
+                return;
+            }
+            if (!newKey.startsWith('AIza')) {
+                showToast('⚠️ API Key 格式可能不正確（應以 AIza 開頭），但仍將儲存', true);
+                console.warn('saveApiKey: API Key 格式警告，但仍繼續儲存');
+            }
+
+            // 先更新全域變數
+            apiKey = newKey;
+            console.log('saveApiKey: 已更新全域變數 apiKey');
+
+            // 保存到 localStorage
+            try {
+                localStorage.setItem('gemini_api_key', apiKey);
+                console.log('saveApiKey: localStorage.setItem 執行完成');
+
+                // 立即驗證
+                const saved = localStorage.getItem('gemini_api_key');
+                console.log('saveApiKey: 立即驗證讀取');
+                console.log('  - 儲存的值長度:', saved ? saved.length : 0);
+                console.log('  - 與原值相同:', saved === apiKey);
+                console.log('  - localStorage 所有 keys:', Object.keys(localStorage));
+
+                if (saved !== apiKey) {
+                    throw new Error('localStorage 驗證失敗：讀取值與儲存值不同');
+                }
+            } catch (e) {
+                console.error('saveApiKey: localStorage 操作失敗:', e);
+                showToast('❌ 儲存失敗：' + e.message, true);
+                return;
+            }
+
+            hideApiKeyModal();
+            updateApiKeyStatus();
+            showToast('✓ API Key 已儲存！');
+        }
+
+        function updateApiKeyStatus() {
+            const statusDiv = document.getElementById('api-key-status');
+            if (!statusDiv) return;
+
+            if (apiKey && apiKey.trim() !== "") {
+                const maskedKey = apiKey.substring(0, 8) + '...' + apiKey.substring(apiKey.length - 4);
+                statusDiv.innerHTML = `
+                    <div class="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">✓</span>
+                            <div>
+                                <p class="font-bold text-emerald-400">API Key 已設定</p>
+                                <p class="text-xs text-slate-300 font-mono">${maskedKey}</p>
+                            </div>
+                        </div>
+                        <button onclick="showApiKeyModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-xl text-sm font-bold transition">
+                            更改
+                        </button>
+                    </div>
+                `;
+                statusDiv.classList.remove('hidden');
+            } else {
+                statusDiv.innerHTML = `
+                    <div class="flex items-center justify-between bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">⚠️</span>
+                            <div>
+                                <p class="font-bold text-amber-400">需要設定 API Key</p>
+                                <p class="text-xs text-slate-300">免費申請只需 3 步驟，不用信用卡</p>
+                            </div>
+                        </div>
+                        <button onclick="showApiKeyModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-sm font-bold transition">
+                            立即設定
+                        </button>
+                    </div>
+                `;
+                statusDiv.classList.remove('hidden');
+            }
+        }
+
+        // API Key 管理全域變數（事件綁定將在 window.load 時進行）
+        let isKeyVisible = false;
+
+        // 將 showApiKeyModal 設為全域函數
+        window.showApiKeyModal = showApiKeyModal;
+
+        // 調試工具：檢查 localStorage（在控制台輸入 checkApiKey() 查看）
+        window.checkApiKey = function() {
+            const stored = localStorage.getItem('gemini_api_key');
+            console.log('=== API Key 狀態檢查 ===');
+            console.log('localStorage 中的值:', stored);
+            console.log('長度:', stored ? stored.length : 0);
+            console.log('前8碼:', stored ? stored.substring(0, 8) : 'N/A');
+            console.log('當前 apiKey 變數:', apiKey);
+            console.log('兩者是否一致:', stored === apiKey);
+            return stored;
         };
 
         function showToast(msg, isError = false) {
@@ -525,16 +766,19 @@
         };
 
         async function processSelectedItems(items) {
+            // 檢查 API Key
+            if (!apiKey || apiKey.trim() === "") {
+                showToast("❌ 請先設定 API Key", true);
+                progressSection.classList.add('hidden');
+                selectionSection.classList.remove('hidden');
+                showApiKeyModal();
+                return;
+            }
+
             results = [];
             resultsGrid.innerHTML = '';
             resultsSection.classList.remove('hidden');
             rateLimitCount = 0; // 重置 429 計數器
-
-            // 5 頁以上啟用 API 預熱延遲
-            if (items.length >= 5) {
-                progressDetail.textContent = "正在預熱 API 連線...";
-                await wait(2000);
-            }
 
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
@@ -640,7 +884,8 @@
                     addResultCard(i, item.name, null, e.message);
                 }
 
-                if (i < items.length - 1) await wait(3500);
+                // 並行處理已減少總時間，1 秒間隔足夠避免頻率限制
+                if (i < items.length - 1) await wait(1000);
             }
 
             // 顯示處理完成摘要
@@ -670,11 +915,14 @@
                 contents: [{
                     role: "user",
                     parts: [
-                        { text: "Remove all text and numbers. Reconstruct background. Return only image." },
+                        { text: "Edit this image by removing all visible text and numbers while preserving the original background patterns, colors, and design elements. Use content-aware fill to seamlessly reconstruct the areas where text was removed. Return the edited image." },
                         { inlineData: { mimeType: "image/png", data: base64 } }
                     ]
                 }],
-                generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
+                generationConfig: {
+                    responseModalities: ['IMAGE'],
+                    temperature: 0.4
+                }
             };
 
             const data = await fetchWithRetry(url, {
@@ -682,6 +930,13 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+
+            // 檢查是否遇到版權限制
+            const finishReason = data.candidates?.[0]?.finishReason;
+            if (finishReason === 'IMAGE_RECITATION') {
+                console.error("IMAGE_RECITATION 錯誤:", data.candidates?.[0]?.finishMessage);
+                throw new Error("圖片處理受限：Gemini 檢測到可能的版權問題。請嘗試使用不同的圖片或調整內容。");
+            }
 
             const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
             if (!part) {
@@ -890,7 +1145,142 @@ Return as JSON array. Be precise with bounding boxes.`
             btn.innerHTML = "合併 PPTX ⭐";
         };
 
-        document.getElementById('reset-btn').onclick = () => location.reload();
+        // 軟重置：清空狀態並回到初始介面（保留 API Key）
+        function softReset() {
+            console.log('=== 執行軟重置 ===');
+            console.log('保留 API Key:', apiKey.substring(0, 8) + '...');
+
+            // 重置狀態變數
+            pendingItems = [];
+            results = [];
+            rateLimitCount = 0;
+
+            // 重置 UI - 隱藏所有區塊
+            selectionSection.classList.add('hidden');
+            progressSection.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+
+            // 顯示上傳區
+            uploadSection.classList.remove('hidden');
+
+            // 清空內容
+            selectionGrid.innerHTML = '';
+            resultsGrid.innerHTML = '';
+
+            // 重置進度條
+            progressBar.style.width = '0%';
+            progressTitle.textContent = '';
+            progressDetail.textContent = '';
+            progressCount.textContent = '';
+
+            // 清空檔案輸入（暫時移除事件監聽器以避免觸發 change 事件）
+            fileInput.onchange = null;
+            fileInput.value = '';
+            fileInput.onchange = e => handleFiles(e.target.files);
+
+            // 重置上傳區域的 HTML（恢復初始狀態）
+            dropZone.innerHTML = `
+                <input type="file" id="file-input" class="hidden" accept="application/pdf,image/*" multiple>
+                <div class="w-20 h-20 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                </div>
+                <p class="text-2xl font-bold text-white mb-2">拖放 PDF 或圖片</p>
+                <p class="text-slate-400">點擊此處選擇檔案</p>
+                <div id="lib-warning" class="mt-4 text-xs text-amber-400 hidden">警告：組件尚未就緒，請稍候...</div>
+            `;
+            dropZone.style.pointerEvents = 'auto';
+
+            // 重置選擇計數
+            selectedCountSpan.textContent = '0';
+
+            console.log('✓ 軟重置完成，API Key 保留');
+            showToast('✓ 已重置，可以開始新的處理');
+        }
+
+        document.getElementById('reset-btn').onclick = softReset;
+
+        // 頁面載入時初始化
+        window.addEventListener('load', () => {
+            // 初始化 PDF 函式庫
+            initPdfLibrary();
+
+            // 初始化 API Key 事件綁定
+            initApiKeyEvents();
+
+            // 更新狀態顯示
+            updateApiKeyStatus();
+
+            // 如果沒有 API Key，顯示設定視窗
+            if (!apiKey || apiKey.trim() === "") {
+                setTimeout(() => showApiKeyModal(), 500);
+            }
+        });
+
+        // 初始化所有 API Key 相關事件
+        function initApiKeyEvents() {
+            // 重新取得所有元素（確保 DOM 已載入）
+            const toggleBtn = document.getElementById('toggle-visibility');
+            const closeBtn = document.getElementById('close-modal');
+            const saveBtn = document.getElementById('save-api-key');
+            const keyInput = document.getElementById('api-key-input');
+            const keyModal = document.getElementById('api-key-modal');
+
+            // 切換 API Key 可見性
+            if (toggleBtn && keyInput) {
+                toggleBtn.onclick = () => {
+                    isKeyVisible = !isKeyVisible;
+                    keyInput.type = isKeyVisible ? 'text' : 'password';
+                    toggleBtn.textContent = isKeyVisible ? '🙈' : '👁️';
+                };
+            }
+
+            // 模態視窗關閉按鈕
+            if (closeBtn) {
+                closeBtn.onclick = () => {
+                    if (!apiKey || apiKey.trim() === "") {
+                        if (!confirm('尚未設定 API Key，部分功能將無法使用。確定要關閉嗎？')) {
+                            return;
+                        }
+                    }
+                    hideApiKeyModal();
+                };
+            }
+
+            // 儲存按鈕
+            if (saveBtn) {
+                saveBtn.onclick = saveApiKey;
+            }
+
+            // ESC 鍵關閉模態視窗
+            if (keyModal) {
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && !keyModal.classList.contains('hidden')) {
+                        hideApiKeyModal();
+                    }
+                });
+            }
+
+            // 監聽手動貼上事件（驗證格式）
+            if (keyInput) {
+                keyInput.addEventListener('paste', (e) => {
+                    setTimeout(() => {
+                        const value = keyInput.value.trim();
+                        if (value.startsWith('AIza')) {
+                            showToast('✓ API Key 格式正確', false);
+                        } else if (value) {
+                            showToast('⚠️ 請確認 API Key 格式（應以 AIza 開頭）', true);
+                        }
+                    }, 100);
+                });
+
+                // Enter 鍵儲存
+                keyInput.onkeypress = (e) => {
+                    if (e.key === 'Enter') saveApiKey();
+                };
+            }
+        }
     </script>
 </body>
 </html>

@@ -5,11 +5,9 @@
 [![GitHub forks](https://img.shields.io/github/forks/laihenyi/NBLM2PPTX)](https://github.com/laihenyi/NBLM2PPTX/network/members)
 [![GitHub issues](https://img.shields.io/github/issues/laihenyi/NBLM2PPTX)](https://github.com/laihenyi/NBLM2PPTX/issues)
 
-> ⚠️ **AVISO URGENTE (2026-01-18)**
->
-> Debido a restricciones recientes en la API de Google Gemini, este sistema está **temporalmente no disponible**. Estamos investigando activamente soluciones y publicaremos actualizaciones cuando estén disponibles. Gracias por su paciencia.
-
 Convierte PDFs exportados de NotebookLM en presentaciones PPTX con **imágenes de fondo y capas de texto editables separadas**.
+
+> ✨ **Actualización (2026-01-20)**: Lanzamiento v2.2 - ¡Reinicio suave con persistencia de API Key! Además de optimización de velocidad y corrección de errores IMAGE_RECITATION.
 
 [English](README.md) | [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Français](README-fr.md)
 
@@ -31,6 +29,27 @@ Convierte PDFs exportados de NotebookLM en presentaciones PPTX con **imágenes d
 
 > Izquierda: PDF original de NotebookLM (texto incrustado en imagen)
 > Derecha: PPTX convertido con fondo limpio + capas de texto editables
+
+## Novedades en v2.2 (2026-01-20)
+
+### 🎯 Reinicio Suave con Persistencia de API Key
+- **Sin Reingresar**: La API Key se conserva en memoria al hacer clic en "Reiniciar"
+- **Reinicios Ilimitados**: Procesa múltiples lotes sin reingresar tus credenciales
+- **Gestión Inteligente de Estado**: Reinicia todo el estado de procesamiento manteniendo tu API Key
+
+### ⚡ Optimización de Velocidad
+- **70% Más Rápido**: Retraso entre páginas reducido de 3.5s a 1.0s
+- **Procesamiento Paralelo**: Aprovecha llamadas API concurrentes para máxima eficiencia
+- **Reinicio Instantáneo**: El reinicio suave vuelve al estado inicial inmediatamente sin recargar la página
+
+### 🔧 Corrección de Error IMAGE_RECITATION
+- **Prompt AI Mejorado**: Ingeniería de prompts optimizada para evitar detección de derechos de autor
+- **Mejor Reconstrucción de Fondo**: Resultados más precisos de relleno consciente del contenido
+- **Temperatura Reducida**: Comportamiento AI más consistente con temperatura 0.4
+
+### 📝 Mejoras de UI
+- **Instrucciones Más Claras**: Guía de configuración de API Key actualizada para coincidir con el flujo real
+- **UI de Reinicio Limpia**: Interfaz de carga inicial restaurada en reinicio en lugar de spinner de carga
 
 ## Características
 

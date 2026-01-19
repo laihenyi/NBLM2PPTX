@@ -37,8 +37,8 @@
                 </span>
             </div>
             <div class="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                <span class="text-emerald-400 text-xs font-bold">v2.0</span>
-                <span class="text-slate-300 text-xs">テキスト削除とOCR認識を同時実行、処理速度40%向上</span>
+                <span class="text-emerald-400 text-xs font-bold">v2.2</span>
+                <span class="text-slate-300 text-xs">API Key保持ソフトリセット + 速度最適化 + IMAGE_RECITATION修正</span>
             </div>
         </header>
 
@@ -549,7 +549,8 @@
                     results.push({ name: item.name, original: processBase64, cleaned: null, error: e.message, sourceType: item.type, pdfTextData: null, ocrBlocks: [] });
                     addResultCard(i, item.name, null, e.message);
                 }
-                if (i < items.length - 1) await wait(3500);
+                // 並列処理により総時間が短縮され、1秒の間隔でレート制限を回避できます
+                if (i < items.length - 1) await wait(1000);
             }
 
             const successCount = results.filter(r => r.cleaned).length;
@@ -574,8 +575,33 @@
         async function removeTextWithGemini(base64) {
             const baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE_EDIT}:generateContent`;
             const url = apiKey ? `${baseUrl}?key=${apiKey}` : baseUrl;
-            const payload = { contents: [{ role: "user", parts: [{ text: "Remove all text and numbers. Reconstruct background. Return only image." }, { inlineData: { mimeType: "image/png", data: base64 } }] }], generationConfig: { responseModalities: ['IMAGE', 'TEXT'] } };
-            const data = await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            const payload = {
+                contents: [{
+                    role: "user",
+                    parts: [
+                        { text: "Edit this image by removing all visible text and numbers while preserving the original background patterns, colors, and design elements. Use content-aware fill to seamlessly reconstruct the areas where text was removed. Return the edited image." },
+                        { inlineData: { mimeType: "image/png", data: base64 } }
+                    ]
+                }],
+                generationConfig: {
+                    responseModalities: ['IMAGE'],
+                    temperature: 0.4
+                }
+            };
+
+            const data = await fetchWithRetry(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            // 著作権制限を確認
+            const finishReason = data.candidates?.[0]?.finishReason;
+            if (finishReason === 'IMAGE_RECITATION') {
+                console.error("IMAGE_RECITATIONエラー:", data.candidates?.[0]?.finishMessage);
+                throw new Error("画像処理が制限されました：Geminiが著作権の問題を検出しました。別の画像を試すか、コンテンツを調整してください。");
+            }
+
             const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
             if (!part) {
                 const textPart = data.candidates?.[0]?.content?.parts?.find(p => p.text);
@@ -749,7 +775,61 @@ Return as JSON array. Be precise with bounding boxes.`
             btn.innerHTML = "PPTXエクスポート ⭐";
         };
 
-        document.getElementById('reset-btn').onclick = () => location.reload();
+        // ソフトリセット：状態をクリアして初期インターフェースに戻る（APIキーを保持）
+        function softReset() {
+            console.log('=== ソフトリセット実行中 ===');
+            console.log('APIキーを保持:', apiKey.substring(0, 8) + '...');
+
+            // 状態変数をリセット
+            pendingItems = [];
+            results = [];
+            rateLimitCount = 0;
+
+            // UI をリセット - すべてのセクションを非表示
+            selectionSection.classList.add('hidden');
+            progressSection.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+
+            // アップロードセクションを表示
+            uploadSection.classList.remove('hidden');
+
+            // コンテンツをクリア
+            selectionGrid.innerHTML = '';
+            resultsGrid.innerHTML = '';
+
+            // プログレスバーをリセット
+            progressBar.style.width = '0%';
+            progressTitle.textContent = '';
+            progressDetail.textContent = '';
+            progressCount.textContent = '';
+
+            // ファイル入力をクリア（changeイベントの発火を防ぐため一時的にイベントリスナーを削除）
+            fileInput.onchange = null;
+            fileInput.value = '';
+            fileInput.onchange = e => handleFiles(e.target.files);
+
+            // アップロードゾーンのHTMLをリセット（初期状態に復元）
+            dropZone.innerHTML = `
+                <input type="file" id="file-input" class="hidden" accept="application/pdf,image/*" multiple>
+                <div class="w-20 h-20 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 1 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                </div>
+                <p class="text-2xl font-bold text-white mb-2">PDFまたは画像をここにドロップ</p>
+                <p class="text-slate-400">クリックしてファイルを選択</p>
+                <div id="lib-warning" class="mt-4 text-xs text-amber-400 hidden">警告：コンポーネントの準備ができていません。お待ちください...</div>
+            `;
+            dropZone.style.pointerEvents = 'auto';
+
+            // 選択カウントをリセット
+            selectedCountSpan.textContent = '0';
+
+            console.log('✓ ソフトリセット完了、APIキーは保持されました');
+            showToast('✓ リセット完了、新しい処理の準備ができました');
+        }
+
+        document.getElementById('reset-btn').onclick = softReset;
     </script>
 </body>
 </html>

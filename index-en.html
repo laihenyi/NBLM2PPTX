@@ -37,8 +37,8 @@
                 </span>
             </div>
             <div class="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                <span class="text-emerald-400 text-xs font-bold">v2.0</span>
-                <span class="text-slate-300 text-xs">Text removal and OCR recognition run in parallel, 40% faster processing</span>
+                <span class="text-emerald-400 text-xs font-bold">v2.2</span>
+                <span class="text-slate-300 text-xs">Soft Reset with API Key Persistence + Speed Optimization + IMAGE_RECITATION Fix</span>
             </div>
         </header>
 
@@ -522,7 +522,8 @@
                     results.push({ name: item.name, original: processBase64, cleaned: null, error: e.message, sourceType: item.type, pdfTextData: null, ocrBlocks: [] });
                     addResultCard(i, item.name, null, e.message);
                 }
-                if (i < items.length - 1) await wait(3500);
+                // Parallel processing reduces total time, 1 second interval is enough to avoid rate limiting
+                if (i < items.length - 1) await wait(1000);
             }
 
             const successCount = results.filter(r => r.cleaned).length;
@@ -547,8 +548,33 @@
         async function removeTextWithGemini(base64) {
             const baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE_EDIT}:generateContent`;
             const url = apiKey ? `${baseUrl}?key=${apiKey}` : baseUrl;
-            const payload = { contents: [{ role: "user", parts: [{ text: "Remove all text and numbers. Reconstruct background. Return only image." }, { inlineData: { mimeType: "image/png", data: base64 } }] }], generationConfig: { responseModalities: ['IMAGE', 'TEXT'] } };
-            const data = await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            const payload = {
+                contents: [{
+                    role: "user",
+                    parts: [
+                        { text: "Edit this image by removing all visible text and numbers while preserving the original background patterns, colors, and design elements. Use content-aware fill to seamlessly reconstruct the areas where text was removed. Return the edited image." },
+                        { inlineData: { mimeType: "image/png", data: base64 } }
+                    ]
+                }],
+                generationConfig: {
+                    responseModalities: ['IMAGE'],
+                    temperature: 0.4
+                }
+            };
+
+            const data = await fetchWithRetry(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            // Check for copyright restrictions
+            const finishReason = data.candidates?.[0]?.finishReason;
+            if (finishReason === 'IMAGE_RECITATION') {
+                console.error("IMAGE_RECITATION error:", data.candidates?.[0]?.finishMessage);
+                throw new Error("Image processing restricted: Gemini detected potential copyright issues. Please try a different image or adjust content.");
+            }
+
             const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
             if (!part) {
                 const textPart = data.candidates?.[0]?.content?.parts?.find(p => p.text);
@@ -722,7 +748,61 @@ Return as JSON array. Be precise with bounding boxes.`
             btn.innerHTML = "Export PPTX ⭐";
         };
 
-        document.getElementById('reset-btn').onclick = () => location.reload();
+        // Soft reset: Clear state and return to initial interface (preserve API Key)
+        function softReset() {
+            console.log('=== Executing soft reset ===');
+            console.log('Preserving API Key:', apiKey.substring(0, 8) + '...');
+
+            // Reset state variables
+            pendingItems = [];
+            results = [];
+            rateLimitCount = 0;
+
+            // Reset UI - Hide all sections
+            selectionSection.classList.add('hidden');
+            progressSection.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+
+            // Show upload section
+            uploadSection.classList.remove('hidden');
+
+            // Clear content
+            selectionGrid.innerHTML = '';
+            resultsGrid.innerHTML = '';
+
+            // Reset progress bar
+            progressBar.style.width = '0%';
+            progressTitle.textContent = '';
+            progressDetail.textContent = '';
+            progressCount.textContent = '';
+
+            // Clear file input (temporarily remove event listener to avoid triggering change event)
+            fileInput.onchange = null;
+            fileInput.value = '';
+            fileInput.onchange = e => handleFiles(e.target.files);
+
+            // Reset upload zone HTML (restore initial state)
+            dropZone.innerHTML = `
+                <input type="file" id="file-input" class="hidden" accept="application/pdf,image/*" multiple>
+                <div class="w-20 h-20 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                </div>
+                <p class="text-2xl font-bold text-white mb-2">Drop PDF or Images Here</p>
+                <p class="text-slate-400">Click here to select files</p>
+                <div id="lib-warning" class="mt-4 text-xs text-amber-400 hidden">Warning: Components not ready, please wait...</div>
+            `;
+            dropZone.style.pointerEvents = 'auto';
+
+            // Reset selection count
+            selectedCountSpan.textContent = '0';
+
+            console.log('✓ Soft reset complete, API Key preserved');
+            showToast('✓ Reset complete, ready for new processing');
+        }
+
+        document.getElementById('reset-btn').onclick = softReset;
     </script>
 </body>
 </html>

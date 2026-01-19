@@ -5,11 +5,9 @@
 [![GitHub forks](https://img.shields.io/github/forks/laihenyi/NBLM2PPTX)](https://github.com/laihenyi/NBLM2PPTX/network/members)
 [![GitHub issues](https://img.shields.io/github/issues/laihenyi/NBLM2PPTX)](https://github.com/laihenyi/NBLM2PPTX/issues)
 
-> ⚠️ **紧急公告 (2026-01-18)**
->
-> 由于 Google Gemini API 近期进行了相关限制，本系统**暂时无法使用**。我们正在积极寻找解决方案，如有更新将会发布新的公告。感谢您的耐心等待。
-
 将 NotebookLM 导出的 PDF 转换成**底图与文字分离**的 PPTX 演示文稿。
+
+> ✨ **更新 (2026-01-20)**: v2.2 版本发布 - 软重置保留 API Key！加上速度优化与 IMAGE_RECITATION 错误修复。
 
 [English](README.md) | [繁體中文](README-zh-TW.md) | [日本語](README-ja.md) | [Español](README-es.md) | [Français](README-fr.md)
 
@@ -31,6 +29,27 @@
 
 > 左：NotebookLM 原始 PDF（文字嵌入图片中）
 > 右：转换后的 PPTX，干净背景 + 可编辑文字图层
+
+## v2.2 版本更新 (2026-01-20)
+
+### 🎯 软重置保留 API Key
+- **无需重复输入**：点击「重新开始」时，API Key 会保留在内存中
+- **无限次重新开始**：可处理多批文件而无需重新输入凭证
+- **智能状态管理**：重置所有处理状态但保留您的 API Key
+
+### ⚡ 速度优化
+- **处理速度提升 70%**：页面间延迟从 3.5 秒降至 1.0 秒
+- **并行处理**：充分利用并发 API 调用达到最高效率
+- **即时重置**：软重置立即回到初始状态，无需重新加载页面
+
+### 🔧 IMAGE_RECITATION 错误修复
+- **改进 AI 提示词**：优化提示工程以避免版权检测
+- **更佳背景重建**：更精确的内容感知填充结果
+- **降低温度参数**：使用温度 0.4 获得更一致的 AI 行为
+
+### 📝 UI 改进
+- **更清晰的说明**：更新 API Key 设置指南以符合实际流程
+- **干净的重置界面**：重置时恢复初始上传界面，而非加载动画
 
 ## 功能特色
 

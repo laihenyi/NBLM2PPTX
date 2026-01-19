@@ -5,11 +5,9 @@
 [![GitHub forks](https://img.shields.io/github/forks/laihenyi/NBLM2PPTX)](https://github.com/laihenyi/NBLM2PPTX/network/members)
 [![GitHub issues](https://img.shields.io/github/issues/laihenyi/NBLM2PPTX)](https://github.com/laihenyi/NBLM2PPTX/issues)
 
-> ⚠️ **AVIS URGENT (2026-01-18)**
->
-> En raison des restrictions récentes de l'API Google Gemini, ce système est **temporairement indisponible**. Nous recherchons activement des solutions et publierons des mises à jour dès qu'elles seront disponibles. Merci de votre patience.
-
 Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **images d'arrière-plan et couches de texte éditables séparées**.
+
+> ✨ **Mise à jour (2026-01-20)**: Version v2.2 - Réinitialisation douce avec persistance de clé API ! Plus optimisation de vitesse et correction d'erreur IMAGE_RECITATION.
 
 [English](README.md) | [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Español](README-es.md)
 
@@ -31,6 +29,27 @@ Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **image
 
 > Gauche : PDF original de NotebookLM (texte intégré dans l'image)
 > Droite : PPTX converti avec arrière-plan propre + couches de texte éditables
+
+## Nouveautés de v2.2 (2026-01-20)
+
+### 🎯 Réinitialisation Douce avec Persistance de Clé API
+- **Plus Besoin de Ressaisir**: La clé API est conservée en mémoire lorsque vous cliquez sur "Redémarrer"
+- **Redémarrages Illimités**: Traitez plusieurs lots sans ressaisir vos identifiants
+- **Gestion Intelligente de l'État**: Réinitialise tout l'état de traitement tout en conservant votre clé API
+
+### ⚡ Optimisation de la Vitesse
+- **70% Plus Rapide**: Délai entre pages réduit de 3,5s à 1,0s
+- **Traitement Parallèle**: Exploite les appels API simultanés pour une efficacité maximale
+- **Réinitialisation Instantanée**: La réinitialisation douce revient immédiatement à l'état initial sans rechargement de page
+
+### 🔧 Correction d'Erreur IMAGE_RECITATION
+- **Prompt IA Amélioré**: Ingénierie de prompts optimisée pour éviter la détection de droits d'auteur
+- **Meilleure Reconstruction d'Arrière-plan**: Résultats plus précis du remplissage conscient du contenu
+- **Température Réduite**: Comportement IA plus cohérent avec température 0,4
+
+### 📝 Améliorations de l'UI
+- **Instructions Plus Claires**: Guide de configuration de clé API mis à jour pour correspondre au flux réel
+- **UI de Réinitialisation Propre**: Interface de téléchargement initial restaurée lors de la réinitialisation au lieu du spinner de chargement
 
 ## Fonctionnalités
 

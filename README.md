@@ -5,11 +5,9 @@
 [![GitHub forks](https://img.shields.io/github/forks/laihenyi/NBLM2PPTX)](https://github.com/laihenyi/NBLM2PPTX/network/members)
 [![GitHub issues](https://img.shields.io/github/issues/laihenyi/NBLM2PPTX)](https://github.com/laihenyi/NBLM2PPTX/issues)
 
-> ⚠️ **URGENT NOTICE (2026-01-18)**
->
-> Due to recent restrictions on the Google Gemini API, this system is **temporarily unavailable**. We are actively investigating solutions and will post updates as they become available. Thank you for your patience.
-
 Convert NotebookLM exported PDFs into PPTX presentations with **separated background images and editable text layers**.
+
+> ✨ **Updated (2026-01-20)**: v2.2 Release - Soft Reset with API Key Persistence! Plus speed optimization and IMAGE_RECITATION error fixes.
 
 [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Español](README-es.md) | [Français](README-fr.md)
 
@@ -32,6 +30,27 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 > Left: Original PDF from NotebookLM (text embedded in image)
 > Right: Converted PPTX with clean background + editable text layers
 
+## What's New in v2.2 (2026-01-20)
+
+### 🎯 Soft Reset with API Key Persistence
+- **No More Re-entering**: API Key is now preserved in memory when you click "Restart"
+- **Unlimited Restarts**: Process multiple batches without re-entering your API Key
+- **Smart State Management**: Resets all processing state while keeping your credentials
+
+### ⚡ Speed Optimization
+- **70% Faster Processing**: Reduced inter-page delay from 3.5s to 1.0s
+- **Parallel Processing**: Leverages concurrent API calls for maximum efficiency
+- **Instant Reset**: Soft reset returns to initial state immediately without page reload
+
+### 🔧 IMAGE_RECITATION Error Fix
+- **Improved AI Prompt**: Enhanced prompt engineering to avoid copyright detection
+- **Better Background Reconstruction**: More accurate content-aware fill results
+- **Reduced Temperature**: More consistent AI behavior with temperature 0.4
+
+### 📝 UI Improvements
+- **Clearer Instructions**: Updated API Key setup guide to match actual workflow
+- **Clean Reset UI**: Restored initial upload interface on reset instead of loading spinner
+
 ## Features
 
 - **AI Text Removal**: Uses Gemini 2.5 Flash to automatically remove text from images and reconstruct backgrounds
@@ -42,28 +61,40 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 
 ## Usage
 
-### Using in Google Gemini Canvas
+### Quick Start (3 Simple Steps)
+
+1. **Open the HTML file** in your browser (Chrome/Edge recommended)
+2. **Follow the guided setup** to get your free API Key from Google
+3. **Start processing** your PDF or images immediately!
+
+### First-Time Setup
+
+When you first open the application, a friendly setup wizard will guide you through:
+
+1. **Visit Google AI Studio** - One-click link to [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+2. **Create Your Free API Key** - Sign in with your Google account (no credit card required)
+3. **Paste and Save** - Copy your API Key and paste it into the app
+
+> 🔒 **Your API Key is stored securely in your browser** and never uploaded to any server.
+
+### Free API Quota
+
+Google Gemini API offers a generous free tier:
+- **15 requests per minute**
+- **1,500 requests per day**
+- **No credit card required**
+
+This is more than enough for typical daily use!
+
+### Alternative: Using in Google Gemini Canvas (Advanced)
+
+If you prefer to run in Gemini Canvas environment:
 
 1. Open [Google Gemini](https://gemini.google.com/)
-2. Enter a prompt like:
-   ```
-   Execute directly, do not modify
-   ```
-3. When Gemini enters **Canvas mode** (code editor appears on the right side)
-4. Paste the complete code from the project's `index.html` (or your preferred language version) into Canvas
-5. Click the "**Preview**" button in the top-right corner of Canvas to run
+2. Paste the code from `01.html` into Canvas
+3. Click "Preview" to run
 
-### API Key Configuration
-
-> **Important**: When running in Gemini Canvas environment, **no personal API Key is required**. The system will use the default API environment automatically.
-
-If you want to run the tool outside of Canvas (e.g., on your own server), find the following line in the code and enter your Gemini API Key:
-
-```javascript
-const apiKey = "YOUR_GEMINI_API_KEY";
-```
-
-> Get an API Key: Visit [Google AI Studio](https://aistudio.google.com/app/apikey)
+> ⚠️ **Note**: As of January 2026, API Key is still required even in Canvas environment. The app will prompt you to set it up.
 
 ## Workflow
 
@@ -119,7 +150,7 @@ This layered structure allows you to:
 
 | Item | Description |
 |------|-------------|
-| AI Model | Gemini 2.5 Flash (Image Edit + Text Gen) |
+| AI Model | Gemini 2.5 Flash Image (Text Removal) + Gemini 2.5 Flash (OCR) |
 | Text Removal | Optimized prompt for complete text erasure with inpainting |
 | PDF Parsing | PDF.js 3.11.174 |
 | PPTX Generation | PptxGenJS 3.12.0 |
@@ -138,15 +169,21 @@ This layered structure allows you to:
 
 ## FAQ
 
-### Q: Why use Gemini Canvas?
-A: Canvas mode provides a secure sandbox environment to run frontend code without setting up a server. Plus, it uses the default API environment, so no personal API Key is needed.
+### Q: Do I need a credit card for the API Key?
+A: No! Google Gemini API offers a completely free tier with no credit card required. Just sign in with your Google account.
+
+### Q: Is my API Key safe?
+A: Yes! Your API Key is stored only in your browser's localStorage and is never sent to any server except Google's official Gemini API.
 
 ### Q: What if processing fails?
 A: Common causes:
-- Invalid or expired API Key (when running outside Canvas)
+- Invalid API Key (check if it starts with "AIza")
 - Unstable network connection
 - Image too large or unsupported format
-- API rate limit exceeded (wait and retry)
+- API rate limit exceeded (free tier: 15/min, 1500/day - wait and retry)
+
+### Q: Can I share this tool with others?
+A: Absolutely! Just share the HTML file. Each user will set up their own API Key, so everyone gets their own free quota.
 
 ### Q: Can it be used offline?
 A: No, this tool requires Gemini API calls for AI processing.

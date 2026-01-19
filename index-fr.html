@@ -37,8 +37,8 @@
                 </span>
             </div>
             <div class="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                <span class="text-emerald-400 text-xs font-bold">v2.0</span>
-                <span class="text-slate-300 text-xs">Suppression de texte et OCR en parallèle, traitement 40% plus rapide</span>
+                <span class="text-emerald-400 text-xs font-bold">v2.2</span>
+                <span class="text-slate-300 text-xs">Réinitialisation Douce avec Clé API Persistante + Optimisation Vitesse + Correction IMAGE_RECITATION</span>
             </div>
         </header>
 
@@ -549,7 +549,8 @@
                     results.push({ name: item.name, original: processBase64, cleaned: null, error: e.message, sourceType: item.type, pdfTextData: null, ocrBlocks: [] });
                     addResultCard(i, item.name, null, e.message);
                 }
-                if (i < items.length - 1) await wait(3500);
+                // Le traitement parallèle réduit le temps total, un intervalle de 1 seconde suffit pour éviter la limitation de débit
+                if (i < items.length - 1) await wait(1000);
             }
             const successCount = results.filter(r => r.cleaned).length;
             const failCount = results.filter(r => !r.cleaned).length;
@@ -572,8 +573,33 @@
         async function removeTextWithGemini(base64) {
             const baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE_EDIT}:generateContent`;
             const url = apiKey ? `${baseUrl}?key=${apiKey}` : baseUrl;
-            const payload = { contents: [{ role: "user", parts: [{ text: "Remove all text and numbers. Reconstruct background. Return only image." }, { inlineData: { mimeType: "image/png", data: base64 } }] }], generationConfig: { responseModalities: ['IMAGE', 'TEXT'] } };
-            const data = await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            const payload = {
+                contents: [{
+                    role: "user",
+                    parts: [
+                        { text: "Edit this image by removing all visible text and numbers while preserving the original background patterns, colors, and design elements. Use content-aware fill to seamlessly reconstruct the areas where text was removed. Return the edited image." },
+                        { inlineData: { mimeType: "image/png", data: base64 } }
+                    ]
+                }],
+                generationConfig: {
+                    responseModalities: ['IMAGE'],
+                    temperature: 0.4
+                }
+            };
+
+            const data = await fetchWithRetry(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            // Vérifier les restrictions de droits d'auteur
+            const finishReason = data.candidates?.[0]?.finishReason;
+            if (finishReason === 'IMAGE_RECITATION') {
+                console.error("Erreur IMAGE_RECITATION:", data.candidates?.[0]?.finishMessage);
+                throw new Error("Traitement d'image restreint : Gemini a détecté des problèmes potentiels de droits d'auteur. Essayez une autre image ou ajustez le contenu.");
+            }
+
             const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
             if (!part) {
                 const textPart = data.candidates?.[0]?.content?.parts?.find(p => p.text);
@@ -747,7 +773,61 @@ Return as JSON array. Be precise with bounding boxes.`
             btn.innerHTML = "Exporter PPTX ⭐";
         };
 
-        document.getElementById('reset-btn').onclick = () => location.reload();
+        // Réinitialisation douce : Effacer l'état et revenir à l'interface initiale (préserver la clé API)
+        function softReset() {
+            console.log('=== Exécution de la réinitialisation douce ===');
+            console.log('Préservation de la clé API:', apiKey.substring(0, 8) + '...');
+
+            // Réinitialiser les variables d'état
+            pendingItems = [];
+            results = [];
+            rateLimitCount = 0;
+
+            // Réinitialiser l'interface - Masquer toutes les sections
+            selectionSection.classList.add('hidden');
+            progressSection.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+
+            // Afficher la section de téléchargement
+            uploadSection.classList.remove('hidden');
+
+            // Effacer le contenu
+            selectionGrid.innerHTML = '';
+            resultsGrid.innerHTML = '';
+
+            // Réinitialiser la barre de progression
+            progressBar.style.width = '0%';
+            progressTitle.textContent = '';
+            progressDetail.textContent = '';
+            progressCount.textContent = '';
+
+            // Effacer l'entrée de fichier (supprimer temporairement l'écouteur d'événement pour éviter de déclencher l'événement change)
+            fileInput.onchange = null;
+            fileInput.value = '';
+            fileInput.onchange = e => handleFiles(e.target.files);
+
+            // Réinitialiser le HTML de la zone de téléchargement (restaurer l'état initial)
+            dropZone.innerHTML = `
+                <input type="file" id="file-input" class="hidden" accept="application/pdf,image/*" multiple>
+                <div class="w-20 h-20 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                </div>
+                <p class="text-2xl font-bold text-white mb-2">Déposez PDF ou Images Ici</p>
+                <p class="text-slate-400">Cliquez ici pour sélectionner des fichiers</p>
+                <div id="lib-warning" class="mt-4 text-xs text-amber-400 hidden">Attention : Composants non prêts, veuillez patienter...</div>
+            `;
+            dropZone.style.pointerEvents = 'auto';
+
+            // Réinitialiser le compteur de sélection
+            selectedCountSpan.textContent = '0';
+
+            console.log('✓ Réinitialisation douce terminée, clé API préservée');
+            showToast('✓ Réinitialisation terminée, prêt pour un nouveau traitement');
+        }
+
+        document.getElementById('reset-btn').onclick = softReset;
     </script>
 </body>
 </html>

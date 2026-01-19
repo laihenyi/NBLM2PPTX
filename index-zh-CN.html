@@ -37,8 +37,8 @@
                 </span>
             </div>
             <div class="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                <span class="text-emerald-400 text-xs font-bold">v2.0</span>
-                <span class="text-slate-300 text-xs">图片去文字与 OCR 文字识别同步执行，处理速度提升 40%</span>
+                <span class="text-emerald-400 text-xs font-bold">v2.2</span>
+                <span class="text-slate-300 text-xs">软重置保留 API Key + 速度优化 + IMAGE_RECITATION 修复</span>
             </div>
         </header>
 
@@ -547,7 +547,8 @@
                     results.push({ name: item.name, original: processBase64, cleaned: null, error: e.message, sourceType: item.type, pdfTextData: null, ocrBlocks: [] });
                     addResultCard(i, item.name, null, e.message);
                 }
-                if (i < items.length - 1) await wait(3500);
+                // 并行处理已减少总时间，1 秒间隔足够避免频率限制
+                if (i < items.length - 1) await wait(1000);
             }
             const successCount = results.filter(r => r.cleaned).length;
             const failCount = results.filter(r => !r.cleaned).length;
@@ -570,8 +571,33 @@
         async function removeTextWithGemini(base64) {
             const baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE_EDIT}:generateContent`;
             const url = apiKey ? `${baseUrl}?key=${apiKey}` : baseUrl;
-            const payload = { contents: [{ role: "user", parts: [{ text: "Remove all text and numbers. Reconstruct background. Return only image." }, { inlineData: { mimeType: "image/png", data: base64 } }] }], generationConfig: { responseModalities: ['IMAGE', 'TEXT'] } };
-            const data = await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            const payload = {
+                contents: [{
+                    role: "user",
+                    parts: [
+                        { text: "Edit this image by removing all visible text and numbers while preserving the original background patterns, colors, and design elements. Use content-aware fill to seamlessly reconstruct the areas where text was removed. Return the edited image." },
+                        { inlineData: { mimeType: "image/png", data: base64 } }
+                    ]
+                }],
+                generationConfig: {
+                    responseModalities: ['IMAGE'],
+                    temperature: 0.4
+                }
+            };
+
+            const data = await fetchWithRetry(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            // 检查是否遇到版权限制
+            const finishReason = data.candidates?.[0]?.finishReason;
+            if (finishReason === 'IMAGE_RECITATION') {
+                console.error("IMAGE_RECITATION 错误:", data.candidates?.[0]?.finishMessage);
+                throw new Error("图片处理受限：Gemini 检测到可能的版权问题。请尝试使用不同的图片或调整内容。");
+            }
+
             const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
             if (!part) {
                 const textPart = data.candidates?.[0]?.content?.parts?.find(p => p.text);
@@ -745,7 +771,61 @@ Return as JSON array. Be precise with bounding boxes.`
             btn.innerHTML = "合并 PPTX ⭐";
         };
 
-        document.getElementById('reset-btn').onclick = () => location.reload();
+        // 软重置：清空状态并回到初始界面（保留 API Key）
+        function softReset() {
+            console.log('=== 执行软重置 ===');
+            console.log('保留 API Key:', apiKey.substring(0, 8) + '...');
+
+            // 重置状态变量
+            pendingItems = [];
+            results = [];
+            rateLimitCount = 0;
+
+            // 重置 UI - 隐藏所有区块
+            selectionSection.classList.add('hidden');
+            progressSection.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+
+            // 显示上传区
+            uploadSection.classList.remove('hidden');
+
+            // 清空内容
+            selectionGrid.innerHTML = '';
+            resultsGrid.innerHTML = '';
+
+            // 重置进度条
+            progressBar.style.width = '0%';
+            progressTitle.textContent = '';
+            progressDetail.textContent = '';
+            progressCount.textContent = '';
+
+            // 清空文件输入（暂时移除事件监听器以避免触发 change 事件）
+            fileInput.onchange = null;
+            fileInput.value = '';
+            fileInput.onchange = e => handleFiles(e.target.files);
+
+            // 重置上传区域的 HTML（恢复初始状态）
+            dropZone.innerHTML = `
+                <input type="file" id="file-input" class="hidden" accept="application/pdf,image/*" multiple>
+                <div class="w-20 h-20 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                </div>
+                <p class="text-2xl font-bold text-white mb-2">拖放 PDF 或图片</p>
+                <p class="text-slate-400">点击此处选择文件</p>
+                <div id="lib-warning" class="mt-4 text-xs text-amber-400 hidden">警告：组件尚未就绪，请稍候...</div>
+            `;
+            dropZone.style.pointerEvents = 'auto';
+
+            // 重置选择计数
+            selectedCountSpan.textContent = '0';
+
+            console.log('✓ 软重置完成，API Key 保留');
+            showToast('✓ 已重置，可以开始新的处理');
+        }
+
+        document.getElementById('reset-btn').onclick = softReset;
     </script>
 </body>
 </html>
