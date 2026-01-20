@@ -61,28 +61,40 @@ Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **image
 
 ## Utilisation
 
-### Utilisation dans Google Gemini Canvas
+### Démarrage Rapide (3 Étapes Simples)
+
+1. **Ouvrez le fichier HTML** dans votre navigateur (Chrome/Edge recommandé)
+2. **Suivez la configuration guidée** pour obtenir votre clé API gratuite de Google
+3. **Commencez à traiter** vos PDF ou images immédiatement !
+
+### Configuration Initiale
+
+Lorsque vous ouvrez l'application pour la première fois, un assistant de configuration convivial vous guidera à travers :
+
+1. **Visitez Google AI Studio** - Lien direct vers [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+2. **Créez votre Clé API Gratuite** - Connectez-vous avec votre compte Google (aucune carte de crédit requise)
+3. **Collez et Sauvegardez** - Copiez votre clé API et collez-la dans l'application
+
+> 🔒 **Votre clé API est stockée en toute sécurité dans votre navigateur** et n'est jamais téléchargée sur aucun serveur.
+
+### Quota API Gratuit
+
+L'API Google Gemini offre un niveau gratuit généreux :
+- **15 requêtes par minute**
+- **1 500 requêtes par jour**
+- **Aucune carte de crédit requise**
+
+C'est largement suffisant pour une utilisation quotidienne typique !
+
+### Alternative : Utilisation dans Google Gemini Canvas (Avancé)
+
+Si vous préférez exécuter dans l'environnement Gemini Canvas :
 
 1. Ouvrez [Google Gemini](https://gemini.google.com/)
-2. Entrez une invite comme :
-   ```
-   Exécuter directement, ne pas modifier
-   ```
-3. Quand Gemini entre en **mode Canvas** (l'éditeur de code apparaît sur le côté droit)
-4. Collez le code complet du `index-fr.html` du projet (ou votre version de langue préférée) dans Canvas
-5. Cliquez sur le bouton "**Preview**" dans le coin supérieur droit de Canvas pour exécuter
+2. Collez le code de `index-fr.html` dans Canvas
+3. Cliquez sur "Preview" pour exécuter
 
-### Configuration de la Clé API
-
-> **Important** : Lors de l'exécution dans l'environnement Gemini Canvas, **aucune clé API personnelle n'est requise**. Le système utilisera automatiquement l'environnement API par défaut.
-
-Si vous souhaitez exécuter l'outil en dehors de Canvas (par exemple, sur votre propre serveur), trouvez la ligne suivante dans le code et entrez votre clé API Gemini :
-
-```javascript
-const apiKey = "VOTRE_CLE_API_GEMINI";
-```
-
-> Obtenir une clé API : Visitez [Google AI Studio](https://aistudio.google.com/app/apikey)
+> ⚠️ **Note** : Depuis janvier 2026, une clé API est toujours requise même dans l'environnement Canvas. L'application vous invitera à la configurer.
 
 ## Flux de Travail
 
@@ -138,7 +150,7 @@ Cette structure en couches vous permet de :
 
 | Élément | Description |
 |---------|-------------|
-| Modèle IA | Gemini 2.5 Flash (Image Edit + Text Gen) |
+| Modèle IA | Gemini 2.5 Flash Image (Suppression de Texte) + Gemini 2.5 Flash (OCR) |
 | Suppression de Texte | Prompt optimisé pour suppression complète avec inpainting |
 | Analyse PDF | PDF.js 3.11.174 |
 | Génération PPTX | PptxGenJS 3.12.0 |
@@ -157,15 +169,21 @@ Cette structure en couches vous permet de :
 
 ## FAQ
 
-### Q : Pourquoi utiliser Gemini Canvas ?
-R : Le mode Canvas fournit un environnement sandbox sécurisé pour exécuter du code frontend sans configurer de serveur. De plus, il utilise l'environnement API par défaut, donc aucune clé API personnelle n'est nécessaire.
+### Q : Ai-je besoin d'une carte de crédit pour obtenir la clé API ?
+R : Non ! L'API Google Gemini offre un niveau entièrement gratuit sans carte de crédit requise. Connectez-vous simplement avec votre compte Google.
+
+### Q : Ma clé API est-elle sécurisée ?
+R : Oui ! Votre clé API est stockée uniquement dans le localStorage de votre navigateur et n'est jamais envoyée à aucun serveur sauf l'API officielle Gemini de Google.
 
 ### Q : Que faire si le traitement échoue ?
 R : Causes courantes :
-- Clé API invalide ou expirée (lors de l'exécution en dehors de Canvas)
+- Clé API invalide (vérifiez qu'elle commence par "AIza")
 - Connexion réseau instable
 - Image trop grande ou format non supporté
-- Limite de débit API dépassée (attendre et réessayer)
+- Limite de débit API dépassée (niveau gratuit : 15/min, 1500/jour - attendez et réessayez)
+
+### Q : Puis-je partager cet outil avec d'autres ?
+R : Absolument ! Partagez simplement le fichier HTML. Chaque utilisateur configurera sa propre clé API, donc tout le monde obtient son propre quota gratuit.
 
 ### Q : Peut-on l'utiliser hors ligne ?
 R : Non, cet outil nécessite des appels à l'API Gemini pour le traitement IA.

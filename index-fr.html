@@ -3,637 +3,1317 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Suppresseur de Texte IA PRO - Édition Canvas</title>
+    <title>NotebookLM vers PPTX - Convertisseur AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; }
-        .drop-zone-active { border-color: #3b82f6 !important; background-color: rgba(59, 130, 246, 0.1) !important; transform: scale(1.02); }
-        .loader { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 0.8s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        .result-card { transition: all 0.3s ease; }
-        .result-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
-        .progress-bar { transition: width 0.3s ease; }
-        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
-        .custom-checkbox:checked + div { border-color: #3b82f6; background-color: rgba(59, 130, 246, 0.2); }
-        .custom-checkbox:checked + div .check-icon { opacity: 1; transform: scale(1); }
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@400;500;600&display=swap');
+
+        :root {
+            --color-primary: #3B82F6;
+            --color-primary-dark: #2563EB;
+            --color-primary-light: #DBEAFE;
+            --color-cta: #F97316;
+            --color-cta-hover: #EA580C;
+            --color-success: #10B981;
+            --color-warning: #F59E0B;
+            --color-error: #EF4444;
+            --color-text: #1E293B;
+            --color-text-light: #64748B;
+            --color-bg: #F8FAFC;
+            --color-surface: #FFFFFF;
+            --color-border: #E2E8F0;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            line-height: 1.3;
+            color: var(--color-text);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .header .subtitle {
+            font-size: 1.125rem;
+            color: var(--color-text-light);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .version-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+            color: white;
+            padding: 0.375rem 0.875rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-top: 0.75rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--color-text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-icon {
+            width: 24px;
+            height: 24px;
+            color: var(--color-primary);
+        }
+
+        .alert {
+            background: #FEF3C7;
+            border-left: 4px solid var(--color-warning);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .alert-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .alert-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            color: #92400E;
+        }
+
+        .alert-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .toggle-icon {
+            width: 20px;
+            height: 20px;
+            color: #92400E;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-icon.rotated {
+            transform: rotate(180deg);
+        }
+
+        .alert-content {
+            margin-top: 0.75rem;
+            color: #78350F;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+        }
+
+        .alert-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+            margin-top: 0;
+        }
+
+        .alert-content.expanded {
+            max-height: 500px;
+            opacity: 1;
+        }
+
+        .alert-content ul {
+            margin-left: 1.25rem;
+            margin-top: 0.5rem;
+        }
+
+        .alert-content li {
+            margin-bottom: 0.25rem;
+        }
+
+        .alert-content a {
+            color: #92400E;
+            text-decoration: underline;
+            font-weight: 600;
+        }
+
+        .alert-content a:hover {
+            color: #78350F;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .btn-primary {
+            background: var(--color-primary);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:hover {
+            background: var(--color-primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-cta {
+            background: linear-gradient(135deg, var(--color-cta), var(--color-cta-hover));
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--color-surface);
+            color: var(--color-text);
+            border: 2px solid var(--color-border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-bg);
+            border-color: var(--color-primary);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--color-border);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--color-surface);
+        }
+
+        .upload-zone:hover {
+            border-color: var(--color-primary);
+            background: var(--color-primary-light);
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--color-primary);
+            background: var(--color-primary-light);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 1rem;
+            color: var(--color-primary);
+        }
+
+        .thumbnail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .thumbnail-item {
+            position: relative;
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--color-surface);
+        }
+
+        .thumbnail-item:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--color-primary);
+        }
+
+        .thumbnail-item.selected {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px var(--color-primary-light);
+        }
+
+        .thumbnail-img {
+            width: 100%;
+            height: 200px;
+            object-fit: contain;
+            background: #F1F5F9;
+        }
+
+        .thumbnail-label {
+            padding: 0.5rem;
+            text-align: center;
+            font-size: 0.875rem;
+            font-weight: 500;
+            background: var(--color-surface);
+            color: var(--color-text);
+        }
+
+        .thumbnail-item.selected .thumbnail-label {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .checkbox-overlay {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border: 2px solid var(--color-border);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .thumbnail-item.selected .checkbox-overlay {
+            background: var(--color-primary);
+            border-color: var(--color-primary);
+        }
+
+        .checkmark {
+            width: 16px;
+            height: 16px;
+            color: white;
+            display: none;
+        }
+
+        .thumbnail-item.selected .checkmark {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--color-border);
+            border-radius: 9999px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark));
+            border-radius: 9999px;
+            transition: width 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .processing-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--color-bg);
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+        }
+
+        .processing-preview {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            border-radius: 6px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+        }
+
+        .processing-info {
+            flex: 1;
+        }
+
+        .processing-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            color: var(--color-text);
+        }
+
+        .processing-status {
+            font-size: 0.875rem;
+            color: var(--color-text-light);
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--color-border);
+            border-top-color: var(--color-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .result-item {
+            display: flex;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: var(--color-bg);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .result-preview {
+            width: 200px;
+            height: 150px;
+            object-fit: contain;
+            border-radius: 6px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+        }
+
+        .result-info {
+            flex: 1;
+        }
+
+        .result-title {
+            font-weight: 600;
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+            color: var(--color-text);
+        }
+
+        .result-meta {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            color: var(--color-text-light);
+        }
+
+        .result-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .meta-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 300px;
+            animation: slideIn 0.3s ease;
+            z-index: 1000;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--color-success);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--color-error);
+        }
+
+        .toast.warning {
+            border-left: 4px solid var(--color-warning);
+        }
+
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .toast.success .toast-icon {
+            color: var(--color-success);
+        }
+
+        .toast.error .toast-icon {
+            color: var(--color-error);
+        }
+
+        .toast.warning .toast-icon {
+            color: var(--color-warning);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: var(--shadow-lg);
+            animation: scaleIn 0.3s ease;
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .modal-content h2 {
+            margin-bottom: 1rem;
+            color: var(--color-text);
+        }
+
+        .modal-content p {
+            margin-bottom: 1.5rem;
+            color: var(--color-text-light);
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s ease;
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .tools-section {
+            background: #FEF3C7;
+            border-left: 4px solid var(--color-warning);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .tools-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .tools-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            color: #92400E;
+        }
+
+        .tools-content {
+            margin-top: 1rem;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+        }
+
+        .tools-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+            margin-top: 0;
+        }
+
+        .tools-content.expanded {
+            max-height: 800px;
+            opacity: 1;
+        }
+
+        .tool-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+        }
+
+        .tool-icon {
+            width: 40px;
+            height: 40px;
+            color: var(--color-primary);
+            flex-shrink: 0;
+        }
+
+        .tool-info {
+            flex: 1;
+        }
+
+        .tool-name {
+            font-weight: 600;
+            color: var(--color-text);
+            margin-bottom: 0.25rem;
+        }
+
+        .tool-desc {
+            font-size: 0.875rem;
+            color: var(--color-text-light);
+            margin-bottom: 0.5rem;
+        }
+
+        .tool-link {
+            color: var(--color-primary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .tool-link:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .thumbnail-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+
+            .result-item {
+                flex-direction: column;
+            }
+
+            .result-preview {
+                width: 100%;
+            }
+
+            .toast {
+                left: 1rem;
+                right: 1rem;
+                min-width: auto;
+            }
+        }
     </style>
 </head>
-<body class="text-white pb-20">
-    <div class="max-w-6xl mx-auto px-4 py-12">
-        <header class="text-center mb-12">
-            <h1 class="text-4xl md:text-5xl font-black tracking-tight mb-3">
-                Suppresseur de Texte IA <span class="text-blue-400">PRO</span> <span class="text-xs align-top bg-emerald-600/30 text-emerald-400 px-2 py-1 rounded-md ml-2 border border-emerald-500/30">Canvas</span>
-            </h1>
-            <p class="text-slate-400 text-lg">Télécharger PDF ou Images → Sélectionner Pages → Suppression Auto → Exporter PPTX</p>
-            <div class="flex items-center justify-center gap-4 mt-4">
-                <span class="flex items-center gap-2 text-xs text-blue-400">
-                    <span class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
-                    Propulsé par Gemini 2.5
-                </span>
-            </div>
-            <div class="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                <span class="text-emerald-400 text-xs font-bold">v2.2</span>
-                <span class="text-slate-300 text-xs">Réinitialisation Douce avec Clé API Persistante + Optimisation Vitesse + Correction IMAGE_RECITATION</span>
-            </div>
-        </header>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>NotebookLM vers PPTX</h1>
+            <p class="subtitle">Convertissez les PDF exportés de NotebookLM en présentations PowerPoint éditables</p>
+            <div class="version-badge">v2.2 - Traitement parallèle & OCR de secours</div>
+        </div>
 
-        <section id="upload-section" class="mb-10 transition-all duration-300">
-            <div id="drop-zone" class="glass rounded-3xl p-16 text-center cursor-pointer hover:border-blue-500/50 transition-all duration-300 group">
-                <input type="file" id="file-input" class="hidden" accept="application/pdf,image/*" multiple>
-                <div class="w-20 h-20 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
+        <!-- Modal API Key -->
+        <div id="api-key-modal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <h2>Configurer la Clé API</h2>
+                <p>Veuillez entrer votre clé API Gemini pour commencer à utiliser cette application.</p>
+                <div class="input-group">
+                    <label for="api-key-input">Clé API Gemini</label>
+                    <input
+                        type="password"
+                        id="api-key-input"
+                        placeholder="Entrez votre clé API Gemini (commence par AIza)"
+                    />
                 </div>
-                <p class="text-2xl font-bold text-white mb-2">Déposez PDF ou Images Ici</p>
-                <p class="text-slate-400">Cliquez ici pour sélectionner des fichiers</p>
-                <div id="lib-warning" class="mt-4 text-xs text-amber-400 hidden">Attention : Composants non prêts, veuillez patienter...</div>
-            </div>
-        </section>
-
-        <section id="selection-section" class="hidden mb-10 animate-fade-in">
-            <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
-                <div>
-                    <h2 class="text-2xl font-bold flex items-center gap-2">
-                        <span class="bg-blue-500 w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
-                        Sélectionner les Pages à Traiter
-                    </h2>
-                    <p class="text-slate-400 text-sm mt-1 ml-10">Cochez uniquement les pages nécessaires pour gagner du temps</p>
-                </div>
-                <div class="flex gap-3">
-                    <button id="select-all-btn" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-sm font-bold transition">Tout Sélectionner</button>
-                    <button id="deselect-all-btn" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-sm font-bold transition">Tout Désélectionner</button>
-                    <button id="start-process-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20 transition flex items-center gap-2">
-                        Démarrer le Traitement (<span id="selected-count">0</span>)
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                <div class="btn-group">
+                    <button class="btn btn-primary" id="save-api-key-btn">
+                        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                         </svg>
+                        Enregistrer et Commencer
                     </button>
                 </div>
             </div>
-            <div id="selection-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 custom-scrollbar max-h-[60vh] overflow-y-auto p-2"></div>
-        </section>
+        </div>
 
-        <section id="progress-section" class="hidden mb-10">
-            <div class="glass rounded-3xl p-8">
-                <div class="flex items-center justify-between mb-6">
-                    <div class="flex items-center gap-4">
-                        <div class="loader"></div>
-                        <div>
-                            <p id="progress-title" class="font-bold text-lg">Traitement en cours...</p>
-                            <p id="progress-detail" class="text-sm text-slate-400">Analyse</p>
-                        </div>
+        <!-- Alerte Quota -->
+        <div class="alert">
+            <div class="alert-header" onclick="toggleAlert()">
+                <div class="alert-title">
+                    <svg class="alert-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                    Important : Limitations du Forfait Gratuit
+                </div>
+                <svg class="toggle-icon" id="alert-toggle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </div>
+            <div class="alert-content expanded" id="alert-content">
+                <p><strong>Le forfait gratuit de Gemini AI a des limites de quota strictes :</strong></p>
+                <ul>
+                    <li>Limite : 10 images téléchargées par minute</li>
+                    <li>Le traitement par lots de 6 pages simultanées peut déclencher un blocage de quota de 60 secondes</li>
+                    <li>Recommandation : Traitez par petits lots (3-5 pages) pour éviter les erreurs de quota</li>
+                </ul>
+                <p><strong>💡 Astuce : Prétraitement PDF recommandé</strong></p>
+                <ul>
+                    <li>Si votre PDF a des filigranes, supprimez-les d'abord (voir les outils ci-dessous)</li>
+                    <li>Compressez les PDF volumineux pour des temps de traitement plus rapides</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Outils de Prétraitement PDF -->
+        <div class="tools-section">
+            <div class="tools-header" onclick="toggleTools()">
+                <div class="tools-title">
+                    <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    Outils de Prétraitement PDF Recommandés
+                </div>
+                <svg class="toggle-icon" id="tools-toggle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </div>
+            <div class="tools-content collapsed" id="tools-content">
+                <div class="tool-item">
+                    <svg class="tool-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <div class="tool-info">
+                        <div class="tool-name">Suppression de Filigrane PDF</div>
+                        <div class="tool-desc">Supprimez les filigranes, tampons ou annotations de vos PDF NotebookLM avant traitement</div>
+                        <a href="https://www.ilovepdf.com/fr/supprimer_filigrane_pdf" target="_blank" class="tool-link">
+                            iLovePDF - Outil de suppression de filigrane
+                            <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                            </svg>
+                        </a>
                     </div>
-                    <span id="progress-count" class="text-2xl font-black text-blue-400">0/0</span>
                 </div>
-                <div class="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
-                    <div id="progress-bar" class="progress-bar bg-gradient-to-r from-blue-500 to-purple-500 h-full rounded-full" style="width: 0%"></div>
+                <div class="tool-item">
+                    <svg class="tool-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <div class="tool-info">
+                        <div class="tool-name">Compression PDF</div>
+                        <div class="tool-desc">Compressez les gros PDF pour des temps de traitement plus rapides</div>
+                        <a href="https://www.ilovepdf.com/fr/compresser_pdf" target="_blank" class="tool-link">
+                            iLovePDF - Outil de compression
+                            <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                            </svg>
+                        </a>
+                    </div>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <section id="results-section" class="hidden">
-            <div class="flex items-center justify-between mb-6 flex-wrap gap-4 border-t border-slate-700 pt-8">
-                <div>
-                    <h2 class="text-2xl font-bold flex items-center gap-2">
-                        <span class="bg-emerald-500 w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
-                        Résultats
-                    </h2>
-                </div>
-                <div class="flex items-center gap-3 flex-wrap">
-                    <select id="ratio-select" class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-sm font-bold outline-none">
-                        <option value="16:9">16:9 Paysage</option>
-                        <option value="9:16">9:16 Portrait</option>
-                        <option value="4:3">4:3 Standard</option>
-                    </select>
-                    <button id="export-combined-btn" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg transition flex items-center gap-2">
-                        Exporter PPTX ⭐
-                    </button>
-                    <button id="reset-btn" class="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-4 py-2.5 rounded-xl font-bold transition">Recommencer</button>
-                </div>
+        <!-- Section Téléchargement -->
+        <div class="card">
+            <h2>
+                <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                Télécharger PDF ou Images
+            </h2>
+            <div class="upload-zone" id="upload-zone">
+                <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                <p style="font-size: 1.125rem; font-weight: 600; color: var(--color-text); margin-bottom: 0.5rem;">Cliquez pour télécharger ou glissez-déposez</p>
+                <p style="font-size: 0.875rem; color: var(--color-text-light);">Prend en charge les fichiers PDF ou plusieurs images (PNG, JPG)</p>
+                <input type="file" id="file-input" accept=".pdf,image/*" multiple class="hidden">
             </div>
-            <div id="results-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 custom-scrollbar"></div>
-        </section>
+            <div id="thumbnails-container"></div>
+        </div>
+
+        <!-- Section Sélection de Pages -->
+        <div class="card hidden" id="selection-section">
+            <h2>
+                <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Sélectionner les Pages à Traiter
+            </h2>
+            <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                <button class="btn btn-secondary" onclick="selectAll()">
+                    <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Tout Sélectionner
+                </button>
+                <button class="btn btn-secondary" onclick="deselectAll()">
+                    <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    Tout Désélectionner
+                </button>
+            </div>
+            <div class="thumbnail-grid" id="page-thumbnails"></div>
+            <div style="margin-top: 1.5rem; text-align: center;">
+                <button class="btn btn-cta" onclick="startProcessing()" id="start-btn">
+                    <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    Démarrer le Traitement
+                </button>
+            </div>
+        </div>
+
+        <!-- Section Traitement -->
+        <div class="card hidden" id="processing-section">
+            <h2>
+                <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                Traitement en Cours...
+            </h2>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+            </div>
+            <p style="text-align: center; color: var(--color-text-light); margin-bottom: 1.5rem;">
+                <span id="progress-text">Préparation...</span>
+            </p>
+            <div id="processing-items"></div>
+        </div>
+
+        <!-- Section Résultats -->
+        <div class="card hidden" id="results-section">
+            <h2>
+                <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Traitement Terminé
+            </h2>
+            <div id="results-items"></div>
+            <div style="margin-top: 1.5rem; text-align: center;">
+                <button class="btn btn-cta" onclick="exportPPTX()" id="export-btn">
+                    <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Exporter PPTX
+                </button>
+            </div>
+        </div>
     </div>
 
-    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-2xl shadow-2xl opacity-0 transition-all pointer-events-none z-50 text-sm font-bold border border-slate-700"></div>
-
     <script>
-        const apiKey = "";
-        // Utiliser des modèles stables pour l'environnement Canvas
-        const MODEL_IMAGE_EDIT = "gemini-2.5-flash-image";  // Génération/édition d'images
-        const MODEL_TEXT_GEN = "gemini-2.5-flash";           // Génération de texte (OCR)
-        let pendingItems = [];
-        let results = [];
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        const i18n = {
-            processing: "Traitement",
-            analyzing: "Analyse",
-            generatingHD: "Génération de l'image haute résolution...",
-            aiRemoving: "L'IA supprime le texte et reconstruit l'arrière-plan...",
-            aiRemovingAndOcr: "L'IA supprime le texte et reconnaît le contenu en parallèle...",
-            applyingTextLayer: "Application de la couche de texte ({current}/{total})...",
-            noOcrData: "Pas de données OCR, export du fond uniquement",
-            unsupportedFormat: "Format de fichier non pris en charge",
-            readFailed: "Échec de la lecture du fichier",
-            apiKeyInvalid: "Clé API invalide ou erreur d'environnement",
-            ocrFailed: "Échec de la reconnaissance OCR ou pas de contenu textuel",
-            apiNoImage: "L'API n'a pas retourné de données d'image",
-            aiReturnedText: "L'IA a retourné du texte au lieu d'une image, veuillez réessayer",
-            rateLimit: "Limite API (429), #{count}, attente de {sec} secondes...",
-            warmingUp: "Préchauffage de la connexion API...",
-            processingComplete: "Terminé : {success} réussis",
-            processingFailed: ", {fail} échoués",
-            rateLimitSummary: " (rencontré {count} limites de fréquence)",
-            recognizing: "Reconnaissance ({current}/{total})...",
-            exportSuccess: "Exportation réussie",
-            exportFailed: "Échec de l'exportation",
-            readingFiles: "Lecture et génération des miniatures...",
-            success: "Succès",
-            failed: "Échec",
-            apiKeyNotSet: "Veuillez d'abord configurer la clé API (ligne 131 du code)",
-            apiKeyInvalidCheck: "Clé API invalide, vérifiez votre clé Gemini API",
-            apiResponseError: "Erreur de format de réponse API: {preview}..."
-        };
+        // Configuration API
+        let apiKey = localStorage.getItem('gemini_api_key') || "";
+        const MODEL_IMAGE_EDIT = "gemini-2.5-flash-image";
+        const MODEL_TEXT_GEN = "gemini-2.5-flash";
+        const API_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 
-        function initPdfLibrary() {
-            try {
-                if (window.pdfjsLib) {
-                    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-                    return true;
-                }
-            } catch (e) { console.error(e); }
-            document.getElementById('lib-warning').classList.remove('hidden');
-            return false;
+        // État
+        let pages = [];
+        let selectedPages = new Set();
+        let processedResults = [];
+
+        // Vérifier la clé API au chargement
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!apiKey) {
+                document.getElementById('api-key-modal').classList.remove('hidden');
+            }
+        });
+
+        // Enregistrer la clé API
+        document.getElementById('save-api-key-btn').addEventListener('click', () => {
+            const input = document.getElementById('api-key-input');
+            const key = input.value.trim();
+
+            if (!key) {
+                showToast('Veuillez entrer une clé API', 'error');
+                return;
+            }
+
+            if (!key.startsWith('AIza')) {
+                showToast('Format de clé API invalide (devrait commencer par AIza)', 'error');
+                return;
+            }
+
+            apiKey = key;
+            localStorage.setItem('gemini_api_key', key);
+            document.getElementById('api-key-modal').classList.add('hidden');
+            showToast('Clé API enregistrée avec succès !', 'success');
+        });
+
+        // Toggle alerte
+        function toggleAlert() {
+            const content = document.getElementById('alert-content');
+            const icon = document.getElementById('alert-toggle');
+
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                content.classList.add('collapsed');
+                icon.classList.add('rotated');
+            } else {
+                content.classList.remove('collapsed');
+                content.classList.add('expanded');
+                icon.classList.remove('rotated');
+            }
         }
 
-        const dropZone = document.getElementById('drop-zone');
+        // Toggle outils
+        function toggleTools() {
+            const content = document.getElementById('tools-content');
+            const icon = document.getElementById('tools-toggle');
+
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                content.classList.add('collapsed');
+                icon.classList.add('rotated');
+            } else {
+                content.classList.remove('collapsed');
+                content.classList.add('expanded');
+                icon.classList.remove('rotated');
+            }
+        }
+
+        // Zone de téléchargement
+        const uploadZone = document.getElementById('upload-zone');
         const fileInput = document.getElementById('file-input');
-        const uploadSection = document.getElementById('upload-section');
-        const selectionSection = document.getElementById('selection-section');
-        const selectionGrid = document.getElementById('selection-grid');
-        const progressSection = document.getElementById('progress-section');
-        const resultsSection = document.getElementById('results-section');
-        const progressBar = document.getElementById('progress-bar');
-        const progressTitle = document.getElementById('progress-title');
-        const progressDetail = document.getElementById('progress-detail');
-        const progressCount = document.getElementById('progress-count');
-        const resultsGrid = document.getElementById('results-grid');
-        const toast = document.getElementById('toast');
-        const selectedCountSpan = document.getElementById('selected-count');
 
-        window.onload = () => { initPdfLibrary(); };
+        uploadZone.addEventListener('click', () => fileInput.click());
 
-        function showToast(msg, isError = false) {
-            toast.textContent = msg;
-            toast.style.backgroundColor = isError ? '#ef4444' : '#1e293b';
-            toast.classList.replace('opacity-0', 'opacity-100');
-            setTimeout(() => toast.classList.replace('opacity-100', 'opacity-0'), 3000);
-        }
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
 
-        const wait = (ms) => new Promise(res => setTimeout(res, ms));
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
 
-        // PDF.js 直接提取文字資訊（比 OCR 更準確）
-        // PDF.js extraction directe de texte (plus précise que l'OCR)
-        async function extractTextFromPdf(page, scale = 2.0) {
-            const viewport = page.getViewport({ scale });
-            const textContent = await page.getTextContent();
-            const pageWidth = viewport.width;
-            const pageHeight = viewport.height;
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
 
-            const textBlocks = textContent.items
-                .map(item => {
-                    const [scaleX, skewX] = item.transform;
-                    const tx = item.transform[4] * scale;
-                    const ty = item.transform[5] * scale;
-                    const fontSize = Math.sqrt(scaleX * scaleX + skewX * skewX) * scale;
-
-                    // Le système de coordonnées PDF a l'axe y commençant par le bas, conversion nécessaire
-                    const x = tx;
-                    const y = pageHeight - ty;
-                    const height = fontSize * 1.2;
-
-                    // Estimer la largeur du texte (PDF.js peut retourner 0 ou undefined)
-                    const rawWidth = item.width || 0;
-                    const estimatedWidth = fontSize * item.str.length * 0.6;
-                    const width = (rawWidth > 0 ? rawWidth : estimatedWidth) * scale;
-
-                    return {
-                        text: item.str,
-                        x,
-                        y: y - height,
-                        width,
-                        height,
-                        fontSize,
-                        fontName: item.fontName || ''
-                    };
-                })
-                .filter(block => block.text.trim().length > 0);
-
-            return {
-                blocks: mergeTextBlocks(textBlocks, pageWidth, pageHeight),
-                pageWidth,
-                pageHeight
-            };
-        }
-
-        // Fusionner les blocs de texte adjacents (texte sur la même ligne)
-        function mergeTextBlocks(blocks) {
-            const validBlocks = (blocks || []).filter(b =>
-                b && b.text && b.text.trim() && isFinite(b.x) && isFinite(b.y)
-            );
-            if (validBlocks.length === 0) return [];
-
-            const avgFontSize = validBlocks.reduce((sum, b) => sum + (b.fontSize || 12), 0) / validBlocks.length;
-
-            function getFontSize(block) {
-                return block.fontSize || avgFontSize;
-            }
-
-            function estimateWidth(block) {
-                return block.width || getFontSize(block) * block.text.length * 0.6;
-            }
-
-            // Étape 1: Grouper par coordonnée y (tolérance de 80% de la taille de police)
-            const lines = [];
-            const sortedBlocks = [...validBlocks].sort((a, b) => a.y - b.y);
-
-            for (const block of sortedBlocks) {
-                let bestLine = null;
-                let minDiff = Infinity;
-
-                for (const line of lines) {
-                    const lineAvgY = line.items.reduce((sum, item) => sum + item.y, 0) / line.items.length;
-                    const lineFontSize = line.items.reduce((sum, item) => sum + getFontSize(item), 0) / line.items.length;
-                    const tolerance = Math.max(lineFontSize, getFontSize(block)) * 0.8;
-                    const diff = Math.abs(lineAvgY - block.y);
-
-                    if (diff < tolerance && diff < minDiff) {
-                        minDiff = diff;
-                        bestLine = line;
-                    }
-                }
-
-                if (bestLine) {
-                    bestLine.items.push(block);
-                } else {
-                    lines.push({ items: [block] });
-                }
-            }
-
-            // Étape 2: Trier par x dans chaque ligne et fusionner le texte adjacent
-            const merged = [];
-
-            for (const line of lines) {
-                line.items.sort((a, b) => a.x - b.x);
-                const lineAvgY = line.items.reduce((sum, item) => sum + item.y, 0) / line.items.length;
-
-                let current = null;
-
-                for (const item of line.items) {
-                    const itemWidth = estimateWidth(item);
-
-                    if (!current) {
-                        current = { ...item, width: itemWidth };
-                        continue;
-                    }
-
-                    const currentWidth = current.width || avgFontSize;
-                    const gap = item.x - (current.x + currentWidth);
-                    const gapTolerance = Math.max(getFontSize(current), getFontSize(item)) * 1.5;
-
-                    if (Math.abs(gap) < gapTolerance) {
-                        // Fusionner le texte
-                        current.text += item.text;
-                        current.width = Math.max((item.x + itemWidth) - current.x, currentWidth);
-                        current.height = Math.max(current.height || 0, item.height || 0);
-                        current.fontSize = Math.max(current.fontSize || 0, item.fontSize || 0);
-                    } else {
-                        // Écart trop grand, considérer comme nouveau bloc
-                        merged.push(current);
-                        current = { ...item, width: itemWidth };
-                    }
-                }
-
-                if (current) {
-                    current.y = lineAvgY;
-                    merged.push(current);
-                }
-            }
-
-            return merged.sort((a, b) => a.y - b.y);
-        }
-        let rateLimitCount = 0;
-
-        async function fetchWithRetry(url, options, maxRetries = 5) {
-            const delays = [2000, 4000, 8000, 16000, 32000];
-            for (let i = 0; i < maxRetries; i++) {
-                try {
-                    const response = await fetch(url, options);
-                    const text = await response.text();
-
-                    let data;
-                    try {
-                        data = JSON.parse(text);
-                    } catch (parseError) {
-                        const preview = text.substring(0, 200);
-                        console.error(`JSON parse failed, response: ${preview}`);
-                        if (text.includes('API key not valid') || text.includes('API_KEY_INVALID')) {
-                            throw new Error(i18n.apiKeyInvalidCheck);
-                        }
-                        if (text.includes('PERMISSION_DENIED') || text.includes('authenticate')) {
-                            throw new Error('Échec de l\'authentification API, vérifiez la clé API ou l\'environnement');
-                        }
-                        throw new Error(i18n.apiResponseError.replace('{preview}', preview));
-                    }
-
-                    if (response.ok) return data;
-                    if (response.status === 429) {
-                        rateLimitCount++;
-                        const waitTime = delays[i] || 10000;
-                        showToast(i18n.rateLimit.replace('{count}', rateLimitCount).replace('{sec}', waitTime/1000), true);
-                        await wait(waitTime);
-                        continue;
-                    }
-                    throw new Error(data.error?.message || `HTTP ${response.status}`);
-                } catch (e) {
-                    if (i === maxRetries - 1) throw e;
-                    await wait(2000);
-                }
-            }
-        }
-
-        dropZone.onclick = () => fileInput.click();
-        fileInput.onchange = e => handleFiles(e.target.files);
-        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('drop-zone-active'); };
-        dropZone.ondragleave = () => dropZone.classList.remove('drop-zone-active');
-        dropZone.ondrop = (e) => { e.preventDefault(); dropZone.classList.remove('drop-zone-active'); handleFiles(e.dataTransfer.files); };
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
 
         async function handleFiles(files) {
-            if (!initPdfLibrary()) return;
-            if (!files || files.length === 0) return;
-            dropZone.innerHTML = `<div class="loader mx-auto mb-4"></div><p class="text-slate-300">${i18n.readingFiles}</p>`;
-            dropZone.style.pointerEvents = 'none';
-            pendingItems = [];
+            if (files.length === 0) return;
+
+            const file = files[0];
+
+            if (file.type === 'application/pdf') {
+                await loadPDF(file);
+            } else if (file.type.startsWith('image/')) {
+                await loadImages(files);
+            } else {
+                showToast('Type de fichier non pris en charge', 'error');
+            }
+        }
+
+        async function loadPDF(file) {
             try {
-                for (let file of files) {
-                    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-                    const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp|bmp)$/i.test(file.name);
-                    if (isPdf) { await loadPdfAndGenerateThumbs(file); }
-                    else if (isImage) {
-                        const base64 = await fileToBase64(file);
-                        pendingItems.push({ id: `img_${Date.now()}_${Math.random()}`, type: 'image', name: file.name, thumb: base64, original: base64, selected: true });
-                    }
+                showToast('Chargement du PDF...', 'success');
+
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+                pages = [];
+                const thumbnailsContainer = document.getElementById('page-thumbnails');
+                thumbnailsContainer.innerHTML = '';
+
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const viewport = page.getViewport({ scale: 0.5 });
+
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+
+                    await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                    const thumbnailUrl = canvas.toDataURL();
+                    pages.push({ pageNum: i, thumbnailUrl, pdfPage: page });
+
+                    const item = createThumbnailItem(i, thumbnailUrl);
+                    thumbnailsContainer.appendChild(item);
                 }
-                if (pendingItems.length > 0) { renderSelectionGrid(); }
-                else { showToast(i18n.unsupportedFormat, true); location.reload(); }
-            } catch (err) { console.error(err); showToast(err.message || i18n.readFailed, true); setTimeout(() => location.reload(), 2000); }
-        }
 
-        async function loadPdfAndGenerateThumbs(file) {
-            const arrayBuffer = await file.arrayBuffer();
-            const lib = window.pdfjsLib;
-            const pdfDoc = await lib.getDocument({ data: arrayBuffer, cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/', cMapPacked: true }).promise;
-            const total = pdfDoc.numPages;
-            for (let i = 1; i <= total; i++) {
-                const page = await pdfDoc.getPage(i);
-                const viewport = page.getViewport({ scale: 0.5 });
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-                await page.render({ canvasContext: ctx, viewport }).promise;
-                pendingItems.push({ id: `pdf_${file.name}_${i}`, type: 'pdf', name: `${file.name} - P${i}`, thumb: canvas.toDataURL('image/jpeg', 0.6).split(',')[1], pdfDoc: pdfDoc, pageNum: i, selected: true });
+                document.getElementById('selection-section').classList.remove('hidden');
+                showToast(`Chargé ${pdf.numPages} pages`, 'success');
+
+            } catch (error) {
+                console.error('Erreur de chargement PDF:', error);
+                showToast('Échec du chargement du PDF', 'error');
             }
         }
 
-        function renderSelectionGrid() {
-            uploadSection.classList.add('hidden');
-            selectionSection.classList.remove('hidden');
-            selectionGrid.innerHTML = '';
-            pendingItems.forEach((item, index) => {
-                const div = document.createElement('div');
-                div.className = 'relative group';
-                div.innerHTML = `<label class="cursor-pointer block relative"><input type="checkbox" class="custom-checkbox hidden" ${item.selected ? 'checked' : ''} onchange="toggleSelection(${index}, this.checked)"><div class="glass rounded-xl overflow-hidden border-2 border-transparent transition-all h-32 md:h-40 flex flex-col relative"><img src="data:image/jpeg;base64,${item.thumb}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition"><div class="check-icon absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white shadow-lg transform scale-0 transition-transform duration-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg></div><div class="absolute bottom-0 left-0 right-0 bg-black/60 p-1 text-[10px] text-center truncate text-white backdrop-blur-sm">${item.name}</div></div></label>`;
-                selectionGrid.appendChild(div);
-            });
-            updateSelectedCount();
-        }
+        async function loadImages(files) {
+            pages = [];
+            const thumbnailsContainer = document.getElementById('page-thumbnails');
+            thumbnailsContainer.innerHTML = '';
 
-        window.toggleSelection = (index, isChecked) => { pendingItems[index].selected = isChecked; updateSelectedCount(); };
-        function updateSelectedCount() {
-            const count = pendingItems.filter(i => i.selected).length;
-            selectedCountSpan.textContent = count;
-            document.getElementById('start-process-btn').disabled = count === 0;
-            document.getElementById('start-process-btn').classList.toggle('opacity-50', count === 0);
-        }
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (!file.type.startsWith('image/')) continue;
 
-        document.getElementById('select-all-btn').onclick = () => { pendingItems.forEach(i => i.selected = true); renderSelectionGrid(); };
-        document.getElementById('deselect-all-btn').onclick = () => { pendingItems.forEach(i => i.selected = false); renderSelectionGrid(); };
+                const url = URL.createObjectURL(file);
+                pages.push({ pageNum: i + 1, thumbnailUrl: url, imageFile: file });
 
-        document.getElementById('start-process-btn').onclick = async () => {
-            const selectedItems = pendingItems.filter(i => i.selected);
-            if (selectedItems.length === 0) return;
-            selectionSection.classList.add('hidden');
-            progressSection.classList.remove('hidden');
-            resultsSection.classList.add('hidden');
-            await processSelectedItems(selectedItems);
-        };
-
-        async function processSelectedItems(items) {
-            results = [];
-            resultsGrid.innerHTML = '';
-            resultsSection.classList.remove('hidden');
-            rateLimitCount = 0;
-
-            if (items.length >= 5) {
-                progressDetail.textContent = i18n.warmingUp;
-                await wait(2000);
+                const item = createThumbnailItem(i + 1, url);
+                thumbnailsContainer.appendChild(item);
             }
 
-            for (let i = 0; i < items.length; i++) {
-                const item = items[i];
-                let processBase64 = item.thumb;
+            document.getElementById('selection-section').classList.remove('hidden');
+            showToast(`Chargé ${pages.length} images`, 'success');
+        }
 
-                progressTitle.textContent = `${i18n.processing}: ${item.name}`;
-                progressCount.textContent = `${i + 1}/${items.length}`;
-                progressBar.style.width = `${((i + 1) / items.length) * 100}%`;
+        function createThumbnailItem(pageNum, url) {
+            const item = document.createElement('div');
+            item.className = 'thumbnail-item';
+            item.onclick = () => togglePageSelection(pageNum);
 
-                // 如果是 PDF，這裡才進行高清渲染 (Scale 2.0) 並提取原始文字
-                let pdfTextData = null;
-                if (item.type === 'pdf') {
-                    progressDetail.textContent = i18n.generatingHD;
-                    try {
-                        const page = await item.pdfDoc.getPage(item.pageNum);
-                        const viewport = page.getViewport({ scale: 2.0 }); // 高解析度
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        canvas.height = viewport.height;
-                        canvas.width = viewport.width;
-                        await page.render({ canvasContext: ctx, viewport }).promise;
-                        processBase64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+            item.innerHTML = `
+                <div class="checkbox-overlay">
+                    <svg class="checkmark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <img src="${url}" class="thumbnail-img" alt="Page ${pageNum}">
+                <div class="thumbnail-label">Page ${pageNum}</div>
+            `;
 
-                        // 提取 PDF 原始文字資訊（比 OCR 更準確）
-                        progressDetail.textContent = "Extraction des coordonnées du texte original...";
-                        pdfTextData = await extractTextFromPdf(page, 2.0);
-                    } catch (e) {
-                        console.error("Re-render error", e);
-                        // 若失敗則降級使用縮圖
-                    }
+            return item;
+        }
+
+        function togglePageSelection(pageNum) {
+            if (selectedPages.has(pageNum)) {
+                selectedPages.delete(pageNum);
+            } else {
+                selectedPages.add(pageNum);
+            }
+            updateThumbnailSelection();
+        }
+
+        function selectAll() {
+            selectedPages = new Set(pages.map(p => p.pageNum));
+            updateThumbnailSelection();
+        }
+
+        function deselectAll() {
+            selectedPages.clear();
+            updateThumbnailSelection();
+        }
+
+        function updateThumbnailSelection() {
+            const items = document.querySelectorAll('.thumbnail-item');
+            items.forEach((item, index) => {
+                const pageNum = pages[index].pageNum;
+                if (selectedPages.has(pageNum)) {
+                    item.classList.add('selected');
                 } else {
-                    processBase64 = item.original;
+                    item.classList.remove('selected');
                 }
-
-                // 決定是否需要 OCR（PDF 沒有文字圖層時也需要）
-                const needsOcr = item.type !== 'pdf' || !pdfTextData || pdfTextData.blocks.length === 0;
-
-                // 統一處理：平行調用文字移除與 OCR（如需要）
-                progressDetail.textContent = needsOcr ? i18n.aiRemovingAndOcr : i18n.aiRemoving;
-
-                try {
-                    // 準備 OCR 用的圖片（PDF 用高清渲染圖，圖片用原圖）
-                    const ocrBase64 = item.type === 'pdf' ? processBase64 : item.original;
-
-                    const [cleanedResult, ocrResult] = await Promise.allSettled([
-                        removeTextWithGemini(processBase64),
-                        needsOcr ? ocrWithGemini(ocrBase64) : Promise.resolve([])
-                    ]);
-
-                    const cleaned = cleanedResult.status === 'fulfilled' ? cleanedResult.value : null;
-                    const ocrBlocks = ocrResult.status === 'fulfilled' ? ocrResult.value : [];
-
-                    if (cleanedResult.status === 'rejected') {
-                        console.error("Suppression du texte échouée:", cleanedResult.reason);
-                    }
-                    if (ocrResult.status === 'rejected') {
-                        console.warn("OCR échoué, la couche de texte sera ignorée:", ocrResult.reason);
-                    }
-
-                    // 決定文字來源：優先使用 pdfTextData，否則使用 ocrBlocks
-                    const finalPdfTextData = (pdfTextData?.blocks?.length > 0) ? pdfTextData : null;
-                    const finalOcrBlocks = finalPdfTextData ? null : ocrBlocks;
-
-                    if (cleaned) {
-                        results.push({
-                            name: item.name,
-                            original: processBase64,
-                            cleaned,
-                            sourceType: item.type,
-                            pdfTextData: finalPdfTextData,
-                            ocrBlocks: finalOcrBlocks
-                        });
-                        addResultCard(i, item.name, cleaned);
-                    } else {
-                        const isAuthError = cleanedResult.reason?.message?.includes("400") ||
-                                           cleanedResult.reason?.message?.includes("403") ||
-                                           cleanedResult.reason?.message?.includes("key");
-                        const errMsg = isAuthError ? i18n.apiKeyInvalid : (cleanedResult.reason?.message || "Traitement échoué");
-                        results.push({
-                            name: item.name,
-                            original: processBase64,
-                            cleaned: null,
-                            error: errMsg,
-                            sourceType: item.type,
-                            pdfTextData: finalPdfTextData,
-                            ocrBlocks: finalOcrBlocks
-                        });
-                        addResultCard(i, item.name, null, errMsg);
-                    }
-                } catch (e) {
-                    console.error(e);
-                    results.push({ name: item.name, original: processBase64, cleaned: null, error: e.message, sourceType: item.type, pdfTextData: null, ocrBlocks: [] });
-                    addResultCard(i, item.name, null, e.message);
-                }
-                // Le traitement parallèle réduit le temps total, un intervalle de 1 seconde suffit pour éviter la limitation de débit
-                if (i < items.length - 1) await wait(1000);
-            }
-            const successCount = results.filter(r => r.cleaned).length;
-            const failCount = results.filter(r => !r.cleaned).length;
-            let summary = i18n.processingComplete.replace('{success}', successCount);
-            if (failCount > 0) summary += i18n.processingFailed.replace('{fail}', failCount);
-            if (rateLimitCount > 0) summary += i18n.rateLimitSummary.replace('{count}', rateLimitCount);
-            showToast(summary, failCount > 0 || rateLimitCount > 3);
-            setTimeout(() => progressSection.classList.add('hidden'), 1000);
-        }
-
-        function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = e => resolve(e.target.result.split(',')[1]);
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
             });
         }
 
-        async function removeTextWithGemini(base64) {
-            const baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE_EDIT}:generateContent`;
-            const url = apiKey ? `${baseUrl}?key=${apiKey}` : baseUrl;
-            const payload = {
+        async function startProcessing() {
+            if (selectedPages.size === 0) {
+                showToast('Veuillez sélectionner au moins une page', 'warning');
+                return;
+            }
+
+            if (!apiKey) {
+                document.getElementById('api-key-modal').classList.remove('hidden');
+                return;
+            }
+
+            document.getElementById('selection-section').classList.add('hidden');
+            document.getElementById('processing-section').classList.remove('hidden');
+
+            processedResults = [];
+            const selectedPagesList = Array.from(selectedPages).sort((a, b) => a - b);
+            const total = selectedPagesList.length;
+
+            const BATCH_SIZE = 6;
+
+            for (let batchStart = 0; batchStart < total; batchStart += BATCH_SIZE) {
+                const batchEnd = Math.min(batchStart + BATCH_SIZE, total);
+                const batch = selectedPagesList.slice(batchStart, batchEnd);
+
+                const batchPromises = batch.map(async (pageNum, batchIndex) => {
+                    const globalIndex = batchStart + batchIndex;
+                    const page = pages.find(p => p.pageNum === pageNum);
+
+                    updateProgress(globalIndex, total, `Traitement de la page ${pageNum}...`);
+
+                    try {
+                        const highResImageData = await renderHighResImage(page);
+                        const removedTextImage = await removeText(highResImageData);
+                        await wait(3500);
+                        const ocrResult = await performOCR(highResImageData);
+
+                        processedResults.push({
+                            pageNum,
+                            backgroundImage: removedTextImage,
+                            ocrData: ocrResult,
+                            previewImage: page.thumbnailUrl
+                        });
+
+                        updateProcessingItem(pageNum, 'Terminé', true);
+
+                    } catch (error) {
+                        console.error(`Erreur page ${pageNum}:`, error);
+                        updateProcessingItem(pageNum, `Erreur: ${error.message}`, false);
+                    }
+                });
+
+                await Promise.all(batchPromises);
+
+                if (batchEnd < total) {
+                    const cooldown = 2;
+                    for (let i = cooldown; i > 0; i--) {
+                        updateProgress(batchEnd, total, `Refroidissement... ${i}s`);
+                        await wait(1000);
+                    }
+                }
+            }
+
+            updateProgress(total, total, 'Tout le traitement terminé !');
+
+            setTimeout(() => {
+                document.getElementById('processing-section').classList.add('hidden');
+                showResults();
+            }, 1000);
+        }
+
+        async function renderHighResImage(page) {
+            if (page.pdfPage) {
+                const viewport = page.pdfPage.getViewport({ scale: 2.0 });
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                await page.pdfPage.render({ canvasContext: context, viewport: viewport }).promise;
+                return canvas.toDataURL('image/png');
+
+            } else if (page.imageFile) {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(page.imageFile);
+                });
+            }
+        }
+
+        async function removeText(imageDataUrl) {
+            const base64Data = imageDataUrl.split(',')[1];
+
+            const requestBody = {
                 contents: [{
-                    role: "user",
                     parts: [
-                        { text: "Edit this image by removing all visible text and numbers while preserving the original background patterns, colors, and design elements. Use content-aware fill to seamlessly reconstruct the areas where text was removed. Return the edited image." },
-                        { inlineData: { mimeType: "image/png", data: base64 } }
+                        { text: "Remove all text from this image while preserving and reconstructing the background. Maintain the original image dimensions and quality." },
+                        { inline_data: { mime_type: "image/png", data: base64Data } }
                     ]
                 }],
                 generationConfig: {
-                    responseModalities: ['IMAGE'],
-                    temperature: 0.4
+                    temperature: 0.4,
+                    topK: 32,
+                    topP: 1,
+                    maxOutputTokens: 8192
                 }
             };
 
-            const data = await fetchWithRetry(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            const data = await fetchWithRetry(
+                `${API_ENDPOINT}/${MODEL_IMAGE_EDIT}:generateContent?key=${apiKey}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                }
+            );
 
-            // Vérifier les restrictions de droits d'auteur
-            const finishReason = data.candidates?.[0]?.finishReason;
-            if (finishReason === 'IMAGE_RECITATION') {
-                console.error("Erreur IMAGE_RECITATION:", data.candidates?.[0]?.finishMessage);
-                throw new Error("Traitement d'image restreint : Gemini a détecté des problèmes potentiels de droits d'auteur. Essayez une autre image ou ajustez le contenu.");
+            if (data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data) {
+                return `data:image/png;base64,${data.candidates[0].content.parts[0].inlineData.data}`;
             }
 
-            const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-            if (!part) {
-                const textPart = data.candidates?.[0]?.content?.parts?.find(p => p.text);
-                if (textPart) { console.warn("L'API a retourné du texte au lieu d'une image:", textPart.text); throw new Error(i18n.aiReturnedText); }
-                console.error("Structure de réponse API:", JSON.stringify(data, null, 2));
-                throw new Error(data.error?.message || i18n.apiNoImage);
-            }
-            return part.inlineData.data;
+            throw new Error('Aucune image retournée par l\'API');
         }
 
-        async function ocrWithGemini(base64) {
-            const baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_TEXT_GEN}:generateContent`;
-            const url = apiKey ? `${baseUrl}?key=${apiKey}` : baseUrl;
-            const payload = {
+        async function performOCR(imageDataUrl) {
+            const base64Data = imageDataUrl.split(',')[1];
+
+            const requestBody = {
                 contents: [{
                     parts: [
                         {
-                            text: `Analyze this image and extract all text blocks with precise positioning and styling.
-For each text block, provide:
-- text: the exact text content
-- box_2d: bounding box as [ymin, xmin, ymax, xmax] in 0-1000 coordinate system
-- font_size_pt: estimated font size in points (typical range: 8-72)
-- font_weight: "normal" or "bold"
-- font_style: "normal" or "italic"
-- text_align: "left", "center", or "right" (based on text position in its container)
-- color: hex color code like "000000" or "FFFFFF"
-- line_height: line height multiplier (typically 1.0-2.0)
+                            text: `Analyze this image and extract all text with precise positioning and styling information.
+Return a JSON array where each text element includes:
+- "text": the actual text content
+- "x": horizontal position (0-100, percentage from left)
+- "y": vertical position (0-100, percentage from top)
+- "fontSize": font size in points
+- "fontFamily": detected font name
+- "color": text color in hex format
+- "bold": boolean for bold text
+- "italic": boolean for italic text
+- "align": text alignment (left/center/right)
 
-Return as JSON array. Be precise with bounding boxes.`
+Return ONLY the JSON array, no additional text.`
                         },
-                        { inlineData: { mimeType: "image/png", data: base64 } }
+                        { inline_data: { mime_type: "image/png", data: base64Data } }
                     ]
                 }],
                 generationConfig: {
+                    temperature: 0.1,
                     responseMimeType: "application/json",
                     responseSchema: {
                         type: "ARRAY",
@@ -641,193 +1321,230 @@ Return as JSON array. Be precise with bounding boxes.`
                             type: "OBJECT",
                             properties: {
                                 text: { type: "STRING" },
-                                box_2d: { type: "ARRAY", items: { type: "NUMBER" }, minItems: 4, maxItems: 4 },
-                                font_size_pt: { type: "NUMBER" },
-                                font_weight: { type: "STRING" },
-                                font_style: { type: "STRING" },
-                                text_align: { type: "STRING" },
+                                x: { type: "NUMBER" },
+                                y: { type: "NUMBER" },
+                                fontSize: { type: "NUMBER" },
+                                fontFamily: { type: "STRING" },
                                 color: { type: "STRING" },
-                                line_height: { type: "NUMBER" }
-                            }
+                                bold: { type: "BOOLEAN" },
+                                italic: { type: "BOOLEAN" },
+                                align: { type: "STRING" }
+                            },
+                            required: ["text", "x", "y", "fontSize"]
                         }
                     }
                 }
             };
 
-            const data = await fetchWithRetry(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                throw new Error(i18n.ocrFailed);
-            }
-
-            const ocrText = data.candidates[0].content.parts[0].text;
             try {
-                return JSON.parse(ocrText);
-            } catch (parseError) {
-                console.error('Échec de l\'analyse JSON OCR:', ocrText.substring(0, 500));
-                console.warn('Impossible d\'analyser le résultat OCR, conservation du fond uniquement');
+                const data = await fetchWithRetry(
+                    `${API_ENDPOINT}/${MODEL_TEXT_GEN}:generateContent?key=${apiKey}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestBody)
+                    }
+                );
+
+                const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!responseText) {
+                    throw new Error('Aucune réponse OCR de l\'API');
+                }
+
+                return JSON.parse(responseText);
+
+            } catch (error) {
+                console.error('Erreur OCR:', error);
                 return [];
             }
         }
 
-        function addResultCard(index, name, cleaned, error) {
-            const div = document.createElement('div');
-            div.className = 'result-card glass rounded-2xl overflow-hidden';
-            if (cleaned) { div.innerHTML = `<img src="data:image/png;base64,${cleaned}" class="w-full aspect-video object-cover"><div class="p-4 flex justify-between items-center text-[10px]"><span class="truncate max-w-[80%]">${name}</span><span class="text-emerald-400 font-bold">${i18n.success}</span></div>`; }
-            else { div.innerHTML = `<div class="p-6 text-center text-red-400 text-[10px]">${error || i18n.failed}</div>`; }
-            resultsGrid.appendChild(div);
-        }
+        async function fetchWithRetry(url, options, maxRetries = 5) {
+            let lastError;
 
-        document.getElementById('export-combined-btn').onclick = async () => {
-            const valid = results.filter(r => r.cleaned);
-            if (!valid.length) return;
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    const response = await fetch(url, options);
 
-            const btn = document.getElementById('export-combined-btn');
-            btn.disabled = true;
-            btn.innerHTML = "Traitement du texte...";
+                    if (response.status === 429) {
+                        const waitTime = Math.pow(2, attempt) * 1000;
+                        console.log(`Limite de taux atteinte, nouvelle tentative dans ${waitTime/1000}s...`);
+                        await wait(waitTime);
+                        continue;
+                    }
 
-            try {
-                const pptx = new PptxGenJS();
-                const ratio = document.getElementById('ratio-select').value;
-                pptx.layout = ratio === '16:9' ? 'LAYOUT_WIDE' : ratio === '4:3' ? 'LAYOUT_4x3' : 'LAYOUT_WIDE';
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Erreur API: ${response.status} - ${errorText}`);
+                    }
 
-                // 取得簡報實際尺寸（英吋）
-                const slideWidth = ratio === '16:9' ? 13.333 : ratio === '4:3' ? 10 : 13.333;
-                const slideHeight = ratio === '16:9' ? 7.5 : ratio === '4:3' ? 7.5 : 7.5;
+                    return await response.json();
 
-                for (let i = 0; i < valid.length; i++) {
-                    const r = valid[i];
-                    const slide = pptx.addSlide();
-                    slide.addImage({ data: `data:image/png;base64,${r.cleaned}`, x: 0, y: 0, w: '100%', h: '100%' });
+                } catch (error) {
+                    lastError = error;
+                    console.error(`Tentative ${attempt + 1} échouée:`, error);
 
-                    try {
-                        // 根據來源類型選擇文字提取方式
-                        if (r.sourceType === 'pdf' && r.pdfTextData && r.pdfTextData.blocks.length > 0) {
-                            // PDF 來源：使用已提取的精確文字資訊（無需 API 調用）
-                            showToast(`Utilisation du texte PDF original (${i+1}/${valid.length})...`);
-
-                            const { blocks, pageWidth, pageHeight } = r.pdfTextData;
-                            blocks.forEach(block => {
-                                if (!block.text.trim()) return;
-
-                                // 將像素座標轉換為簡報百分比座標
-                                const xPercent = (block.x / pageWidth) * 100;
-                                const yPercent = (block.y / pageHeight) * 100;
-                                const wPercent = (block.width / pageWidth) * 100;
-                                const hPercent = (block.height / pageHeight) * 100;
-
-                                // 根據簡報尺寸計算字體大小（pt）
-                                // PDF 字體大小是相對於 2.0 scale，需要轉換為簡報實際大小
-                                const scaleFactor = (slideHeight * 72) / pageHeight; // 72 pt per inch
-                                const fontSize = Math.max(6, Math.min(72, block.fontSize * scaleFactor * 0.8));
-
-                                slide.addText(block.text, {
-                                    x: `${xPercent}%`,
-                                    y: `${yPercent}%`,
-                                    w: `${Math.max(wPercent, 5)}%`,
-                                    h: `${Math.max(hPercent, 2)}%`,
-                                    fontSize: Math.round(fontSize),
-                                    color: '000000',
-                                    fontFace: 'Microsoft JhengHei',
-                                    valign: 'top'
-                                });
-                            });
-                        } else if (r.ocrBlocks && r.ocrBlocks.length > 0) {
-                            // Source image: utiliser les résultats OCR pré-obtenus (pas d'appel API)
-                            showToast(i18n.applyingTextLayer.replace('{current}', i+1).replace('{total}', valid.length));
-
-                            r.ocrBlocks.forEach(b => {
-                                if (!b.text || !b.text.trim()) return;
-                                if (!b.box_2d || b.box_2d.length !== 4) return;
-                                const [ymin, xmin, ymax, xmax] = b.box_2d;
-                                const textOptions = {
-                                    x: `${xmin/10}%`, y: `${ymin/10}%`,
-                                    w: `${Math.max((xmax-xmin)/10, 5)}%`, h: `${Math.max((ymax-ymin)/10, 2)}%`,
-                                    fontSize: b.font_size_pt || 14,
-                                    color: (b.color || "000000").replace("#", ""),
-                                    fontFace: 'Microsoft JhengHei', valign: 'top'
-                                };
-                                if (b.font_weight === 'bold') textOptions.bold = true;
-                                if (b.font_style === 'italic') textOptions.italic = true;
-                                if (b.text_align) textOptions.align = b.text_align;
-                                slide.addText(b.text, textOptions);
-                            });
-                        } else {
-                            console.warn(`Diapositive ${i+1} sans données OCR, export du fond uniquement`);
-                        }
-                    } catch (e) {
-                        console.warn("Text extraction failed for slide", i, e);
+                    if (attempt < maxRetries - 1) {
+                        const waitTime = Math.pow(2, attempt) * 1000;
+                        await wait(waitTime);
                     }
                 }
-                pptx.writeFile({ fileName: `Result_${Date.now()}.pptx` });
-                showToast('Exportation réussie');
-            } catch (e) {
-                console.error("Export error", e);
-                showToast("Échec de l'exportation: " + e.message, true);
             }
-            btn.disabled = false;
-            btn.innerHTML = "Exporter PPTX ⭐";
-        };
 
-        // Réinitialisation douce : Effacer l'état et revenir à l'interface initiale (préserver la clé API)
-        function softReset() {
-            console.log('=== Exécution de la réinitialisation douce ===');
-            console.log('Préservation de la clé API:', apiKey.substring(0, 8) + '...');
-
-            // Réinitialiser les variables d'état
-            pendingItems = [];
-            results = [];
-            rateLimitCount = 0;
-
-            // Réinitialiser l'interface - Masquer toutes les sections
-            selectionSection.classList.add('hidden');
-            progressSection.classList.add('hidden');
-            resultsSection.classList.add('hidden');
-
-            // Afficher la section de téléchargement
-            uploadSection.classList.remove('hidden');
-
-            // Effacer le contenu
-            selectionGrid.innerHTML = '';
-            resultsGrid.innerHTML = '';
-
-            // Réinitialiser la barre de progression
-            progressBar.style.width = '0%';
-            progressTitle.textContent = '';
-            progressDetail.textContent = '';
-            progressCount.textContent = '';
-
-            // Effacer l'entrée de fichier (supprimer temporairement l'écouteur d'événement pour éviter de déclencher l'événement change)
-            fileInput.onchange = null;
-            fileInput.value = '';
-            fileInput.onchange = e => handleFiles(e.target.files);
-
-            // Réinitialiser le HTML de la zone de téléchargement (restaurer l'état initial)
-            dropZone.innerHTML = `
-                <input type="file" id="file-input" class="hidden" accept="application/pdf,image/*" multiple>
-                <div class="w-20 h-20 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                </div>
-                <p class="text-2xl font-bold text-white mb-2">Déposez PDF ou Images Ici</p>
-                <p class="text-slate-400">Cliquez ici pour sélectionner des fichiers</p>
-                <div id="lib-warning" class="mt-4 text-xs text-amber-400 hidden">Attention : Composants non prêts, veuillez patienter...</div>
-            `;
-            dropZone.style.pointerEvents = 'auto';
-
-            // Réinitialiser le compteur de sélection
-            selectedCountSpan.textContent = '0';
-
-            console.log('✓ Réinitialisation douce terminée, clé API préservée');
-            showToast('✓ Réinitialisation terminée, prêt pour un nouveau traitement');
+            throw lastError;
         }
 
-        document.getElementById('reset-btn').onclick = softReset;
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function updateProgress(current, total, message) {
+            const percent = Math.round((current / total) * 100);
+            document.getElementById('progress-fill').style.width = `${percent}%`;
+            document.getElementById('progress-text').textContent = message;
+        }
+
+        function updateProcessingItem(pageNum, status, success) {
+            const container = document.getElementById('processing-items');
+            let item = document.getElementById(`processing-${pageNum}`);
+
+            if (!item) {
+                const page = pages.find(p => p.pageNum === pageNum);
+                item = document.createElement('div');
+                item.id = `processing-${pageNum}`;
+                item.className = 'processing-item';
+                item.innerHTML = `
+                    <img src="${page.thumbnailUrl}" class="processing-preview" alt="Page ${pageNum}">
+                    <div class="processing-info">
+                        <div class="processing-title">Page ${pageNum}</div>
+                        <div class="processing-status" id="status-${pageNum}">En traitement...</div>
+                    </div>
+                    <div class="spinner" id="spinner-${pageNum}"></div>
+                `;
+                container.appendChild(item);
+            }
+
+            const statusEl = document.getElementById(`status-${pageNum}`);
+            const spinnerEl = document.getElementById(`spinner-${pageNum}`);
+
+            statusEl.textContent = status;
+
+            if (success) {
+                spinnerEl.innerHTML = `
+                    <svg style="width: 24px; height: 24px; color: var(--color-success);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                `;
+            } else if (success === false) {
+                spinnerEl.innerHTML = `
+                    <svg style="width: 24px; height: 24px; color: var(--color-error);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                `;
+            }
+        }
+
+        function showResults() {
+            document.getElementById('results-section').classList.remove('hidden');
+            const container = document.getElementById('results-items');
+            container.innerHTML = '';
+
+            processedResults
+                .sort((a, b) => a.pageNum - b.pageNum)
+                .forEach(result => {
+                    const item = document.createElement('div');
+                    item.className = 'result-item';
+
+                    const textCount = result.ocrData?.length || 0;
+
+                    item.innerHTML = `
+                        <img src="${result.previewImage}" class="result-preview" alt="Page ${result.pageNum}">
+                        <div class="result-info">
+                            <div class="result-title">Page ${result.pageNum}</div>
+                            <div class="result-meta">
+                                <div class="result-meta-item">
+                                    <svg class="meta-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Arrière-plan reconstruit
+                                </div>
+                                <div class="result-meta-item">
+                                    <svg class="meta-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    ${textCount} éléments de texte
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    container.appendChild(item);
+                });
+        }
+
+        async function exportPPTX() {
+            try {
+                showToast('Génération du PPTX...', 'success');
+
+                const pptx = new PptxGenJS();
+
+                for (const result of processedResults) {
+                    const slide = pptx.addSlide();
+
+                    slide.background = { data: result.backgroundImage };
+
+                    if (result.ocrData && result.ocrData.length > 0) {
+                        result.ocrData.forEach(textItem => {
+                            slide.addText(textItem.text, {
+                                x: `${textItem.x}%`,
+                                y: `${textItem.y}%`,
+                                fontSize: textItem.fontSize || 12,
+                                fontFace: textItem.fontFamily || 'Arial',
+                                color: textItem.color?.replace('#', '') || '000000',
+                                bold: textItem.bold || false,
+                                italic: textItem.italic || false,
+                                align: textItem.align || 'left'
+                            });
+                        });
+                    }
+                }
+
+                await pptx.writeFile({ fileName: 'NotebookLM_Converted.pptx' });
+                showToast('PPTX exporté avec succès !', 'success');
+
+            } catch (error) {
+                console.error('Erreur d\'export:', error);
+                showToast('Échec de l\'export PPTX', 'error');
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            let icon = '';
+            if (type === 'success') {
+                icon = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>';
+            } else if (type === 'error') {
+                icon = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
+            } else if (type === 'warning') {
+                icon = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>';
+            }
+
+            toast.innerHTML = `
+                <svg class="toast-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    ${icon}
+                </svg>
+                <span>${message}</span>
+            `;
+
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
     </script>
 </body>
 </html>

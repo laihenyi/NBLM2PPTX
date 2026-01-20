@@ -3,829 +3,1343 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 图片文字移除 PRO - Canvas 版</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>NotebookLM 转 PPTX - AI 图片文字移除 PRO</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- PDF.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+
+    <!-- PptxGenJS -->
     <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap');
-        body { font-family: 'Noto Sans SC', sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; }
-        .drop-zone-active { border-color: #3b82f6 !important; background-color: rgba(59, 130, 246, 0.1) !important; transform: scale(1.02); }
-        .loader { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 0.8s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        .result-card { transition: all 0.3s ease; }
-        .result-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
-        .progress-bar { transition: width 0.3s ease; }
-        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
-        .custom-checkbox:checked + div { border-color: #3b82f6; background-color: rgba(59, 130, 246, 0.2); }
-        .custom-checkbox:checked + div .check-icon { opacity: 1; transform: scale(1); }
+        :root {
+            --color-primary: #3B82F6;
+            --color-primary-dark: #2563EB;
+            --color-primary-light: #DBEAFE;
+            --color-cta: #F97316;
+            --color-cta-dark: #EA580C;
+            --color-success: #10B981;
+            --color-warning: #F59E0B;
+            --color-error: #EF4444;
+            --color-text: #1E293B;
+            --color-text-light: #64748B;
+            --color-bg: #F8FAFC;
+            --color-surface: #FFFFFF;
+            --color-border: #E2E8F0;
+            --font-heading: 'Poppins', 'Noto Sans SC', sans-serif;
+            --font-body: 'Open Sans', 'Noto Sans SC', sans-serif;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-heading);
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 20px;
+            background: var(--color-surface);
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            color: var(--color-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .header-icon {
+            width: 48px;
+            height: 48px;
+        }
+
+        .subtitle {
+            font-size: 1.125rem;
+            color: var(--color-text-light);
+            margin-bottom: 16px;
+        }
+
+        .version-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            background: var(--color-primary-light);
+            color: var(--color-primary-dark);
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        /* API Key Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: var(--color-surface);
+            padding: 32px;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-content h2 {
+            margin-bottom: 12px;
+            color: var(--color-primary);
+        }
+
+        .modal-content p {
+            margin-bottom: 20px;
+            color: var(--color-text-light);
+            line-height: 1.5;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 16px;
+            font-family: var(--font-body);
+            transition: border-color 0.2s;
+        }
+
+        .modal-content input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        .modal-content button {
+            width: 100%;
+            padding: 12px 24px;
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-family: var(--font-heading);
+        }
+
+        .modal-content button:hover {
+            background: var(--color-primary-dark);
+        }
+
+        /* Alert */
+        .alert {
+            background: #FEF3C7;
+            border-left: 4px solid var(--color-warning);
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .alert-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .alert-title-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-icon {
+            width: 24px;
+            height: 24px;
+            color: var(--color-warning);
+        }
+
+        .alert-title {
+            font-weight: 600;
+            color: #92400E;
+            font-family: var(--font-heading);
+        }
+
+        .collapse-icon {
+            width: 20px;
+            height: 20px;
+            color: #92400E;
+            transition: transform 0.2s;
+        }
+
+        .collapse-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .alert-content {
+            margin-top: 12px;
+            color: #92400E;
+            line-height: 1.6;
+        }
+
+        .alert-content.hidden {
+            display: none;
+        }
+
+        .alert-content ul {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+
+        .alert-content li {
+            margin-bottom: 4px;
+        }
+
+        .alert-link {
+            color: var(--color-primary);
+            text-decoration: underline;
+            font-weight: 500;
+        }
+
+        .alert-link:hover {
+            color: var(--color-primary-dark);
+        }
+
+        /* Tools Section */
+        .tools-section {
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--color-border);
+        }
+
+        .tools-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .tools-title-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tools-icon {
+            width: 24px;
+            height: 24px;
+            color: var(--color-primary);
+        }
+
+        .tools-title {
+            font-weight: 600;
+            color: var(--color-text);
+            font-family: var(--font-heading);
+        }
+
+        .tools-content {
+            margin-top: 16px;
+        }
+
+        .tools-content.hidden {
+            display: none;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .tool-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: var(--color-bg);
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .tool-item:hover {
+            background: var(--color-primary-light);
+        }
+
+        .tool-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--color-primary);
+        }
+
+        .tool-link {
+            color: var(--color-primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .tool-link:hover {
+            color: var(--color-primary-dark);
+            text-decoration: underline;
+        }
+
+        /* Card */
+        .card {
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--color-border);
+        }
+
+        .card h2 {
+            margin-bottom: 16px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-icon {
+            width: 28px;
+            height: 28px;
+            color: var(--color-primary);
+        }
+
+        /* Upload Section */
+        .upload-area {
+            border: 2px dashed var(--color-border);
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--color-bg);
+        }
+
+        .upload-area:hover {
+            border-color: var(--color-primary);
+            background: var(--color-primary-light);
+        }
+
+        .upload-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            color: var(--color-primary);
+        }
+
+        .upload-text {
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: var(--color-text);
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            color: var(--color-text-light);
+            font-size: 0.875rem;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: var(--font-heading);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--color-primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-cta {
+            background: var(--color-cta);
+            color: white;
+        }
+
+        .btn-cta:hover:not(:disabled) {
+            background: var(--color-cta-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: var(--color-border);
+            color: var(--color-text);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #CBD5E1;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        /* Page Selection */
+        .page-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .page-item {
+            position: relative;
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--color-surface);
+        }
+
+        .page-item:hover {
+            border-color: var(--color-primary);
+            box-shadow: var(--shadow-md);
+        }
+
+        .page-item.selected {
+            border-color: var(--color-primary);
+            background: var(--color-primary-light);
+        }
+
+        .page-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .page-checkbox {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+        }
+
+        .page-number {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        /* Progress Section */
+        .progress-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--color-bg);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid var(--color-border);
+        }
+
+        .progress-thumbnail {
+            width: 80px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid var(--color-border);
+        }
+
+        .progress-info {
+            flex: 1;
+        }
+
+        .progress-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--color-text);
+        }
+
+        .progress-status {
+            font-size: 0.875rem;
+            color: var(--color-text-light);
+        }
+
+        .progress-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .icon-pending {
+            color: var(--color-text-light);
+        }
+
+        .icon-processing {
+            color: var(--color-primary);
+            animation: spin 1s linear infinite;
+        }
+
+        .icon-success {
+            color: var(--color-success);
+        }
+
+        .icon-error {
+            color: var(--color-error);
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Results Section */
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 16px;
+        }
+
+        .result-item {
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--color-surface);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .result-images {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background: var(--color-border);
+        }
+
+        .result-image-wrapper {
+            position: relative;
+            background: var(--color-surface);
+        }
+
+        .result-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .result-label {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .result-info {
+            padding: 12px;
+        }
+
+        .result-page {
+            font-weight: 600;
+            color: var(--color-text);
+            margin-bottom: 4px;
+        }
+
+        .result-text-count {
+            font-size: 0.875rem;
+            color: var(--color-text-light);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--color-surface);
+            color: var(--color-text);
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: var(--shadow-lg);
+            border-left: 4px solid var(--color-primary);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+            max-width: 400px;
+        }
+
+        .toast.success {
+            border-left-color: var(--color-success);
+        }
+
+        .toast.error {
+            border-left-color: var(--color-error);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.75rem;
+            }
+
+            .page-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+
+            .result-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
-<body class="text-white pb-20">
-    <div class="max-w-6xl mx-auto px-4 py-12">
-        <header class="text-center mb-12">
-            <h1 class="text-4xl md:text-5xl font-black tracking-tight mb-3">
-                AI 图片文字移除 <span class="text-blue-400">PRO</span> <span class="text-xs align-top bg-emerald-600/30 text-emerald-400 px-2 py-1 rounded-md ml-2 border border-emerald-500/30">Canvas</span>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                NotebookLM 转 PPTX
             </h1>
-            <p class="text-slate-400 text-lg">上传 PDF 或图片 → 选择页面 → 自动去字 → 导出 PPTX</p>
-            <div class="flex items-center justify-center gap-4 mt-4">
-                <span class="flex items-center gap-2 text-xs text-blue-400">
-                    <span class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
-                    Powered by Gemini 2.5
-                </span>
-            </div>
-            <div class="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                <span class="text-emerald-400 text-xs font-bold">v2.2</span>
-                <span class="text-slate-300 text-xs">软重置保留 API Key + 速度优化 + IMAGE_RECITATION 修复</span>
-            </div>
-        </header>
+            <p class="subtitle">将 NotebookLM 导出的 PDF 转换为可编辑的 PowerPoint 演示文稿</p>
+            <div class="version-badge">v2.2 - 并行处理与 OCR 备用方案</div>
+        </div>
 
-        <section id="upload-section" class="mb-10 transition-all duration-300">
-            <div id="drop-zone" class="glass rounded-3xl p-16 text-center cursor-pointer hover:border-blue-500/50 transition-all duration-300 group">
-                <input type="file" id="file-input" class="hidden" accept="application/pdf,image/*" multiple>
-                <div class="w-20 h-20 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        <!-- API Key Modal -->
+        <div id="api-key-modal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <h2>配置 API 密钥</h2>
+                <p>请输入您的 Gemini API 密钥以开始使用此应用程序。您的密钥将安全地存储在浏览器本地，不会发送到任何服务器。</p>
+                <input type="password" id="api-key-input" placeholder="输入您的 Gemini API 密钥（以 AIza 开头）">
+                <button id="save-api-key-btn">保存并开始使用</button>
+            </div>
+        </div>
+
+        <!-- Alert -->
+        <div class="alert">
+            <div class="alert-header" id="alert-header">
+                <div class="alert-title-wrapper">
+                    <svg class="alert-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
                     </svg>
+                    <span class="alert-title">重要：免费方案限制</span>
                 </div>
-                <p class="text-2xl font-bold text-white mb-2">拖放 PDF 或图片</p>
-                <p class="text-slate-400">点击此处选择文件</p>
-                <div id="lib-warning" class="mt-4 text-xs text-amber-400 hidden">警告：组件尚未就绪，请稍候...</div>
+                <svg class="collapse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 9l-7 7-7-7"/>
+                </svg>
             </div>
-        </section>
+            <div class="alert-content" id="alert-content">
+                <p><strong>Gemini 免费 API 有严格的速率限制：</strong></p>
+                <ul>
+                    <li>每分钟 2 个请求（RPM）</li>
+                    <li>每天 50 个请求（RPD）</li>
+                </ul>
+                <p>为了防止达到速率限制，此工具在请求之间添加了 <strong>3.5 秒延迟</strong>。对于包含许多页面的大型 PDF，这会导致较长的处理时间。</p>
+                <p><strong>建议：</strong> 对于更快的处理，请考虑升级到付费的 Gemini API 计划，该计划提供更高的速率限制（15 RPM）。<a href="https://ai.google.dev/pricing" target="_blank" class="alert-link">查看定价详情</a></p>
+            </div>
+        </div>
 
-        <section id="selection-section" class="hidden mb-10 animate-fade-in">
-            <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
-                <div>
-                    <h2 class="text-2xl font-bold flex items-center gap-2">
-                        <span class="bg-blue-500 w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
-                        选择要处理的页面
-                    </h2>
-                    <p class="text-slate-400 text-sm mt-1 ml-10">仅勾选需要的页面以节省时间</p>
+        <!-- Tools Section -->
+        <div class="tools-section">
+            <div class="tools-header" id="tools-header">
+                <div class="tools-title-wrapper">
+                    <svg class="tools-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>
+                    </svg>
+                    <span class="tools-title">推荐的 PDF 预处理工具</span>
                 </div>
-                <div class="flex gap-3">
-                    <button id="select-all-btn" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-sm font-bold transition">全选</button>
-                    <button id="deselect-all-btn" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-sm font-bold transition">全取消</button>
-                    <button id="start-process-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20 transition flex items-center gap-2">
-                        开始处理 (<span id="selected-count">0</span>)
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                <svg class="collapse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 9l-7 7-7-7"/>
+                </svg>
+            </div>
+            <div class="tools-content hidden" id="tools-content">
+                <p style="color: var(--color-text-light); margin-bottom: 12px;">在处理之前，您可以使用这些工具优化您的 PDF：</p>
+                <div class="tools-grid">
+                    <div class="tool-item">
+                        <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                    </button>
-                </div>
-            </div>
-            <div id="selection-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 custom-scrollbar max-h-[60vh] overflow-y-auto p-2"></div>
-        </section>
-
-        <section id="progress-section" class="hidden mb-10">
-            <div class="glass rounded-3xl p-8">
-                <div class="flex items-center justify-between mb-6">
-                    <div class="flex items-center gap-4">
-                        <div class="loader"></div>
-                        <div>
-                            <p id="progress-title" class="font-bold text-lg">处理中...</p>
-                            <p id="progress-detail" class="text-sm text-slate-400">分析中</p>
-                        </div>
+                        <a href="https://www.ilovepdf.com/zh-cn/remove_watermark" target="_blank" class="tool-link">PDF 水印移除</a>
                     </div>
-                    <span id="progress-count" class="text-2xl font-black text-blue-400">0/0</span>
-                </div>
-                <div class="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
-                    <div id="progress-bar" class="progress-bar bg-gradient-to-r from-blue-500 to-purple-500 h-full rounded-full" style="width: 0%"></div>
+                    <div class="tool-item">
+                        <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                        </svg>
+                        <a href="https://www.ilovepdf.com/zh-cn/compress_pdf" target="_blank" class="tool-link">PDF 压缩</a>
+                    </div>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <section id="results-section" class="hidden">
-            <div class="flex items-center justify-between mb-6 flex-wrap gap-4 border-t border-slate-700 pt-8">
-                <div>
-                    <h2 class="text-2xl font-bold flex items-center gap-2">
-                        <span class="bg-emerald-500 w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
-                        处理结果
-                    </h2>
-                </div>
-                <div class="flex items-center gap-3 flex-wrap">
-                    <select id="ratio-select" class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-sm font-bold outline-none">
-                        <option value="16:9">16:9 横式</option>
-                        <option value="9:16">9:16 竖式</option>
-                        <option value="4:3">4:3 标准</option>
-                    </select>
-                    <button id="export-combined-btn" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg transition flex items-center gap-2">
-                        合并 PPTX ⭐
-                    </button>
-                    <button id="reset-btn" class="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-4 py-2.5 rounded-xl font-bold transition">重新开始</button>
-                </div>
+        <!-- Upload Section -->
+        <div class="card">
+            <h2>
+                <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                上传 PDF 或图片
+            </h2>
+            <div class="upload-area" id="upload-area">
+                <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                <div class="upload-text">点击上传或拖放文件</div>
+                <div class="upload-hint">支持 PDF 文件和图片（PNG、JPG、JPEG）</div>
             </div>
-            <div id="results-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 custom-scrollbar"></div>
-        </section>
+            <input type="file" id="file-input" accept=".pdf,image/*" multiple>
+        </div>
+
+        <!-- Page Selection -->
+        <div class="card hidden" id="page-selection-card">
+            <h2>
+                <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+                选择要处理的页面
+            </h2>
+            <div class="button-group">
+                <button class="btn btn-secondary" id="select-all-btn">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
+                    全选
+                </button>
+                <button class="btn btn-secondary" id="deselect-all-btn">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    取消全选
+                </button>
+                <button class="btn btn-primary" id="process-btn" disabled>
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    开始处理
+                </button>
+            </div>
+            <div class="page-grid" id="page-grid"></div>
+        </div>
+
+        <!-- Processing Progress -->
+        <div class="card hidden" id="progress-card">
+            <h2>
+                <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v6l4 2"/>
+                </svg>
+                处理进度
+            </h2>
+            <div id="progress-list"></div>
+        </div>
+
+        <!-- Results -->
+        <div class="card hidden" id="results-card">
+            <h2>
+                <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                处理结果
+            </h2>
+            <button class="btn btn-cta" id="export-btn">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                导出 PPTX
+            </button>
+            <div class="result-grid" id="result-grid"></div>
+        </div>
     </div>
 
-    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-2xl shadow-2xl opacity-0 transition-all pointer-events-none z-50 text-sm font-bold border border-slate-700"></div>
-
     <script>
-        const apiKey = "";
-        // Canvas 环境使用稳定版模型
-        const MODEL_IMAGE_EDIT = "gemini-2.5-flash-image";  // 图像生成/编辑
-        const MODEL_TEXT_GEN = "gemini-2.5-flash";           // 文字生成 (OCR)
-        let pendingItems = [];
-        let results = [];
+        // Configuration
+        let apiKey = localStorage.getItem('gemini_api_key') || "";
+        const MODEL_IMAGE_EDIT = "gemini-2.5-flash-image-preview";
+        const MODEL_TEXT_GEN = "gemini-2.5-flash-preview-09-2025";
+        const API_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 
-        const i18n = {
-            processing: "处理中",
-            analyzing: "分析中",
-            generatingHD: "正在生成高解析影像...",
-            aiRemoving: "AI 正在移除文字并重建背景...",
-            aiRemovingAndOcr: "AI 正在移除文字并同步识别内容...",
-            applyingTextLayer: "套用文字层 ({current}/{total})...",
-            noOcrData: "无 OCR 数据，仅导出背景图",
-            unsupportedFormat: "不支持的文件格式",
-            readFailed: "文件读取失败",
-            apiKeyInvalid: "API Key 无效或环境异常",
-            ocrFailed: "OCR 识别失败或无文字内容",
-            apiNoImage: "API 未返回影像数据",
-            aiReturnedText: "AI 返回文字回应而非图像，请重试",
-            rateLimit: "API 频率限制 (429)，第 {count} 次，等待 {sec} 秒...",
-            warmingUp: "正在预热 API 连接...",
-            processingComplete: "处理完成：{success} 成功",
-            processingFailed: "，{fail} 失败",
-            rateLimitSummary: "（遭遇 {count} 次频率限制）",
-            recognizing: "识别中 ({current}/{total})...",
-            exportSuccess: "导出成功",
-            exportFailed: "导出失败",
-            readingFiles: "正在读取并建立缩略图...",
-            success: "成功",
-            failed: "失败",
-            apiKeyNotSet: "请先设置 API 金钥（代码第 131 行）",
-            apiKeyInvalidCheck: "API 金钥无效，请检查您的 Gemini API 金钥",
-            apiResponseError: "API 响应格式错误: {preview}..."
-        };
+        // State
+        let pdfDoc = null;
+        let allPages = [];
+        let selectedPages = new Set();
+        let processedResults = [];
 
-        function initPdfLibrary() {
-            try {
-                if (window.pdfjsLib) {
-                    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-                    return true;
-                }
-            } catch (e) { console.error(e); }
-            document.getElementById('lib-warning').classList.remove('hidden');
-            return false;
-        }
-
-        const dropZone = document.getElementById('drop-zone');
+        // DOM Elements
+        const apiKeyModal = document.getElementById('api-key-modal');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const saveApiKeyBtn = document.getElementById('save-api-key-btn');
+        const uploadArea = document.getElementById('upload-area');
         const fileInput = document.getElementById('file-input');
-        const uploadSection = document.getElementById('upload-section');
-        const selectionSection = document.getElementById('selection-section');
-        const selectionGrid = document.getElementById('selection-grid');
-        const progressSection = document.getElementById('progress-section');
-        const resultsSection = document.getElementById('results-section');
-        const progressBar = document.getElementById('progress-bar');
-        const progressTitle = document.getElementById('progress-title');
-        const progressDetail = document.getElementById('progress-detail');
-        const progressCount = document.getElementById('progress-count');
-        const resultsGrid = document.getElementById('results-grid');
-        const toast = document.getElementById('toast');
-        const selectedCountSpan = document.getElementById('selected-count');
+        const pageSelectionCard = document.getElementById('page-selection-card');
+        const pageGrid = document.getElementById('page-grid');
+        const selectAllBtn = document.getElementById('select-all-btn');
+        const deselectAllBtn = document.getElementById('deselect-all-btn');
+        const processBtn = document.getElementById('process-btn');
+        const progressCard = document.getElementById('progress-card');
+        const progressList = document.getElementById('progress-list');
+        const resultsCard = document.getElementById('results-card');
+        const resultGrid = document.getElementById('result-grid');
+        const exportBtn = document.getElementById('export-btn');
+        const alertHeader = document.getElementById('alert-header');
+        const alertContent = document.getElementById('alert-content');
+        const toolsHeader = document.getElementById('tools-header');
+        const toolsContent = document.getElementById('tools-content');
 
-        window.onload = () => { initPdfLibrary(); };
-
-        function showToast(msg, isError = false) {
-            toast.textContent = msg;
-            toast.style.backgroundColor = isError ? '#ef4444' : '#1e293b';
-            toast.classList.replace('opacity-0', 'opacity-100');
-            setTimeout(() => toast.classList.replace('opacity-100', 'opacity-0'), 3000);
+        // Check API Key on load
+        if (!apiKey) {
+            apiKeyModal.classList.remove('hidden');
         }
 
-        const wait = (ms) => new Promise(res => setTimeout(res, ms));
-
-
-        // PDF.js 直接提取文字資訊（比 OCR 更準確）
-        async function extractTextFromPdf(page, scale = 2.0) {
-            const viewport = page.getViewport({ scale });
-            const textContent = await page.getTextContent();
-            const pageWidth = viewport.width;
-            const pageHeight = viewport.height;
-
-            const textBlocks = textContent.items
-                .map(item => {
-                    const [scaleX, skewX] = item.transform;
-                    const tx = item.transform[4] * scale;
-                    const ty = item.transform[5] * scale;
-                    const fontSize = Math.sqrt(scaleX * scaleX + skewX * skewX) * scale;
-
-                    // PDF 座標系 y 軸從底部開始，需要轉換
-                    const x = tx;
-                    const y = pageHeight - ty;
-                    const height = fontSize * 1.2;
-
-                    // 估算文字寬度（PDF.js 可能返回 0 或 undefined）
-                    const rawWidth = item.width || 0;
-                    const estimatedWidth = fontSize * item.str.length * 0.6;
-                    const width = (rawWidth > 0 ? rawWidth : estimatedWidth) * scale;
-
-                    return {
-                        text: item.str,
-                        x,
-                        y: y - height,
-                        width,
-                        height,
-                        fontSize,
-                        fontName: item.fontName || ''
-                    };
-                })
-                .filter(block => block.text.trim().length > 0);
-
-            return {
-                blocks: mergeTextBlocks(textBlocks, pageWidth, pageHeight),
-                pageWidth,
-                pageHeight
-            };
-        }
-
-        // 合併相鄰的文字區塊（同一行的文字）
-        function mergeTextBlocks(blocks) {
-            const validBlocks = (blocks || []).filter(b =>
-                b && b.text && b.text.trim() && isFinite(b.x) && isFinite(b.y)
-            );
-            if (validBlocks.length === 0) return [];
-
-            const avgFontSize = validBlocks.reduce((sum, b) => sum + (b.fontSize || 12), 0) / validBlocks.length;
-
-            function getFontSize(block) {
-                return block.fontSize || avgFontSize;
+        // API Key Modal
+        saveApiKeyBtn.addEventListener('click', () => {
+            const key = apiKeyInput.value.trim();
+            if (key.startsWith('AIza')) {
+                apiKey = key;
+                localStorage.setItem('gemini_api_key', key);
+                apiKeyModal.classList.add('hidden');
+                showToast('API 密钥已保存！', 'success');
+            } else {
+                showToast('无效的 API 密钥。它应以 AIza 开头', 'error');
             }
+        });
 
-            function estimateWidth(block) {
-                return block.width || getFontSize(block) * block.text.length * 0.6;
-            }
+        // Alert Collapse
+        alertHeader.addEventListener('click', () => {
+            alertContent.classList.toggle('hidden');
+            const icon = alertHeader.querySelector('.collapse-icon');
+            icon.classList.toggle('collapsed');
+        });
 
-            // 步驟 1: 按 y 座標分組（使用字體大小的 80% 作為容差）
-            const lines = [];
-            const sortedBlocks = [...validBlocks].sort((a, b) => a.y - b.y);
+        // Tools Collapse
+        toolsHeader.addEventListener('click', () => {
+            toolsContent.classList.toggle('hidden');
+            const icon = toolsHeader.querySelector('.collapse-icon');
+            icon.classList.toggle('collapsed');
+        });
 
-            for (const block of sortedBlocks) {
-                let bestLine = null;
-                let minDiff = Infinity;
+        // Upload Area
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--color-primary)';
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = 'var(--color-border)';
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--color-border)';
+            const files = Array.from(e.dataTransfer.files);
+            handleFiles(files);
+        });
 
-                for (const line of lines) {
-                    const lineAvgY = line.items.reduce((sum, item) => sum + item.y, 0) / line.items.length;
-                    const lineFontSize = line.items.reduce((sum, item) => sum + getFontSize(item), 0) / line.items.length;
-                    const tolerance = Math.max(lineFontSize, getFontSize(block)) * 0.8;
-                    const diff = Math.abs(lineAvgY - block.y);
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            handleFiles(files);
+        });
 
-                    if (diff < tolerance && diff < minDiff) {
-                        minDiff = diff;
-                        bestLine = line;
-                    }
-                }
-
-                if (bestLine) {
-                    bestLine.items.push(block);
-                } else {
-                    lines.push({ items: [block] });
-                }
-            }
-
-            // 步驟 2: 每行內按 x 座標排序並合併相鄰文字
-            const merged = [];
-
-            for (const line of lines) {
-                line.items.sort((a, b) => a.x - b.x);
-                const lineAvgY = line.items.reduce((sum, item) => sum + item.y, 0) / line.items.length;
-
-                let current = null;
-
-                for (const item of line.items) {
-                    const itemWidth = estimateWidth(item);
-
-                    if (!current) {
-                        current = { ...item, width: itemWidth };
-                        continue;
-                    }
-
-                    const currentWidth = current.width || avgFontSize;
-                    const gap = item.x - (current.x + currentWidth);
-                    const gapTolerance = Math.max(getFontSize(current), getFontSize(item)) * 1.5;
-
-                    if (Math.abs(gap) < gapTolerance) {
-                        // 合併文字
-                        current.text += item.text;
-                        current.width = Math.max((item.x + itemWidth) - current.x, currentWidth);
-                        current.height = Math.max(current.height || 0, item.height || 0);
-                        current.fontSize = Math.max(current.fontSize || 0, item.fontSize || 0);
-                    } else {
-                        // 間距太大，視為新區塊
-                        merged.push(current);
-                        current = { ...item, width: itemWidth };
-                    }
-                }
-
-                if (current) {
-                    current.y = lineAvgY;
-                    merged.push(current);
-                }
-            }
-
-            return merged.sort((a, b) => a.y - b.y);
-        }
-
-        let rateLimitCount = 0;
-
-        async function fetchWithRetry(url, options, maxRetries = 5) {
-            const delays = [2000, 4000, 8000, 16000, 32000];
-            for (let i = 0; i < maxRetries; i++) {
-                try {
-                    const response = await fetch(url, options);
-                    const text = await response.text();
-
-                    let data;
-                    try {
-                        data = JSON.parse(text);
-                    } catch (parseError) {
-                        const preview = text.substring(0, 200);
-                        console.error(`JSON parse failed, response: ${preview}`);
-                        if (text.includes('API key not valid') || text.includes('API_KEY_INVALID')) {
-                            throw new Error(i18n.apiKeyInvalidCheck);
-                        }
-                        if (text.includes('PERMISSION_DENIED') || text.includes('authenticate')) {
-                            throw new Error('API 验证失败，请确认 API 金钥或执行环境');
-                        }
-                        throw new Error(i18n.apiResponseError.replace('{preview}', preview));
-                    }
-
-                    if (response.ok) return data;
-                    if (response.status === 429) {
-                        rateLimitCount++;
-                        const waitTime = delays[i] || 10000;
-                        showToast(i18n.rateLimit.replace('{count}', rateLimitCount).replace('{sec}', waitTime/1000), true);
-                        await wait(waitTime);
-                        continue;
-                    }
-                    throw new Error(data.error?.message || `HTTP ${response.status}`);
-                } catch (e) {
-                    if (i === maxRetries - 1) throw e;
-                    await wait(2000);
-                }
-            }
-        }
-
-        dropZone.onclick = () => fileInput.click();
-        fileInput.onchange = e => handleFiles(e.target.files);
-        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('drop-zone-active'); };
-        dropZone.ondragleave = () => dropZone.classList.remove('drop-zone-active');
-        dropZone.ondrop = (e) => { e.preventDefault(); dropZone.classList.remove('drop-zone-active'); handleFiles(e.dataTransfer.files); };
-
+        // Handle uploaded files
         async function handleFiles(files) {
-            if (!initPdfLibrary()) return;
-            if (!files || files.length === 0) return;
-            dropZone.innerHTML = `<div class="loader mx-auto mb-4"></div><p class="text-slate-300">${i18n.readingFiles}</p>`;
-            dropZone.style.pointerEvents = 'none';
-            pendingItems = [];
-            try {
-                for (let file of files) {
-                    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-                    const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp|bmp)$/i.test(file.name);
-                    if (isPdf) { await loadPdfAndGenerateThumbs(file); }
-                    else if (isImage) {
-                        const base64 = await fileToBase64(file);
-                        pendingItems.push({ id: `img_${Date.now()}_${Math.random()}`, type: 'image', name: file.name, thumb: base64, original: base64, selected: true });
-                    }
-                }
-                if (pendingItems.length > 0) { renderSelectionGrid(); }
-                else { showToast(i18n.unsupportedFormat, true); location.reload(); }
-            } catch (err) { console.error(err); showToast(err.message || i18n.readFailed, true); setTimeout(() => location.reload(), 2000); }
+            allPages = [];
+            selectedPages.clear();
+            pageGrid.innerHTML = '';
+            processedResults = [];
+            resultGrid.innerHTML = '';
+
+            const pdfFiles = files.filter(f => f.type === 'application/pdf');
+            const imageFiles = files.filter(f => f.type.startsWith('image/'));
+
+            if (pdfFiles.length > 0) {
+                await loadPDF(pdfFiles[0]);
+            }
+
+            for (const imgFile of imageFiles) {
+                const dataUrl = await fileToDataURL(imgFile);
+                allPages.push({
+                    type: 'image',
+                    dataUrl: dataUrl,
+                    pageNum: allPages.length + 1
+                });
+            }
+
+            if (allPages.length > 0) {
+                await renderPageThumbnails();
+                pageSelectionCard.classList.remove('hidden');
+            }
         }
 
-        async function loadPdfAndGenerateThumbs(file) {
+        // Load PDF
+        async function loadPDF(file) {
             const arrayBuffer = await file.arrayBuffer();
-            const lib = window.pdfjsLib;
-            const pdfDoc = await lib.getDocument({ data: arrayBuffer, cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/', cMapPacked: true }).promise;
-            const total = pdfDoc.numPages;
-            for (let i = 1; i <= total; i++) {
-                const page = await pdfDoc.getPage(i);
-                const viewport = page.getViewport({ scale: 0.5 });
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-                await page.render({ canvasContext: ctx, viewport }).promise;
-                pendingItems.push({ id: `pdf_${file.name}_${i}`, type: 'pdf', name: `${file.name} - P${i}`, thumb: canvas.toDataURL('image/jpeg', 0.6).split(',')[1], pdfDoc: pdfDoc, pageNum: i, selected: true });
+            pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+            for (let i = 1; i <= pdfDoc.numPages; i++) {
+                allPages.push({
+                    type: 'pdf',
+                    pageNum: i
+                });
             }
         }
 
-        function renderSelectionGrid() {
-            uploadSection.classList.add('hidden');
-            selectionSection.classList.remove('hidden');
-            selectionGrid.innerHTML = '';
-            pendingItems.forEach((item, index) => {
-                const div = document.createElement('div');
-                div.className = 'relative group';
-                div.innerHTML = `<label class="cursor-pointer block relative"><input type="checkbox" class="custom-checkbox hidden" ${item.selected ? 'checked' : ''} onchange="toggleSelection(${index}, this.checked)"><div class="glass rounded-xl overflow-hidden border-2 border-transparent transition-all h-32 md:h-40 flex flex-col relative"><img src="data:image/jpeg;base64,${item.thumb}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition"><div class="check-icon absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white shadow-lg transform scale-0 transition-transform duration-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg></div><div class="absolute bottom-0 left-0 right-0 bg-black/60 p-1 text-[10px] text-center truncate text-white backdrop-blur-sm">${item.name}</div></div></label>`;
-                selectionGrid.appendChild(div);
-            });
-            updateSelectedCount();
-        }
+        // Render page thumbnails
+        async function renderPageThumbnails() {
+            for (const page of allPages) {
+                const thumbnail = await renderPageImage(page, 0.5);
 
-        window.toggleSelection = (index, isChecked) => { pendingItems[index].selected = isChecked; updateSelectedCount(); };
-        function updateSelectedCount() {
-            const count = pendingItems.filter(i => i.selected).length;
-            selectedCountSpan.textContent = count;
-            document.getElementById('start-process-btn').disabled = count === 0;
-            document.getElementById('start-process-btn').classList.toggle('opacity-50', count === 0);
-        }
+                const pageItem = document.createElement('div');
+                pageItem.className = 'page-item';
+                pageItem.innerHTML = `
+                    <img src="${thumbnail}" alt="页面 ${page.pageNum}">
+                    <input type="checkbox" class="page-checkbox" data-page="${page.pageNum}">
+                    <div class="page-number">页面 ${page.pageNum}</div>
+                `;
 
-        document.getElementById('select-all-btn').onclick = () => { pendingItems.forEach(i => i.selected = true); renderSelectionGrid(); };
-        document.getElementById('deselect-all-btn').onclick = () => { pendingItems.forEach(i => i.selected = false); renderSelectionGrid(); };
-
-        document.getElementById('start-process-btn').onclick = async () => {
-            const selectedItems = pendingItems.filter(i => i.selected);
-            if (selectedItems.length === 0) return;
-            selectionSection.classList.add('hidden');
-            progressSection.classList.remove('hidden');
-            resultsSection.classList.add('hidden');
-            await processSelectedItems(selectedItems);
-        };
-
-        async function processSelectedItems(items) {
-            results = [];
-            resultsGrid.innerHTML = '';
-            resultsSection.classList.remove('hidden');
-            rateLimitCount = 0;
-            if (items.length >= 5) {
-                progressDetail.textContent = i18n.warmingUp;
-                await wait(2000);
-            }
-            for (let i = 0; i < items.length; i++) {
-                const item = items[i];
-                let processBase64 = item.thumb;
-                progressTitle.textContent = `${i18n.processing}: ${item.name}`;
-                progressCount.textContent = `${i + 1}/${items.length}`;
-                progressBar.style.width = `${((i + 1) / items.length) * 100}%`;
-
-                // 如果是 PDF，这里才进行高清渲染 (Scale 2.0) 并提取原始文字
-                let pdfTextData = null;
-                if (item.type === 'pdf') {
-                    progressDetail.textContent = i18n.generatingHD;
-                    try {
-                        const page = await item.pdfDoc.getPage(item.pageNum);
-                        const viewport = page.getViewport({ scale: 2.0 });
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        canvas.height = viewport.height;
-                        canvas.width = viewport.width;
-                        await page.render({ canvasContext: ctx, viewport }).promise;
-                        processBase64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
-
-                        // 提取 PDF 原始文字资讯（比 OCR 更准确）
-                        progressDetail.textContent = "正在提取原始文字坐标...";
-                        pdfTextData = await extractTextFromPdf(page, 2.0);
-                    } catch (e) {
-                        console.error("Re-render error", e);
-                        // 若失败则降级使用缩图
+                const checkbox = pageItem.querySelector('.page-checkbox');
+                checkbox.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        selectedPages.add(page.pageNum);
+                        pageItem.classList.add('selected');
+                    } else {
+                        selectedPages.delete(page.pageNum);
+                        pageItem.classList.remove('selected');
                     }
-                } else {
-                    processBase64 = item.original;
-                }
+                    processBtn.disabled = selectedPages.size === 0;
+                });
 
-                // 决定是否需要 OCR（PDF 没有文字图层时也需要）
-                const needsOcr = item.type !== 'pdf' || !pdfTextData || pdfTextData.blocks.length === 0;
+                pageItem.addEventListener('click', (e) => {
+                    if (e.target !== checkbox) {
+                        checkbox.checked = !checkbox.checked;
+                        checkbox.dispatchEvent(new Event('change'));
+                    }
+                });
 
-                // 统一处理：平行调用文字移除与 OCR（如需要）
-                progressDetail.textContent = needsOcr ? i18n.aiRemovingAndOcr : i18n.aiRemoving;
+                pageGrid.appendChild(pageItem);
+            }
+        }
+
+        // Render page to image
+        async function renderPageImage(page, scale = 2.0) {
+            if (page.type === 'image') {
+                return page.dataUrl;
+            }
+
+            const pdfPage = await pdfDoc.getPage(page.pageNum);
+            const viewport = pdfPage.getViewport({ scale });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            await pdfPage.render({ canvasContext: context, viewport }).promise;
+            return canvas.toDataURL('image/jpeg', 0.95);
+        }
+
+        // Select/Deselect All
+        selectAllBtn.addEventListener('click', () => {
+            document.querySelectorAll('.page-checkbox').forEach(cb => {
+                cb.checked = true;
+                cb.dispatchEvent(new Event('change'));
+            });
+        });
+
+        deselectAllBtn.addEventListener('click', () => {
+            document.querySelectorAll('.page-checkbox').forEach(cb => {
+                cb.checked = false;
+                cb.dispatchEvent(new Event('change'));
+            });
+        });
+
+        // Process selected pages
+        processBtn.addEventListener('click', async () => {
+            if (!apiKey) {
+                apiKeyModal.classList.remove('hidden');
+                return;
+            }
+
+            processBtn.disabled = true;
+            progressCard.classList.remove('hidden');
+            progressList.innerHTML = '';
+            processedResults = [];
+
+            const pagesToProcess = allPages.filter(p => selectedPages.has(p.pageNum));
+
+            for (const page of pagesToProcess) {
+                const progressItem = createProgressItem(page);
+                progressList.appendChild(progressItem);
 
                 try {
-                    // 准备 OCR 用的图片（PDF 用高清渲染图，图片用原图）
-                    const ocrBase64 = item.type === 'pdf' ? processBase64 : item.original;
+                    const highResImage = await renderPageImage(page, 2.0);
+                    updateProgressStatus(progressItem, 'processing', '正在移除文字...');
 
-                    const [cleanedResult, ocrResult] = await Promise.allSettled([
-                        removeTextWithGemini(processBase64),
-                        needsOcr ? ocrWithGemini(ocrBase64) : Promise.resolve([])
-                    ]);
+                    const cleanImage = await removeTextFromImage(highResImage);
+                    updateProgressStatus(progressItem, 'processing', '正在提取文字...');
 
-                    const cleaned = cleanedResult.status === 'fulfilled' ? cleanedResult.value : null;
-                    const ocrBlocks = ocrResult.status === 'fulfilled' ? ocrResult.value : [];
+                    const textBlocks = await extractTextBlocks(highResImage);
 
-                    if (cleanedResult.status === 'rejected') {
-                        console.error("文字移除失败:", cleanedResult.reason);
-                    }
-                    if (ocrResult.status === 'rejected') {
-                        console.warn("OCR 失败，汇出时将跳过文字层:", ocrResult.reason);
-                    }
+                    processedResults.push({
+                        pageNum: page.pageNum,
+                        originalImage: highResImage,
+                        cleanImage: cleanImage,
+                        textBlocks: textBlocks
+                    });
 
-                    // 决定文字来源：优先使用 pdfTextData，否则使用 ocrBlocks
-                    const finalPdfTextData = (pdfTextData?.blocks?.length > 0) ? pdfTextData : null;
-                    const finalOcrBlocks = finalPdfTextData ? null : ocrBlocks;
+                    updateProgressStatus(progressItem, 'success', '已完成');
+                    await wait(3500);
 
-                    if (cleaned) {
-                        results.push({
-                            name: item.name,
-                            original: processBase64,
-                            cleaned,
-                            sourceType: item.type,
-                            pdfTextData: finalPdfTextData,
-                            ocrBlocks: finalOcrBlocks
-                        });
-                        addResultCard(i, item.name, cleaned);
-                    } else {
-                        const isAuthError = cleanedResult.reason?.message?.includes("400") ||
-                                           cleanedResult.reason?.message?.includes("403") ||
-                                           cleanedResult.reason?.message?.includes("key");
-                        const errMsg = isAuthError ? i18n.apiKeyInvalid : (cleanedResult.reason?.message || "处理失败");
-                        results.push({
-                            name: item.name,
-                            original: processBase64,
-                            cleaned: null,
-                            error: errMsg,
-                            sourceType: item.type,
-                            pdfTextData: finalPdfTextData,
-                            ocrBlocks: finalOcrBlocks
-                        });
-                        addResultCard(i, item.name, null, errMsg);
-                    }
-                } catch (e) {
-                    console.error(e);
-                    results.push({ name: item.name, original: processBase64, cleaned: null, error: e.message, sourceType: item.type, pdfTextData: null, ocrBlocks: [] });
-                    addResultCard(i, item.name, null, e.message);
+                } catch (error) {
+                    console.error(`页面 ${page.pageNum} 错误:`, error);
+                    updateProgressStatus(progressItem, 'error', '处理失败');
                 }
-                // 并行处理已减少总时间，1 秒间隔足够避免频率限制
-                if (i < items.length - 1) await wait(1000);
             }
-            const successCount = results.filter(r => r.cleaned).length;
-            const failCount = results.filter(r => !r.cleaned).length;
-            let summary = i18n.processingComplete.replace('{success}', successCount);
-            if (failCount > 0) summary += i18n.processingFailed.replace('{fail}', failCount);
-            if (rateLimitCount > 0) summary += i18n.rateLimitSummary.replace('{count}', rateLimitCount);
-            showToast(summary, failCount > 0 || rateLimitCount > 3);
-            setTimeout(() => progressSection.classList.add('hidden'), 1000);
+
+            displayResults();
+            resultsCard.classList.remove('hidden');
+            processBtn.disabled = false;
+        });
+
+        // Create progress item
+        function createProgressItem(page) {
+            const div = document.createElement('div');
+            div.className = 'progress-item';
+            div.innerHTML = `
+                <img class="progress-thumbnail" src="" alt="页面 ${page.pageNum}">
+                <div class="progress-info">
+                    <div class="progress-title">页面 ${page.pageNum}</div>
+                    <div class="progress-status">等待中...</div>
+                </div>
+                <svg class="progress-icon icon-pending" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v6l4 2"/>
+                </svg>
+            `;
+
+            renderPageImage(page, 0.3).then(thumb => {
+                div.querySelector('.progress-thumbnail').src = thumb;
+            });
+
+            return div;
         }
 
-        function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
+        // Update progress status
+        function updateProgressStatus(item, status, message) {
+            const statusEl = item.querySelector('.progress-status');
+            const iconEl = item.querySelector('.progress-icon');
+
+            statusEl.textContent = message;
+            iconEl.className = `progress-icon icon-${status}`;
+
+            const icons = {
+                pending: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+                processing: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+                success: '<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>',
+                error: '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'
+            };
+
+            iconEl.innerHTML = icons[status];
+        }
+
+        // Remove text from image using Gemini
+        async function removeTextFromImage(imageDataUrl) {
+            const base64Data = imageDataUrl.split(',')[1];
+
+            const response = await fetchWithRetry(`${API_ENDPOINT}/${MODEL_IMAGE_EDIT}:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            { text: "Remove all text from this image while preserving the background. Fill the areas where text was removed with matching background patterns." },
+                            { inline_data: { mime_type: "image/jpeg", data: base64Data } }
+                        ]
+                    }],
+                    generationConfig: {
+                        temperature: 0.4,
+                        topK: 32,
+                        topP: 1,
+                        maxOutputTokens: 4096
+                    }
+                })
+            });
+
+            const data = await response.json();
+
+            if (!data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data) {
+                throw new Error('无法从图片中移除文字');
+            }
+
+            return `data:image/jpeg;base64,${data.candidates[0].content.parts[0].inlineData.data}`;
+        }
+
+        // Extract text blocks using Gemini OCR
+        async function extractTextBlocks(imageDataUrl) {
+            const base64Data = imageDataUrl.split(',')[1];
+
+            const responseSchema = {
+                type: "object",
+                properties: {
+                    textBlocks: {
+                        type: "array",
+                        items: {
+                            type: "object",
+                            properties: {
+                                text: { type: "string" },
+                                x: { type: "number" },
+                                y: { type: "number" },
+                                width: { type: "number" },
+                                height: { type: "number" },
+                                fontSize: { type: "number" },
+                                isBold: { type: "boolean" }
+                            },
+                            required: ["text", "x", "y", "width", "height", "fontSize", "isBold"]
+                        }
+                    }
+                },
+                required: ["textBlocks"]
+            };
+
+            const response = await fetchWithRetry(`${API_ENDPOINT}/${MODEL_TEXT_GEN}:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            { text: "Extract all text from this image with their positions (as percentages from top-left), dimensions, font size, and whether they are bold. Return as JSON." },
+                            { inline_data: { mime_type: "image/jpeg", data: base64Data } }
+                        ]
+                    }],
+                    generationConfig: {
+                        temperature: 0.1,
+                        responseMimeType: "application/json",
+                        responseSchema: responseSchema
+                    }
+                })
+            });
+
+            const data = await response.json();
+            const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (!jsonText) {
+                return [];
+            }
+
+            const parsed = JSON.parse(jsonText);
+            return parsed.textBlocks || [];
+        }
+
+        // Fetch with retry for rate limiting
+        async function fetchWithRetry(url, options, maxRetries = 5) {
+            for (let i = 0; i < maxRetries; i++) {
+                const response = await fetch(url, options);
+
+                if (response.ok) {
+                    return response;
+                }
+
+                if (response.status === 429) {
+                    const waitTime = Math.pow(2, i) * 1000;
+                    console.log(`达到速率限制。等待 ${waitTime}ms...`);
+                    await wait(waitTime);
+                    continue;
+                }
+
+                throw new Error(`HTTP 错误 ${response.status}`);
+            }
+
+            throw new Error('重试次数过多');
+        }
+
+        // Display results
+        function displayResults() {
+            resultGrid.innerHTML = '';
+
+            for (const result of processedResults) {
+                const resultItem = document.createElement('div');
+                resultItem.className = 'result-item';
+                resultItem.innerHTML = `
+                    <div class="result-images">
+                        <div class="result-image-wrapper">
+                            <img class="result-image" src="${result.originalImage}" alt="原始">
+                            <div class="result-label">原始</div>
+                        </div>
+                        <div class="result-image-wrapper">
+                            <img class="result-image" src="${result.cleanImage}" alt="已清理">
+                            <div class="result-label">已清理</div>
+                        </div>
+                    </div>
+                    <div class="result-info">
+                        <div class="result-page">页面 ${result.pageNum}</div>
+                        <div class="result-text-count">${result.textBlocks.length} 个文字区块</div>
+                    </div>
+                `;
+                resultGrid.appendChild(resultItem);
+            }
+        }
+
+        // Export to PPTX
+        exportBtn.addEventListener('click', async () => {
+            const pptx = new PptxGenJS();
+
+            for (const result of processedResults) {
+                const slide = pptx.addSlide();
+
+                slide.background = { data: result.cleanImage };
+
+                for (const block of result.textBlocks) {
+                    slide.addText(block.text, {
+                        x: `${block.x}%`,
+                        y: `${block.y}%`,
+                        w: `${block.width}%`,
+                        h: `${block.height}%`,
+                        fontSize: block.fontSize,
+                        bold: block.isBold,
+                        color: '000000',
+                        align: 'left',
+                        valign: 'top'
+                    });
+                }
+            }
+
+            await pptx.writeFile({ fileName: 'NotebookLM_Export.pptx' });
+            showToast('PPTX 已导出成功！', 'success');
+        });
+
+        // Utility functions
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function fileToDataURL(file) {
+            return new Promise((resolve) => {
                 const reader = new FileReader();
-                reader.onload = e => resolve(e.target.result.split(',')[1]);
-                reader.onerror = reject;
+                reader.onload = (e) => resolve(e.target.result);
                 reader.readAsDataURL(file);
             });
         }
 
-        async function removeTextWithGemini(base64) {
-            const baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE_EDIT}:generateContent`;
-            const url = apiKey ? `${baseUrl}?key=${apiKey}` : baseUrl;
-            const payload = {
-                contents: [{
-                    role: "user",
-                    parts: [
-                        { text: "Edit this image by removing all visible text and numbers while preserving the original background patterns, colors, and design elements. Use content-aware fill to seamlessly reconstruct the areas where text was removed. Return the edited image." },
-                        { inlineData: { mimeType: "image/png", data: base64 } }
-                    ]
-                }],
-                generationConfig: {
-                    responseModalities: ['IMAGE'],
-                    temperature: 0.4
-                }
-            };
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
 
-            const data = await fetchWithRetry(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            // 检查是否遇到版权限制
-            const finishReason = data.candidates?.[0]?.finishReason;
-            if (finishReason === 'IMAGE_RECITATION') {
-                console.error("IMAGE_RECITATION 错误:", data.candidates?.[0]?.finishMessage);
-                throw new Error("图片处理受限：Gemini 检测到可能的版权问题。请尝试使用不同的图片或调整内容。");
-            }
-
-            const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-            if (!part) {
-                const textPart = data.candidates?.[0]?.content?.parts?.find(p => p.text);
-                if (textPart) { console.warn("API 返回文字而非图像:", textPart.text); throw new Error(i18n.aiReturnedText); }
-                console.error("API 回应结构:", JSON.stringify(data, null, 2));
-                throw new Error(data.error?.message || i18n.apiNoImage);
-            }
-            return part.inlineData.data;
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
         }
-
-        async function ocrWithGemini(base64) {
-            const baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_TEXT_GEN}:generateContent`;
-            const url = apiKey ? `${baseUrl}?key=${apiKey}` : baseUrl;
-            const payload = {
-                contents: [{
-                    parts: [
-                        {
-                            text: `Analyze this image and extract all text blocks with precise positioning and styling.
-For each text block, provide:
-- text: the exact text content
-- box_2d: bounding box as [ymin, xmin, ymax, xmax] in 0-1000 coordinate system
-- font_size_pt: estimated font size in points (typical range: 8-72)
-- font_weight: "normal" or "bold"
-- font_style: "normal" or "italic"
-- text_align: "left", "center", or "right" (based on text position in its container)
-- color: hex color code like "000000" or "FFFFFF"
-- line_height: line height multiplier (typically 1.0-2.0)
-
-Return as JSON array. Be precise with bounding boxes.`
-                        },
-                        { inlineData: { mimeType: "image/png", data: base64 } }
-                    ]
-                }],
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "ARRAY",
-                        items: {
-                            type: "OBJECT",
-                            properties: {
-                                text: { type: "STRING" },
-                                box_2d: { type: "ARRAY", items: { type: "NUMBER" }, minItems: 4, maxItems: 4 },
-                                font_size_pt: { type: "NUMBER" },
-                                font_weight: { type: "STRING" },
-                                font_style: { type: "STRING" },
-                                text_align: { type: "STRING" },
-                                color: { type: "STRING" },
-                                line_height: { type: "NUMBER" }
-                            }
-                        }
-                    }
-                }
-            };
-
-            const data = await fetchWithRetry(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                throw new Error(i18n.ocrFailed);
-            }
-
-            const ocrText = data.candidates[0].content.parts[0].text;
-            try {
-                return JSON.parse(ocrText);
-            } catch (parseError) {
-                console.error('OCR JSON 解析失败:', ocrText.substring(0, 500));
-                console.warn('无法解析 OCR 结果，将仅保留背景图');
-                return [];
-            }
-        }
-
-        function addResultCard(index, name, cleaned, error) {
-            const div = document.createElement('div');
-            div.className = 'result-card glass rounded-2xl overflow-hidden';
-            if (cleaned) { div.innerHTML = `<img src="data:image/png;base64,${cleaned}" class="w-full aspect-video object-cover"><div class="p-4 flex justify-between items-center text-[10px]"><span class="truncate max-w-[80%]">${name}</span><span class="text-emerald-400 font-bold">${i18n.success}</span></div>`; }
-            else { div.innerHTML = `<div class="p-6 text-center text-red-400 text-[10px]">${error || i18n.failed}</div>`; }
-            resultsGrid.appendChild(div);
-        }
-
-        document.getElementById('export-combined-btn').onclick = async () => {
-            const valid = results.filter(r => r.cleaned);
-            if (!valid.length) return;
-
-            const btn = document.getElementById('export-combined-btn');
-            btn.disabled = true;
-            btn.innerHTML = "正在处理文字...";
-
-            try {
-                const pptx = new PptxGenJS();
-                const ratio = document.getElementById('ratio-select').value;
-                pptx.layout = ratio === '16:9' ? 'LAYOUT_WIDE' : ratio === '4:3' ? 'LAYOUT_4x3' : 'LAYOUT_WIDE';
-
-                // 取得简报实际尺寸（英吋）
-                const slideWidth = ratio === '16:9' ? 13.333 : ratio === '4:3' ? 10 : 13.333;
-                const slideHeight = ratio === '16:9' ? 7.5 : ratio === '4:3' ? 7.5 : 7.5;
-
-                for (let i = 0; i < valid.length; i++) {
-                    const r = valid[i];
-                    const slide = pptx.addSlide();
-                    slide.addImage({ data: `data:image/png;base64,${r.cleaned}`, x: 0, y: 0, w: '100%', h: '100%' });
-
-                    try {
-                        // 根据来源类型选择文字提取方式
-                        if (r.sourceType === 'pdf' && r.pdfTextData && r.pdfTextData.blocks.length > 0) {
-                            // PDF 来源：使用已提取的精确文字资讯（无需 API 调用）
-                            showToast(`使用 PDF 原始文字 (${i+1}/${valid.length})...`);
-
-                            const { blocks, pageWidth, pageHeight } = r.pdfTextData;
-                            blocks.forEach(block => {
-                                if (!block.text.trim()) return;
-
-                                // 将像素坐标转换为简报百分比坐标
-                                const xPercent = (block.x / pageWidth) * 100;
-                                const yPercent = (block.y / pageHeight) * 100;
-                                const wPercent = (block.width / pageWidth) * 100;
-                                const hPercent = (block.height / pageHeight) * 100;
-
-                                // 根据简报尺寸计算字体大小（pt）
-                                // PDF 字体大小是相对于 2.0 scale，需要转换为简报实际大小
-                                const scaleFactor = (slideHeight * 72) / pageHeight; // 72 pt per inch
-                                const fontSize = Math.max(6, Math.min(72, block.fontSize * scaleFactor * 0.8));
-
-                                slide.addText(block.text, {
-                                    x: `${xPercent}%`,
-                                    y: `${yPercent}%`,
-                                    w: `${Math.max(wPercent, 5)}%`,
-                                    h: `${Math.max(hPercent, 2)}%`,
-                                    fontSize: Math.round(fontSize),
-                                    color: '000000',
-                                    fontFace: 'Microsoft YaHei',
-                                    valign: 'top'
-                                });
-                            });
-                        } else if (r.ocrBlocks && r.ocrBlocks.length > 0) {
-                            // 图片来源：使用预先取得的 OCR 结果（无需再呼叫 API）
-                            showToast(i18n.applyingTextLayer.replace('{current}', i+1).replace('{total}', valid.length));
-
-                            r.ocrBlocks.forEach(b => {
-                                if (!b.text || !b.text.trim()) return;
-                                if (!b.box_2d || b.box_2d.length !== 4) return;
-                                const [ymin, xmin, ymax, xmax] = b.box_2d;
-                                const textOptions = {
-                                    x: `${xmin/10}%`, y: `${ymin/10}%`,
-                                    w: `${Math.max((xmax-xmin)/10, 5)}%`, h: `${Math.max((ymax-ymin)/10, 2)}%`,
-                                    fontSize: b.font_size_pt || 14,
-                                    color: (b.color || "000000").replace("#", ""),
-                                    fontFace: 'Microsoft YaHei', valign: 'top'
-                                };
-                                if (b.font_weight === 'bold') textOptions.bold = true;
-                                if (b.font_style === 'italic') textOptions.italic = true;
-                                if (b.text_align) textOptions.align = b.text_align;
-                                slide.addText(b.text, textOptions);
-                            });
-                        } else {
-                            console.warn(`第 ${i+1} 页无 OCR 数据，仅导出背景图`);
-                        }
-                    } catch (e) {
-                        console.warn("Text extraction failed for slide", i, e);
-                    }
-                }
-                pptx.writeFile({ fileName: `Result_${Date.now()}.pptx` });
-                showToast('导出成功');
-            } catch (e) {
-                console.error("Export error", e);
-                showToast("导出失败: " + e.message, true);
-            }
-            btn.disabled = false;
-            btn.innerHTML = "合并 PPTX ⭐";
-        };
-
-        // 软重置：清空状态并回到初始界面（保留 API Key）
-        function softReset() {
-            console.log('=== 执行软重置 ===');
-            console.log('保留 API Key:', apiKey.substring(0, 8) + '...');
-
-            // 重置状态变量
-            pendingItems = [];
-            results = [];
-            rateLimitCount = 0;
-
-            // 重置 UI - 隐藏所有区块
-            selectionSection.classList.add('hidden');
-            progressSection.classList.add('hidden');
-            resultsSection.classList.add('hidden');
-
-            // 显示上传区
-            uploadSection.classList.remove('hidden');
-
-            // 清空内容
-            selectionGrid.innerHTML = '';
-            resultsGrid.innerHTML = '';
-
-            // 重置进度条
-            progressBar.style.width = '0%';
-            progressTitle.textContent = '';
-            progressDetail.textContent = '';
-            progressCount.textContent = '';
-
-            // 清空文件输入（暂时移除事件监听器以避免触发 change 事件）
-            fileInput.onchange = null;
-            fileInput.value = '';
-            fileInput.onchange = e => handleFiles(e.target.files);
-
-            // 重置上传区域的 HTML（恢复初始状态）
-            dropZone.innerHTML = `
-                <input type="file" id="file-input" class="hidden" accept="application/pdf,image/*" multiple>
-                <div class="w-20 h-20 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                </div>
-                <p class="text-2xl font-bold text-white mb-2">拖放 PDF 或图片</p>
-                <p class="text-slate-400">点击此处选择文件</p>
-                <div id="lib-warning" class="mt-4 text-xs text-amber-400 hidden">警告：组件尚未就绪，请稍候...</div>
-            `;
-            dropZone.style.pointerEvents = 'auto';
-
-            // 重置选择计数
-            selectedCountSpan.textContent = '0';
-
-            console.log('✓ 软重置完成，API Key 保留');
-            showToast('✓ 已重置，可以开始新的处理');
-        }
-
-        document.getElementById('reset-btn').onclick = softReset;
     </script>
 </body>
 </html>

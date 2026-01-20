@@ -61,28 +61,40 @@ Convierte PDFs exportados de NotebookLM en presentaciones PPTX con **imágenes d
 
 ## Uso
 
-### Usando en Google Gemini Canvas
+### Inicio Rápido (3 Pasos Simples)
+
+1. **Abre el archivo HTML** en tu navegador (Chrome/Edge recomendado)
+2. **Sigue la configuración guiada** para obtener tu API Key gratuita de Google
+3. **Comienza a procesar** tus PDF o imágenes de inmediato!
+
+### Configuración Inicial
+
+Cuando abres la aplicación por primera vez, un asistente de configuración amigable te guiará a través de:
+
+1. **Visita Google AI Studio** - Enlace directo a [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+2. **Crea tu API Key Gratuita** - Inicia sesión con tu cuenta de Google (no se requiere tarjeta de crédito)
+3. **Pega y Guarda** - Copia tu API Key y pégala en la aplicación
+
+> 🔒 **Tu API Key se almacena de forma segura en tu navegador** y nunca se sube a ningún servidor.
+
+### Cuota de API Gratuita
+
+Google Gemini API ofrece un nivel gratuito generoso:
+- **15 solicitudes por minuto**
+- **1,500 solicitudes por día**
+- **No se requiere tarjeta de crédito**
+
+¡Esto es más que suficiente para el uso diario típico!
+
+### Alternativa: Usar en Google Gemini Canvas (Avanzado)
+
+Si prefieres ejecutar en el entorno de Gemini Canvas:
 
 1. Abre [Google Gemini](https://gemini.google.com/)
-2. Ingresa un prompt como:
-   ```
-   Ejecutar directamente, no modificar
-   ```
-3. Cuando Gemini entre en **modo Canvas** (aparece el editor de código en el lado derecho)
-4. Pega el código completo del `index-es.html` del proyecto (o tu versión de idioma preferida) en Canvas
-5. Haz clic en el botón "**Preview**" en la esquina superior derecha de Canvas para ejecutar
+2. Pega el código de `index-es.html` en Canvas
+3. Haz clic en "Preview" para ejecutar
 
-### Configuración de API Key
-
-> **Importante**: Al ejecutar en el entorno de Gemini Canvas, **no se requiere API Key personal**. El sistema usará automáticamente el entorno de API predeterminado.
-
-Si deseas ejecutar la herramienta fuera de Canvas (por ejemplo, en tu propio servidor), encuentra la siguiente línea en el código e ingresa tu Gemini API Key:
-
-```javascript
-const apiKey = "TU_GEMINI_API_KEY";
-```
-
-> Obtener una API Key: Visita [Google AI Studio](https://aistudio.google.com/app/apikey)
+> ⚠️ **Nota**: A partir de enero de 2026, se requiere API Key incluso en el entorno Canvas. La aplicación te pedirá que la configures.
 
 ## Flujo de Trabajo
 
@@ -98,7 +110,7 @@ const apiKey = "TU_GEMINI_API_KEY";
 - También soporta formatos de imagen JPG, PNG, WebP
 - Se pueden subir múltiples archivos a la vez
 
-> **Consejo**: Los PDFs exportados de NotebookLM pueden ser bastante grandes. Puede usar servicios gratuitos de compresión de PDF para reducir el tamaño del archivo antes de subir, lo que mejorará mucho la eficiencia.
+> **Consejo**: Los PDFs exportados de NotebookLM pueden ser bastante grandes. Puedes usar servicios gratuitos de compresión de PDF para reducir el tamaño del archivo antes de subir, lo que mejorará mucho la eficiencia.
 
 ### Paso 2: Seleccionar Páginas
 - El sistema genera automáticamente miniaturas de todas las páginas
@@ -110,7 +122,7 @@ const apiKey = "TU_GEMINI_API_KEY";
 - El progreso se muestra en tiempo real
 - Cada página toma aproximadamente 3-5 segundos (incluyendo latencia de API)
 
-> **Nota**: La eliminación de texto de Gemini puede ser incompleta a veces. Si nota demasiado texto residual, puede intentar procesar nuevamente.
+> **Nota**: La eliminación de texto de Gemini puede ser incompleta a veces. Si notas demasiado texto residual, puedes intentar procesar nuevamente.
 
 ### Paso 4: Exportar PPTX
 - Selecciona la proporción de la presentación (16:9 / 9:16 / 4:3)
@@ -138,7 +150,7 @@ Esta estructura en capas te permite:
 
 | Elemento | Descripción |
 |----------|-------------|
-| Modelo IA | Gemini 2.5 Flash (Image Edit + Text Gen) |
+| Modelo IA | Gemini 2.5 Flash Image (Eliminación de Texto) + Gemini 2.5 Flash (OCR) |
 | Eliminación de Texto | Prompt optimizado para eliminación completa con inpainting |
 | Análisis PDF | PDF.js 3.11.174 |
 | Generación PPTX | PptxGenJS 3.12.0 |
@@ -157,15 +169,21 @@ Esta estructura en capas te permite:
 
 ## Preguntas Frecuentes
 
-### P: ¿Por qué usar Gemini Canvas?
-R: El modo Canvas proporciona un entorno sandbox seguro para ejecutar código frontend sin configurar un servidor. Además, usa el entorno de API predeterminado, por lo que no se necesita API Key personal.
+### P: ¿Necesito una tarjeta de crédito para obtener la API Key?
+R: ¡No! Google Gemini API ofrece un nivel completamente gratuito sin necesidad de tarjeta de crédito. Solo inicia sesión con tu cuenta de Google.
+
+### P: ¿Es segura mi API Key?
+R: ¡Sí! Tu API Key se almacena solo en el localStorage de tu navegador y nunca se envía a ningún servidor excepto la API oficial de Gemini de Google.
 
 ### P: ¿Qué hacer si el procesamiento falla?
 R: Causas comunes:
-- API Key inválida o expirada (al ejecutar fuera de Canvas)
+- API Key inválida (verifica que comience con "AIza")
 - Conexión de red inestable
 - Imagen demasiado grande o formato no soportado
-- Límite de velocidad de API excedido (esperar y reintentar)
+- Límite de velocidad de API excedido (nivel gratuito: 15/min, 1500/día - espera y reintenta)
+
+### P: ¿Puedo compartir esta herramienta con otros?
+R: ¡Por supuesto! Solo comparte el archivo HTML. Cada usuario configurará su propia API Key, así que todos obtienen su propia cuota gratuita.
 
 ### P: ¿Se puede usar sin conexión?
 R: No, esta herramienta requiere llamadas a Gemini API para el procesamiento IA.

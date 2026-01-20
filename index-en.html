@@ -3,165 +3,785 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Image Text Remover PRO - Canvas Edition</title>
+    <title>NotebookLM to PPTX</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; }
-        .drop-zone-active { border-color: #3b82f6 !important; background-color: rgba(59, 130, 246, 0.1) !important; transform: scale(1.02); }
-        .loader { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 0.8s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        .result-card { transition: all 0.3s ease; }
-        .result-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
-        .progress-bar { transition: width 0.3s ease; }
-        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
-        .custom-checkbox:checked + div { border-color: #3b82f6; background-color: rgba(59, 130, 246, 0.2); }
-        .custom-checkbox:checked + div .check-icon { opacity: 1; transform: scale(1); }
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Open+Sans:wght@400;500;600&display=swap');
+
+        :root {
+            --color-primary: #3B82F6;
+            --color-primary-dark: #2563EB;
+            --color-primary-light: #60A5FA;
+            --color-cta: #F97316;
+            --color-cta-hover: #EA580C;
+            --color-text: #1E293B;
+            --color-text-light: #64748B;
+            --color-bg: #F8FAFC;
+            --color-surface: #FFFFFF;
+            --color-border: #E2E8F0;
+            --color-success: #10B981;
+            --color-warning: #F59E0B;
+            --color-danger: #EF4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* Subtle grain texture */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.02;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' /%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                padding: 0 1.5rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .container {
+                padding: 0 2rem;
+            }
+        }
+
+        /* Header */
+        header {
+            padding: 3rem 0 2rem;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.125rem;
+            color: var(--color-text-light);
+            margin-bottom: 1rem;
+        }
+
+        .version-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 1rem;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            color: var(--color-text-light);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        .version-number {
+            color: var(--color-primary);
+            font-weight: 700;
+        }
+
+        /* Alert Banner */
+        .alert-banner {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(245, 158, 11, 0.08));
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 0.75rem;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem auto;
+            max-width: 700px;
+        }
+
+        .alert-banner-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .alert-banner-header svg {
+            flex-shrink: 0;
+            transition: transform 0.2s ease;
+        }
+
+        .alert-banner-header.expanded svg {
+            transform: rotate(180deg);
+        }
+
+        .alert-banner-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .alert-banner-content.expanded {
+            max-height: 500px;
+            margin-top: 1rem;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            transition: box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed var(--color-border);
+            border-radius: 1rem;
+            padding: 3rem 2rem;
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            background: var(--color-surface);
+        }
+
+        .upload-zone:hover {
+            border-color: var(--color-primary);
+            background: rgba(59, 130, 246, 0.02);
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--color-primary);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9375rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn:hover {
+            background: var(--color-primary-dark);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--color-surface);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-bg);
+            border-color: var(--color-primary);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        .btn-cta {
+            background: var(--color-cta);
+            box-shadow: 0 1px 3px rgba(249, 115, 22, 0.3);
+        }
+
+        .btn-cta:hover {
+            background: var(--color-cta-hover);
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+        }
+
+        /* Collapsible Tools */
+        .collapsible-trigger {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 0.5rem;
+            color: var(--color-text-light);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .collapsible-trigger:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+
+        .collapsible-trigger svg {
+            transition: transform 0.2s ease;
+        }
+
+        .collapsible-trigger.active svg {
+            transform: rotate(180deg);
+        }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .collapsible-content.active {
+            max-height: 500px;
+        }
+
+        /* Tool Cards */
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .tool-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            padding: 1.5rem;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 0.75rem;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .tool-card:hover {
+            border-color: var(--color-primary);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .tool-card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .tool-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .tool-card p {
+            font-size: 0.875rem;
+            color: var(--color-text-light);
+            margin: 0;
+        }
+
+        .external-icon {
+            margin-left: auto;
+            opacity: 0.4;
+            transition: opacity 0.2s ease;
+        }
+
+        .tool-card:hover .external-icon {
+            opacity: 1;
+        }
+
+        /* Checkbox */
+        .checkbox-wrapper {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .checkbox-wrapper input {
+            position: absolute;
+            opacity: 0;
+        }
+
+        .checkbox-custom {
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid var(--color-border);
+            border-radius: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .checkbox-wrapper input:checked + .checkbox-custom {
+            background: var(--color-primary);
+            border-color: var(--color-primary);
+        }
+
+        .checkbox-wrapper input:checked + .checkbox-custom svg {
+            opacity: 1;
+        }
+
+        .checkbox-custom svg {
+            opacity: 0;
+            color: white;
+            width: 0.75rem;
+            height: 0.75rem;
+        }
+
+        /* Thumbnail Grid */
+        .thumbnail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .thumbnail-item {
+            position: relative;
+            border: 2px solid var(--color-border);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--color-surface);
+        }
+
+        .thumbnail-item:hover {
+            border-color: var(--color-primary);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+        }
+
+        .thumbnail-item.selected {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Result Cards */
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .result-card {
+            border: 1px solid var(--color-border);
+            border-radius: 0.75rem;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            background: var(--color-surface);
+        }
+
+        .result-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .result-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .result-card-content {
+            padding: 1rem;
+        }
+
+        /* Progress */
+        .progress-bar {
+            width: 100%;
+            height: 0.5rem;
+            background: var(--color-border);
+            border-radius: 0.25rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--color-primary);
+            transition: width 0.3s ease;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--color-text);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Utility Classes */
+        .hidden { display: none; }
+        .text-muted { color: var(--color-text-light); }
+        .text-sm { font-size: 0.875rem; }
+        .text-xs { font-size: 0.75rem; }
+        .mt-4 { margin-top: 1rem; }
+        .mt-6 { margin-top: 1.5rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-8 { margin-bottom: 2rem; }
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .items-start { align-items: flex-start; }
+        .justify-between { justify-content: space-between; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-3 { gap: 0.75rem; }
+        .fade-in {
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Icon Styles */
+        .icon-warning { color: var(--color-warning); }
+        .icon-success { color: var(--color-success); }
+        .icon-danger { color: var(--color-danger); }
+        .icon-info { color: var(--color-primary); }
     </style>
 </head>
-<body class="text-white pb-20">
-    <div class="max-w-6xl mx-auto px-4 py-12">
-        <header class="text-center mb-12">
-            <h1 class="text-4xl md:text-5xl font-black tracking-tight mb-3">
-                AI Image Text Remover <span class="text-blue-400">PRO</span> <span class="text-xs align-top bg-emerald-600/30 text-emerald-400 px-2 py-1 rounded-md ml-2 border border-emerald-500/30">Canvas</span>
-            </h1>
-            <p class="text-slate-400 text-lg">Upload PDF or Images → Select Pages → Auto Remove Text → Export PPTX</p>
-            <div class="flex items-center justify-center gap-4 mt-4">
-                <span class="flex items-center gap-2 text-xs text-blue-400">
-                    <span class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
-                    Powered by Gemini 2.5
-                </span>
+<body>
+    <div class="container">
+        <header>
+            <h1>NotebookLM to PPTX</h1>
+            <p class="subtitle">Convert NotebookLM exported PDFs to editable PowerPoint presentations</p>
+            <div class="version-badge">
+                <span class="version-number">v2.2</span>
+                <span>Powered by Gemini 2.5</span>
             </div>
-            <div class="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                <span class="text-emerald-400 text-xs font-bold">v2.2</span>
-                <span class="text-slate-300 text-xs">Soft Reset with API Key Persistence + Speed Optimization + IMAGE_RECITATION Fix</span>
+
+            <!-- Collapsible Alert Banner -->
+            <div class="alert-banner">
+                <div class="alert-banner-header" id="alert-header">
+                    <svg class="icon-warning" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <div style="flex: 1;">
+                        <p style="font-weight: 600; color: #D97706; margin: 0;">Important: Free Tier Quota Limits</p>
+                        <p class="text-xs text-muted" style="margin: 0.25rem 0 0 0;">Click for details</p>
+                    </div>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="color: #D97706;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <div class="alert-banner-content" id="alert-content">
+                    <div style="padding-left: 1.75rem; border-left: 3px solid #F59E0B; margin-left: 0.625rem;">
+                        <div class="flex items-start gap-2 mb-3">
+                            <svg class="icon-info" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink: 0; margin-top: 0.125rem;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p class="text-sm text-muted" style="margin: 0;">
+                                <strong style="color: var(--color-text);">Free tier only:</strong> Gemini free API significantly reduced quotas in Dec 2025, now limited to approximately <strong style="color: var(--color-text);">20 requests/day</strong> (down from 250). Each image requires 2 requests, so approximately <strong style="color: var(--color-text);">10 images/day</strong> can be processed.
+                            </p>
+                        </div>
+                        <div class="flex items-start gap-2 mb-3">
+                            <svg class="icon-success" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink: 0; margin-top: 0.125rem;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p class="text-sm" style="color: var(--color-success); margin: 0;">
+                                Paid plans have no such limits, unlimited processing
+                            </p>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <svg class="icon-danger" width="16" height="16" fill="currentColor" viewBox="0 0 24 24" style="flex-shrink: 0; margin-top: 0.125rem;">
+                                <circle cx="12" cy="12" r="10"/>
+                            </svg>
+                            <p class="text-sm text-muted" style="margin: 0;">
+                                <strong style="color: #DC2626;">Known issue:</strong> If your API Key project name contains <code style="background: rgba(0,0,0,0.08); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8125rem;">gen-lang-client</code>, it may be affected by a bug. Please create a new project with a custom name in Google Cloud Console.
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </header>
 
-        <section id="upload-section" class="mb-10 transition-all duration-300">
-            <div id="drop-zone" class="glass rounded-3xl p-16 text-center cursor-pointer hover:border-blue-500/50 transition-all duration-300 group">
-                <input type="file" id="file-input" class="hidden" accept="application/pdf,image/*" multiple>
-                <div class="w-20 h-20 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        <!-- Optional Tools (Collapsible) -->
+        <div class="text-center mb-8">
+            <button class="collapsible-trigger" id="tools-trigger">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                </svg>
+                PDF Preprocessing Tools (Optional)
+            </button>
+            <div class="collapsible-content" id="tools-content">
+                <div class="tool-grid">
+                    <a href="https://www.notebooklmwatermark.com/" target="_blank" rel="noopener noreferrer" class="tool-card">
+                        <div class="tool-card-header">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                            </svg>
+                            <h3>Remove Watermark</h3>
+                            <svg class="external-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                        </div>
+                        <p>Remove NotebookLM watermarks for better processing</p>
+                    </a>
+
+                    <a href="https://shrinkpdf.com/" target="_blank" rel="noopener noreferrer" class="tool-card">
+                        <div class="tool-card-header">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                            </svg>
+                            <h3>Compress PDF</h3>
+                            <svg class="external-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                        </div>
+                        <p>Reduce file size for faster upload and processing</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Sections -->
+        <div id="upload-section" class="fade-in">
+            <div class="card">
+                <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                     </svg>
+                    Upload PDF or Images
+                </h2>
+                <div class="upload-zone" id="drop-zone">
+                    <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="margin: 0 auto 1rem; color: var(--color-primary);">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                    <p style="font-weight: 600; margin-bottom: 0.25rem;">Drop files here</p>
+                    <p class="text-sm text-muted">or click to select files</p>
+                    <p class="text-xs text-muted" style="margin-top: 0.5rem;">Supports PDF, PNG, JPG formats</p>
+                    <input type="file" id="file-input" accept=".pdf,image/*" multiple style="display: none;">
                 </div>
-                <p class="text-2xl font-bold text-white mb-2">Drop PDF or Images Here</p>
-                <p class="text-slate-400">Click here to select files</p>
-                <div id="lib-warning" class="mt-4 text-xs text-amber-400 hidden">Warning: Components not ready, please wait...</div>
             </div>
-        </section>
+        </div>
 
-        <section id="selection-section" class="hidden mb-10 animate-fade-in">
-            <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
-                <div>
-                    <h2 class="text-2xl font-bold flex items-center gap-2">
-                        <span class="bg-blue-500 w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
-                        Select Pages to Process
-                    </h2>
-                    <p class="text-slate-400 text-sm mt-1 ml-10">Only check the pages you need to save time</p>
+        <div id="selection-section" class="hidden fade-in">
+            <div class="card">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 style="font-size: 1.5rem; font-weight: 600; margin: 0;">Select Pages to Process</h2>
+                    <div class="flex gap-2">
+                        <button id="select-all-btn" class="btn-secondary text-sm">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Select All
+                        </button>
+                        <button id="deselect-all-btn" class="btn-secondary text-sm">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                            </svg>
+                            Deselect All
+                        </button>
+                        <button id="process-btn" class="btn btn-cta">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            Start Processing
+                        </button>
+                    </div>
                 </div>
-                <div class="flex gap-3">
-                    <button id="select-all-btn" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-sm font-bold transition">Select All</button>
-                    <button id="deselect-all-btn" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-sm font-bold transition">Deselect All</button>
-                    <button id="start-process-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20 transition flex items-center gap-2">
-                        Start Processing (<span id="selected-count">0</span>)
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                <div id="selection-grid" class="thumbnail-grid"></div>
+            </div>
+        </div>
+
+        <div id="processing-section" class="hidden fade-in">
+            <div class="card">
+                <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">Processing...</h2>
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+                </div>
+                <p id="progress-text" class="text-sm text-muted" style="margin-top: 0.5rem;">Preparing to process...</p>
+                <p id="progress-detail" class="text-xs text-muted" style="margin-top: 0.25rem;"></p>
+            </div>
+        </div>
+
+        <div id="results-section" class="hidden fade-in">
+            <div class="card">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 style="font-size: 1.5rem; font-weight: 600; margin: 0;">Processing Complete</h2>
+                    <div class="flex gap-2">
+                        <button id="export-btn" class="btn btn-cta">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                            Export PPTX
+                        </button>
+                        <button id="reset-btn" class="btn-secondary">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            Start Over
+                        </button>
+                    </div>
+                </div>
+                <div id="results-grid" class="result-grid"></div>
+            </div>
+        </div>
+
+        <!-- API Key Modal -->
+        <div id="api-key-modal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 1000;">
+            <div class="card" style="max-width: 500px; width: 90%; margin: 0 1rem; animation: fadeIn 0.3s ease;">
+                <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;">Set Up API Key</h2>
+                <p class="text-muted text-sm mb-4">Please enter your Gemini API Key to get started</p>
+
+                <div class="mb-4" style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.1)); padding: 1rem; border-radius: 0.5rem; border: 1px solid #f59e0b;">
+                    <div class="flex items-start gap-2">
+                        <svg class="icon-warning" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink: 0; margin-top: 0.125rem;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                         </svg>
-                    </button>
-                </div>
-            </div>
-            <div id="selection-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 custom-scrollbar max-h-[60vh] overflow-y-auto p-2"></div>
-        </section>
-
-        <section id="progress-section" class="hidden mb-10">
-            <div class="glass rounded-3xl p-8">
-                <div class="flex items-center justify-between mb-6">
-                    <div class="flex items-center gap-4">
-                        <div class="loader"></div>
                         <div>
-                            <p id="progress-title" class="font-bold text-lg">Processing...</p>
-                            <p id="progress-detail" class="text-sm text-slate-400">Analyzing</p>
+                            <p class="text-sm mb-2 font-semibold" style="color: #d97706; margin: 0 0 0.5rem 0;">
+                                Free Tier Quota Limits
+                            </p>
+                            <p class="text-sm text-muted" style="margin: 0;">
+                                <strong style="color: var(--color-text);">Free API:</strong> Limited to approximately <strong style="color: var(--color-text);">20 requests/day</strong>. Each image requires 2 requests, so approximately <strong style="color: var(--color-text);">10 images/day</strong> can be processed.
+                            </p>
+                            <div class="flex items-center gap-1 mt-2">
+                                <svg class="icon-success" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <p class="text-sm" style="color: var(--color-success); margin: 0;">
+                                    Paid plans have no limits, unlimited processing
+                                </p>
+                            </div>
                         </div>
                     </div>
-                    <span id="progress-count" class="text-2xl font-black text-blue-400">0/0</span>
                 </div>
-                <div class="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
-                    <div id="progress-bar" class="progress-bar bg-gradient-to-r from-blue-500 to-purple-500 h-full rounded-full" style="width: 0%"></div>
-                </div>
-            </div>
-        </section>
 
-        <section id="results-section" class="hidden">
-            <div class="flex items-center justify-between mb-6 flex-wrap gap-4 border-t border-slate-700 pt-8">
-                <div>
-                    <h2 class="text-2xl font-bold flex items-center gap-2">
-                        <span class="bg-emerald-500 w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
-                        Results
-                    </h2>
+                <div class="mb-4" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(220, 38, 38, 0.08)); padding: 1rem; border-radius: 0.5rem; border: 1px solid rgba(239, 68, 68, 0.3);">
+                    <div class="flex items-start gap-2">
+                        <svg class="icon-danger" width="16" height="16" fill="currentColor" viewBox="0 0 24 24" style="flex-shrink: 0; margin-top: 0.125rem;">
+                            <circle cx="12" cy="12" r="10"/>
+                        </svg>
+                        <div>
+                            <p class="text-sm mb-2 font-semibold" style="color: #dc2626; margin: 0 0 0.5rem 0;">
+                                Avoid gen-lang-client Bug
+                            </p>
+                            <p class="text-sm text-muted" style="margin: 0;">
+                                If your API Key project name contains <code style="background: rgba(0,0,0,0.1); padding: 0.125rem 0.25rem; border-radius: 0.25rem;">gen-lang-client</code>, it may be affected by a known bug that prevents usage.<br>
+                                <strong style="color: var(--color-text);">Solution:</strong> Create a <strong>new project with a custom name</strong> (e.g., "my-notebook-pptx") in Google Cloud Console, then create an API Key under that project.
+                            </p>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex items-center gap-3 flex-wrap">
-                    <select id="ratio-select" class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-sm font-bold outline-none">
-                        <option value="16:9">16:9 Landscape</option>
-                        <option value="9:16">9:16 Portrait</option>
-                        <option value="4:3">4:3 Standard</option>
-                    </select>
-                    <button id="export-combined-btn" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg transition flex items-center gap-2">
-                        Export PPTX ⭐
-                    </button>
-                    <button id="reset-btn" class="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-4 py-2.5 rounded-xl font-bold transition">Start Over</button>
+
+                <div class="mb-4" style="background: var(--color-bg); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--color-border);">
+                    <p class="text-sm mb-2">
+                        <strong>How to get an API Key:</strong>
+                    </p>
+                    <ol class="text-sm text-muted" style="padding-left: 1.25rem; line-height: 1.8; margin: 0;">
+                        <li>Go to <a href="https://console.cloud.google.com/projectcreate" target="_blank" style="color: var(--color-primary); text-decoration: underline;">Google Cloud Console</a> and create a new project (with custom name)</li>
+                        <li>Go to <a href="https://aistudio.google.com/apikey" target="_blank" style="color: var(--color-primary); text-decoration: underline;">Google AI Studio</a></li>
+                        <li>Click "Create API Key" and select your newly created project</li>
+                        <li>Copy the generated API Key</li>
+                    </ol>
                 </div>
+
+                <input
+                    type="password"
+                    id="api-key-input"
+                    placeholder="Enter your Gemini API Key (starts with AIza)"
+                    style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--color-border); border-radius: 0.5rem; font-size: 0.9375rem; margin-bottom: 1rem;"
+                >
+
+                <button id="save-api-key-btn" class="btn" style="width: 100%;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Save and Start
+                </button>
             </div>
-            <div id="results-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 custom-scrollbar"></div>
-        </section>
+        </div>
     </div>
 
-    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-2xl shadow-2xl opacity-0 transition-all pointer-events-none z-50 text-sm font-bold border border-slate-700"></div>
-
     <script>
-        const apiKey = "";
-        // Use stable models for Canvas environment
-        const MODEL_IMAGE_EDIT = "gemini-2.5-flash-image";  // Image generation/editing
-        const MODEL_TEXT_GEN = "gemini-2.5-flash";           // Text generation (OCR)
+        // API Key stored in localStorage, entered by user in the interface
+        let apiKey = localStorage.getItem('gemini_api_key') || "";
+
+        // Using stable models
+        const MODEL_IMAGE_EDIT = "gemini-2.5-flash-image";
+        const MODEL_TEXT_GEN = "gemini-2.5-flash";
+
+        // State management
         let pendingItems = [];
         let results = [];
+        let rateLimitCount = 0;
 
-        const i18n = {
-            processing: "Processing",
-            analyzing: "Analyzing",
-            generatingHD: "Generating high-resolution image...",
-            extractingText: "Extracting original text coordinates...",
-            aiRemoving: "AI is removing text and rebuilding background...",
-            aiRemovingAndOcr: "AI is removing text and recognizing content in parallel...",
-            applyingTextLayer: "Applying text layer ({current}/{total})...",
-            noOcrData: "No OCR data, exporting background only",
-            unsupportedFormat: "Unsupported file format",
-            readFailed: "File read failed",
-            apiKeyInvalid: "API Key invalid or environment error",
-            ocrFailed: "OCR recognition failed or no text content",
-            apiNoImage: "API did not return image data",
-            aiReturnedText: "AI returned text response instead of image, please retry",
-            rateLimit: "API rate limit (429), #{count}, waiting {sec} seconds...",
-            warmingUp: "Warming up API connection...",
-            processingComplete: "Complete: {success} succeeded",
-            processingFailed: ", {fail} failed",
-            rateLimitSummary: " (encountered {count} rate limits)",
-            recognizing: "AI recognizing text ({current}/{total})...",
-            usingPdfText: "Using PDF original text ({current}/{total})...",
-            exportSuccess: "Export successful",
-            exportFailed: "Export failed",
-            readingFiles: "Reading and generating thumbnails...",
-            success: "Success",
-            failed: "Failed",
-            apiKeyNotSet: "Please set API Key first (line 131 in code)",
-            apiKeyInvalidCheck: "API Key invalid, please check your Gemini API Key",
-            apiResponseError: "API response format error: {preview}..."
-        };
+        // Alert Banner Toggle
+        document.getElementById('alert-header').addEventListener('click', function() {
+            this.classList.toggle('expanded');
+            document.getElementById('alert-content').classList.toggle('expanded');
+        });
+
+        // Tools Collapsible
+        document.getElementById('tools-trigger').addEventListener('click', function() {
+            this.classList.toggle('active');
+            document.getElementById('tools-content').classList.toggle('active');
+        });
 
         function initPdfLibrary() {
             try {
@@ -170,395 +790,359 @@
                     return true;
                 }
             } catch (e) { console.error(e); }
-            document.getElementById('lib-warning').classList.remove('hidden');
+            showToast('PDF.js loading failed, please refresh the page');
             return false;
         }
 
+        // UI Elements
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('file-input');
         const uploadSection = document.getElementById('upload-section');
         const selectionSection = document.getElementById('selection-section');
-        const selectionGrid = document.getElementById('selection-grid');
-        const progressSection = document.getElementById('progress-section');
+        const processingSection = document.getElementById('processing-section');
         const resultsSection = document.getElementById('results-section');
-        const progressBar = document.getElementById('progress-bar');
-        const progressTitle = document.getElementById('progress-title');
-        const progressDetail = document.getElementById('progress-detail');
-        const progressCount = document.getElementById('progress-count');
-        const resultsGrid = document.getElementById('results-grid');
-        const toast = document.getElementById('toast');
-        const selectedCountSpan = document.getElementById('selected-count');
 
-        window.onload = () => { initPdfLibrary(); };
-
-        function showToast(msg, isError = false) {
-            toast.textContent = msg;
-            toast.style.backgroundColor = isError ? '#ef4444' : '#1e293b';
-            toast.classList.replace('opacity-0', 'opacity-100');
-            setTimeout(() => toast.classList.replace('opacity-100', 'opacity-0'), 3000);
+        // Check API Key
+        if (!apiKey) {
+            showApiKeyModal();
         }
 
-        const wait = (ms) => new Promise(res => setTimeout(res, ms));
-
-        // PDF.js direct text extraction (more accurate than OCR)
-        async function extractTextFromPdf(page, scale = 2.0) {
-            const viewport = page.getViewport({ scale });
-            const textContent = await page.getTextContent();
-            const pageWidth = viewport.width;
-            const pageHeight = viewport.height;
-
-            const textBlocks = textContent.items
-                .map(item => {
-                    const [scaleX, skewX] = item.transform;
-                    const tx = item.transform[4] * scale;
-                    const ty = item.transform[5] * scale;
-                    const fontSize = Math.sqrt(scaleX * scaleX + skewX * skewX) * scale;
-
-                    // PDF coordinate system y-axis starts from bottom, need to convert
-                    const x = tx;
-                    const y = pageHeight - ty;
-                    const height = fontSize * 1.2;
-
-                    // Estimate text width (PDF.js may return 0 or undefined)
-                    const rawWidth = item.width || 0;
-                    const estimatedWidth = fontSize * item.str.length * 0.6;
-                    const width = (rawWidth > 0 ? rawWidth : estimatedWidth) * scale;
-
-                    return {
-                        text: item.str,
-                        x,
-                        y: y - height,
-                        width,
-                        height,
-                        fontSize,
-                        fontName: item.fontName || ''
-                    };
-                })
-                .filter(block => block.text.trim().length > 0);
-
-            return {
-                blocks: mergeTextBlocks(textBlocks, pageWidth, pageHeight),
-                pageWidth,
-                pageHeight
-            };
-        }
-
-        // Merge adjacent text blocks (text on the same line)
-        function mergeTextBlocks(blocks) {
-            const validBlocks = (blocks || []).filter(b =>
-                b && b.text && b.text.trim() && isFinite(b.x) && isFinite(b.y)
-            );
-            if (validBlocks.length === 0) return [];
-
-            const avgFontSize = validBlocks.reduce((sum, b) => sum + (b.fontSize || 12), 0) / validBlocks.length;
-
-            function getFontSize(block) {
-                return block.fontSize || avgFontSize;
-            }
-
-            function estimateWidth(block) {
-                return block.width || getFontSize(block) * block.text.length * 0.6;
-            }
-
-            // Step 1: Group by y coordinate (use 80% of font size as tolerance)
-            const lines = [];
-            const sortedBlocks = [...validBlocks].sort((a, b) => a.y - b.y);
-
-            for (const block of sortedBlocks) {
-                let bestLine = null;
-                let minDiff = Infinity;
-
-                for (const line of lines) {
-                    const lineAvgY = line.items.reduce((sum, item) => sum + item.y, 0) / line.items.length;
-                    const lineFontSize = line.items.reduce((sum, item) => sum + getFontSize(item), 0) / line.items.length;
-                    const tolerance = Math.max(lineFontSize, getFontSize(block)) * 0.8;
-                    const diff = Math.abs(lineAvgY - block.y);
-
-                    if (diff < tolerance && diff < minDiff) {
-                        minDiff = diff;
-                        bestLine = line;
-                    }
-                }
-
-                if (bestLine) {
-                    bestLine.items.push(block);
-                } else {
-                    lines.push({ items: [block] });
-                }
-            }
-
-            // Step 2: Sort by x coordinate within each line and merge adjacent text
-            const merged = [];
-
-            for (const line of lines) {
-                line.items.sort((a, b) => a.x - b.x);
-                const lineAvgY = line.items.reduce((sum, item) => sum + item.y, 0) / line.items.length;
-
-                let current = null;
-
-                for (const item of line.items) {
-                    const itemWidth = estimateWidth(item);
-
-                    if (!current) {
-                        current = { ...item, width: itemWidth };
-                        continue;
-                    }
-
-                    const currentWidth = current.width || avgFontSize;
-                    const gap = item.x - (current.x + currentWidth);
-                    const gapTolerance = Math.max(getFontSize(current), getFontSize(item)) * 1.5;
-
-                    if (Math.abs(gap) < gapTolerance) {
-                        // Merge text
-                        current.text += item.text;
-                        current.width = Math.max((item.x + itemWidth) - current.x, currentWidth);
-                        current.height = Math.max(current.height || 0, item.height || 0);
-                        current.fontSize = Math.max(current.fontSize || 0, item.fontSize || 0);
-                    } else {
-                        // Gap too large, treat as new block
-                        merged.push(current);
-                        current = { ...item, width: itemWidth };
-                    }
-                }
-
-                if (current) {
-                    current.y = lineAvgY;
-                    merged.push(current);
-                }
-            }
-
-            return merged.sort((a, b) => a.y - b.y);
-        }
-
-        let rateLimitCount = 0;
-
-        async function fetchWithRetry(url, options, maxRetries = 5) {
-            const delays = [2000, 4000, 8000, 16000, 32000];
-            for (let i = 0; i < maxRetries; i++) {
-                try {
-                    const response = await fetch(url, options);
-                    const text = await response.text();
-
-                    let data;
-                    try {
-                        data = JSON.parse(text);
-                    } catch (parseError) {
-                        const preview = text.substring(0, 200);
-                        console.error(`JSON parse failed, response: ${preview}`);
-                        if (text.includes('API key not valid') || text.includes('API_KEY_INVALID')) {
-                            throw new Error(i18n.apiKeyInvalidCheck);
-                        }
-                        if (text.includes('PERMISSION_DENIED') || text.includes('authenticate')) {
-                            throw new Error('API authentication failed, please check API Key or environment');
-                        }
-                        throw new Error(i18n.apiResponseError.replace('{preview}', preview));
-                    }
-
-                    if (response.ok) return data;
-                    if (response.status === 429) {
-                        rateLimitCount++;
-                        const waitTime = delays[i] || 10000;
-                        showToast(i18n.rateLimit.replace('{count}', rateLimitCount).replace('{sec}', waitTime/1000), true);
-                        await wait(waitTime);
-                        continue;
-                    }
-                    throw new Error(data.error?.message || `HTTP ${response.status}`);
-                } catch (e) {
-                    if (i === maxRetries - 1) throw e;
-                    await wait(2000);
-                }
+        function showApiKeyModal() {
+            const modal = document.getElementById('api-key-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.style.display = 'flex';
             }
         }
 
+        function hideApiKeyModal() {
+            const modal = document.getElementById('api-key-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.style.display = 'none';
+            }
+        }
+
+        document.getElementById('save-api-key-btn').onclick = () => {
+            const input = document.getElementById('api-key-input');
+            const key = input.value.trim();
+            if (!key) {
+                showToast('Please enter an API Key');
+                return;
+            }
+            if (!key.startsWith('AIza')) {
+                showToast('Invalid API Key format, should start with AIza');
+                return;
+            }
+            localStorage.setItem('gemini_api_key', key);
+            apiKey = key;
+            hideApiKeyModal();
+            showToast('API Key saved');
+        };
+
+        // File Upload
         dropZone.onclick = () => fileInput.click();
-        fileInput.onchange = e => handleFiles(e.target.files);
-        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('drop-zone-active'); };
-        dropZone.ondragleave = () => dropZone.classList.remove('drop-zone-active');
-        dropZone.ondrop = (e) => { e.preventDefault(); dropZone.classList.remove('drop-zone-active'); handleFiles(e.dataTransfer.files); };
+        fileInput.onchange = (e) => handleFiles(e.target.files);
+
+        dropZone.ondragover = (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        };
+
+        dropZone.ondragleave = () => {
+            dropZone.classList.remove('dragover');
+        };
+
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        };
 
         async function handleFiles(files) {
             if (!initPdfLibrary()) return;
-            if (!files || files.length === 0) return;
-            dropZone.innerHTML = `<div class="loader mx-auto mb-4"></div><p class="text-slate-300">${i18n.readingFiles}</p>`;
-            dropZone.style.pointerEvents = 'none';
+
             pendingItems = [];
-            try {
-                for (let file of files) {
-                    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-                    const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp|bmp)$/i.test(file.name);
-                    if (isPdf) { await loadPdfAndGenerateThumbs(file); }
-                    else if (isImage) {
-                        const base64 = await fileToBase64(file);
-                        pendingItems.push({ id: `img_${Date.now()}_${Math.random()}`, type: 'image', name: file.name, thumb: base64, original: base64, selected: true });
-                    }
+            const fileArray = Array.from(files);
+
+            for (const file of fileArray) {
+                if (file.type === 'application/pdf') {
+                    const pages = await loadPdfPages(file);
+                    pendingItems.push(...pages);
+                } else if (file.type.startsWith('image/')) {
+                    const dataUrl = await readFileAsDataURL(file);
+                    pendingItems.push({
+                        type: 'image',
+                        name: file.name,
+                        thumbnail: dataUrl,
+                        fullImage: dataUrl,
+                        selected: true
+                    });
                 }
-                if (pendingItems.length > 0) { renderSelectionGrid(); }
-                else { showToast(i18n.unsupportedFormat, true); location.reload(); }
-            } catch (err) { console.error(err); showToast(err.message || i18n.readFailed, true); setTimeout(() => location.reload(), 2000); }
+            }
+
+            if (pendingItems.length > 0) {
+                uploadSection.classList.add('hidden');
+                selectionSection.classList.remove('hidden');
+                renderSelectionGrid();
+            }
         }
 
-        async function loadPdfAndGenerateThumbs(file) {
+        async function loadPdfPages(file) {
             const arrayBuffer = await file.arrayBuffer();
-            const lib = window.pdfjsLib;
-            const pdfDoc = await lib.getDocument({ data: arrayBuffer, cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/', cMapPacked: true }).promise;
-            const total = pdfDoc.numPages;
-            for (let i = 1; i <= total; i++) {
-                const page = await pdfDoc.getPage(i);
-                const viewport = page.getViewport({ scale: 0.5 });
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-                await page.render({ canvasContext: ctx, viewport }).promise;
-                pendingItems.push({ id: `pdf_${file.name}_${i}`, type: 'pdf', name: `${file.name} - P${i}`, thumb: canvas.toDataURL('image/jpeg', 0.6).split(',')[1], pdfDoc: pdfDoc, pageNum: i, selected: true });
-            }
-        }
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const pages = [];
 
-        function renderSelectionGrid() {
-            uploadSection.classList.add('hidden');
-            selectionSection.classList.remove('hidden');
-            selectionGrid.innerHTML = '';
-            pendingItems.forEach((item, index) => {
-                const div = document.createElement('div');
-                div.className = 'relative group';
-                div.innerHTML = `<label class="cursor-pointer block relative"><input type="checkbox" class="custom-checkbox hidden" ${item.selected ? 'checked' : ''} onchange="toggleSelection(${index}, this.checked)"><div class="glass rounded-xl overflow-hidden border-2 border-transparent transition-all h-32 md:h-40 flex flex-col relative"><img src="data:image/jpeg;base64,${item.thumb}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition"><div class="check-icon absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white shadow-lg transform scale-0 transition-transform duration-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg></div><div class="absolute bottom-0 left-0 right-0 bg-black/60 p-1 text-[10px] text-center truncate text-white backdrop-blur-sm">${item.name}</div></div></label>`;
-                selectionGrid.appendChild(div);
-            });
-            updateSelectedCount();
-        }
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const thumbnail = await renderPage(page, 0.5);
+                const fullImage = await renderPage(page, 2.0);
 
-        window.toggleSelection = (index, isChecked) => { pendingItems[index].selected = isChecked; updateSelectedCount(); };
-        function updateSelectedCount() {
-            const count = pendingItems.filter(i => i.selected).length;
-            selectedCountSpan.textContent = count;
-            document.getElementById('start-process-btn').disabled = count === 0;
-            document.getElementById('start-process-btn').classList.toggle('opacity-50', count === 0);
-        }
+                const textContent = await page.getTextContent();
+                const text = textContent.items.map(item => item.str).join(' ').trim();
 
-        document.getElementById('select-all-btn').onclick = () => { pendingItems.forEach(i => i.selected = true); renderSelectionGrid(); };
-        document.getElementById('deselect-all-btn').onclick = () => { pendingItems.forEach(i => i.selected = false); renderSelectionGrid(); };
-
-        document.getElementById('start-process-btn').onclick = async () => {
-            const selectedItems = pendingItems.filter(i => i.selected);
-            if (selectedItems.length === 0) return;
-            selectionSection.classList.add('hidden');
-            progressSection.classList.remove('hidden');
-            resultsSection.classList.add('hidden');
-            await processSelectedItems(selectedItems);
-        };
-
-        async function processSelectedItems(items) {
-            results = [];
-            resultsGrid.innerHTML = '';
-            resultsSection.classList.remove('hidden');
-            rateLimitCount = 0;
-
-            if (items.length >= 5) {
-                progressDetail.textContent = i18n.warmingUp;
-                await wait(2000);
+                pages.push({
+                    type: 'pdf',
+                    name: `${file.name} - Page ${i}`,
+                    pageNum: i,
+                    thumbnail,
+                    fullImage,
+                    text,
+                    selected: true
+                });
             }
 
-            for (let i = 0; i < items.length; i++) {
-                const item = items[i];
-                let processBase64 = item.thumb;
-                progressTitle.textContent = `${i18n.processing}: ${item.name}`;
-                progressCount.textContent = `${i + 1}/${items.length}`;
-                progressBar.style.width = `${((i + 1) / items.length) * 100}%`;
-
-                // Extract PDF original text if applicable
-                let pdfTextData = null;
-                if (item.type === 'pdf') {
-                    progressDetail.textContent = i18n.generatingHD;
-                    try {
-                        const page = await item.pdfDoc.getPage(item.pageNum);
-                        const viewport = page.getViewport({ scale: 2.0 });
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        canvas.height = viewport.height;
-                        canvas.width = viewport.width;
-                        await page.render({ canvasContext: ctx, viewport }).promise;
-                        processBase64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
-
-                        // Extract PDF original text info (more accurate than OCR)
-                        progressDetail.textContent = i18n.extractingText;
-                        pdfTextData = await extractTextFromPdf(page, 2.0);
-                    } catch (e) {
-                        console.error("Re-render error", e);
-                        // Fall back to thumbnail if failed
-                    }
-                } else {
-                    processBase64 = item.original;
-                }
-
-                // Determine if OCR is needed (also needed when PDF has no text layer)
-                const needsOcr = item.type !== 'pdf' || !pdfTextData || pdfTextData.blocks.length === 0;
-                progressDetail.textContent = needsOcr ? i18n.aiRemovingAndOcr : i18n.aiRemoving;
-
-                try {
-                    const ocrBase64 = item.type === 'pdf' ? processBase64 : item.original;
-                    const [cleanedResult, ocrResult] = await Promise.allSettled([
-                        removeTextWithGemini(processBase64),
-                        needsOcr ? ocrWithGemini(ocrBase64) : Promise.resolve([])
-                    ]);
-                    const cleaned = cleanedResult.status === 'fulfilled' ? cleanedResult.value : null;
-                    const ocrBlocks = ocrResult.status === 'fulfilled' ? ocrResult.value : [];
-                    if (cleanedResult.status === 'rejected') console.error("Text removal failed:", cleanedResult.reason);
-                    if (ocrResult.status === 'rejected') console.warn("OCR failed:", ocrResult.reason);
-
-                    const finalPdfTextData = (pdfTextData?.blocks?.length > 0) ? pdfTextData : null;
-                    const finalOcrBlocks = finalPdfTextData ? null : ocrBlocks;
-
-                    if (cleaned) {
-                        results.push({ name: item.name, original: processBase64, cleaned, sourceType: item.type, pdfTextData: finalPdfTextData, ocrBlocks: finalOcrBlocks });
-                        addResultCard(i, item.name, cleaned);
-                    } else {
-                        const isAuthError = cleanedResult.reason?.message?.includes("400") || cleanedResult.reason?.message?.includes("403") || cleanedResult.reason?.message?.includes("key");
-                        const errMsg = isAuthError ? i18n.apiKeyInvalid : (cleanedResult.reason?.message || "Processing failed");
-                        results.push({ name: item.name, original: processBase64, cleaned: null, error: errMsg, sourceType: item.type, pdfTextData: finalPdfTextData, ocrBlocks: finalOcrBlocks });
-                        addResultCard(i, item.name, null, errMsg);
-                    }
-                } catch (e) {
-                    console.error(e);
-                    results.push({ name: item.name, original: processBase64, cleaned: null, error: e.message, sourceType: item.type, pdfTextData: null, ocrBlocks: [] });
-                    addResultCard(i, item.name, null, e.message);
-                }
-                // Parallel processing reduces total time, 1 second interval is enough to avoid rate limiting
-                if (i < items.length - 1) await wait(1000);
-            }
-
-            const successCount = results.filter(r => r.cleaned).length;
-            const failCount = results.filter(r => !r.cleaned).length;
-            let summary = i18n.processingComplete.replace('{success}', successCount);
-            if (failCount > 0) summary += i18n.processingFailed.replace('{fail}', failCount);
-            if (rateLimitCount > 0) summary += i18n.rateLimitSummary.replace('{count}', rateLimitCount);
-            showToast(summary, failCount > 0 || rateLimitCount > 3);
-
-            setTimeout(() => progressSection.classList.add('hidden'), 1000);
+            return pages;
         }
 
-        function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
+        async function renderPage(page, scale) {
+            const viewport = page.getViewport({ scale });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            await page.render({ canvasContext: context, viewport }).promise;
+            return canvas.toDataURL('image/png');
+        }
+
+        function readFileAsDataURL(file) {
+            return new Promise((resolve) => {
                 const reader = new FileReader();
-                reader.onload = e => resolve(e.target.result.split(',')[1]);
-                reader.onerror = reject;
+                reader.onload = (e) => resolve(e.target.result);
                 reader.readAsDataURL(file);
             });
         }
 
+        function renderSelectionGrid() {
+            const grid = document.getElementById('selection-grid');
+            grid.innerHTML = pendingItems.map((item, idx) => `
+                <div class="thumbnail-item ${item.selected ? 'selected' : ''}" data-index="${idx}">
+                    <div class="checkbox-wrapper" style="position: absolute; top: 0.5rem; right: 0.5rem; z-index: 10;">
+                        <input type="checkbox" ${item.selected ? 'checked' : ''}>
+                        <div class="checkbox-custom">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <img src="${item.thumbnail}" alt="${item.name}" style="width: 100%; height: auto; display: block; border-radius: 0.25rem;">
+                    <p class="text-xs text-muted" style="margin-top: 0.5rem; text-align: center;">${item.name}</p>
+                </div>
+            `).join('');
+
+            document.querySelectorAll('.thumbnail-item').forEach(el => {
+                el.onclick = () => {
+                    const idx = parseInt(el.dataset.index);
+                    pendingItems[idx].selected = !pendingItems[idx].selected;
+                    renderSelectionGrid();
+                };
+            });
+        }
+
+        document.getElementById('select-all-btn').onclick = () => {
+            pendingItems.forEach(i => i.selected = true);
+            renderSelectionGrid();
+        };
+
+        document.getElementById('deselect-all-btn').onclick = () => {
+            pendingItems.forEach(i => i.selected = false);
+            renderSelectionGrid();
+        };
+
+        document.getElementById('process-btn').onclick = async () => {
+            const selected = pendingItems.filter(i => i.selected);
+            if (selected.length === 0) {
+                showToast('Please select at least one item');
+                return;
+            }
+            selectionSection.classList.add('hidden');
+            processingSection.classList.remove('hidden');
+            await processItems(selected);
+        };
+
+        async function processItems(items) {
+            results = [];
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            const progressDetail = document.getElementById('progress-detail');
+
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                const progress = ((i + 1) / items.length) * 100;
+                progressFill.style.width = `${progress}%`;
+                progressText.textContent = `Processing: ${i + 1} / ${items.length}`;
+                progressDetail.textContent = `Currently processing: ${item.name}`;
+
+                try {
+                    // Remove text
+                    let cleaned = null;
+                    let cleanedError = null;
+                    try {
+                        cleaned = await removeTextWithGemini(item.fullImage);
+                    } catch (e) {
+                        console.error("Text removal failed:", e);
+                        cleanedError = e;
+                    }
+
+                    // OCR - always run to get text position and style
+                    await wait(500);
+                    progressDetail.textContent = "AI is recognizing text content...";
+
+                    let ocrBlocks = [];
+                    try {
+                        ocrBlocks = await ocrWithGemini(item.fullImage);
+                        console.log(`OCR successful: found ${ocrBlocks.length} text blocks`);
+                    } catch (e) {
+                        console.warn("OCR failed, text layer will be skipped during export:", e);
+                    }
+
+                    if (cleanedError && !cleaned) {
+                        throw cleanedError;
+                    }
+
+                    results.push({
+                        name: item.name,
+                        original: item.fullImage,
+                        cleaned: cleaned || item.fullImage,
+                        textBlocks: ocrBlocks
+                    });
+                } catch (error) {
+                    console.error("Processing failed:", error);
+                    showToast(`Processing failed: ${error.message}`);
+                    results.push({
+                        name: item.name,
+                        original: item.fullImage,
+                        cleaned: item.fullImage,
+                        textBlocks: [],
+                        error: error.message
+                    });
+                }
+
+                if (i < items.length - 1) await wait(1500);
+            }
+
+            processingSection.classList.add('hidden');
+            resultsSection.classList.remove('hidden');
+            renderResults();
+        }
+
+        function renderResults() {
+            const grid = document.getElementById('results-grid');
+            grid.innerHTML = results.map((r, idx) => `
+                <div class="result-card">
+                    <img src="${r.cleaned}" alt="${r.name}">
+                    <div class="result-card-content">
+                        <p class="text-sm font-semibold">${r.name}</p>
+                        ${r.error ? `<p class="text-xs" style="color: var(--color-danger);">Error: ${r.error}</p>` : ''}
+                        ${r.textBlocks.length > 0 ? `<p class="text-xs text-muted">${r.textBlocks.length} text blocks</p>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('export-btn').onclick = async () => {
+            console.log('Starting PPTX export, results:', results);
+
+            const pptx = new PptxGenJS();
+            pptx.layout = 'LAYOUT_16x9';
+
+            for (let i = 0; i < results.length; i++) {
+                const result = results[i];
+                console.log(`Processing slide ${i+1}:`, {
+                    name: result.name,
+                    textBlocksCount: result.textBlocks?.length || 0,
+                    textBlocks: result.textBlocks
+                });
+
+                const slide = pptx.addSlide();
+                slide.addImage({ data: result.cleaned, x: 0, y: 0, w: '100%', h: '100%' });
+
+                if (result.textBlocks && result.textBlocks.length > 0) {
+                    console.log(`Adding ${result.textBlocks.length} text blocks to slide ${i+1}`);
+
+                    result.textBlocks.forEach((block, idx) => {
+                        if (!block.text || !block.text.trim()) {
+                            console.warn(`Skipping empty text block ${idx}`);
+                            return;
+                        }
+                        if (!block.box_2d || block.box_2d.length !== 4) {
+                            console.warn(`Skipping text block ${idx} with invalid coordinates:`, block);
+                            return;
+                        }
+
+                        const [ymin, xmin, ymax, xmax] = block.box_2d;
+
+                        const textOptions = {
+                            x: `${xmin/10}%`,
+                            y: `${ymin/10}%`,
+                            w: `${Math.max((xmax-xmin)/10, 5)}%`,
+                            h: `${Math.max((ymax-ymin)/10, 2)}%`,
+                            fontSize: block.font_size_pt || 14,
+                            color: (block.color || "000000").replace("#", ""),
+                            fontFace: 'Arial',
+                            valign: 'top'
+                        };
+
+                        if (block.font_weight === 'bold') textOptions.bold = true;
+                        if (block.font_style === 'italic') textOptions.italic = true;
+                        if (block.text_align) textOptions.align = block.text_align;
+
+                        console.log(`Adding text "${block.text.substring(0, 20)}..." at position:`, textOptions);
+                        slide.addText(block.text, textOptions);
+                    });
+                } else {
+                    console.warn(`Slide ${i+1} has no text blocks`);
+                }
+            }
+
+            await pptx.writeFile({ fileName: `NotebookLM_${Date.now()}.pptx` });
+            showToast('PPTX exported successfully!');
+        };
+
+        document.getElementById('reset-btn').onclick = () => {
+            pendingItems = [];
+            results = [];
+            resultsSection.classList.add('hidden');
+            uploadSection.classList.remove('hidden');
+            fileInput.value = '';
+        };
+
         async function removeTextWithGemini(base64) {
-            const baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE_EDIT}:generateContent`;
-            const url = apiKey ? `${baseUrl}?key=${apiKey}` : baseUrl;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IMAGE_EDIT}:generateContent?key=${apiKey}`;
+
             const payload = {
                 contents: [{
-                    role: "user",
                     parts: [
-                        { text: "Edit this image by removing all visible text and numbers while preserving the original background patterns, colors, and design elements. Use content-aware fill to seamlessly reconstruct the areas where text was removed. Return the edited image." },
-                        { inlineData: { mimeType: "image/png", data: base64 } }
+                        { text: "Remove all text from this image while preserving the background." },
+                        { inlineData: { mimeType: "image/png", data: base64.split(',')[1] } }
                     ]
                 }],
                 generationConfig: {
-                    responseModalities: ['IMAGE'],
-                    temperature: 0.4
+                    temperature: 0.4,
+                    topK: 32,
+                    topP: 1,
+                    maxOutputTokens: 4096
                 }
             };
 
@@ -568,26 +1152,27 @@
                 body: JSON.stringify(payload)
             });
 
-            // Check for copyright restrictions
+            if (!data || !data.candidates) {
+                console.error('API returned abnormal data:', data);
+                throw new Error('Free tier API quota may be exhausted or service abnormal (limit ~20 requests/day). Paid plans have no such limits');
+            }
+
             const finishReason = data.candidates?.[0]?.finishReason;
             if (finishReason === 'IMAGE_RECITATION') {
-                console.error("IMAGE_RECITATION error:", data.candidates?.[0]?.finishMessage);
-                throw new Error("Image processing restricted: Gemini detected potential copyright issues. Please try a different image or adjust content.");
+                throw new Error("Image processing restricted: Gemini detected potential copyright issues");
             }
 
             const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
             if (!part) {
-                const textPart = data.candidates?.[0]?.content?.parts?.find(p => p.text);
-                if (textPart) { console.warn("API returned text instead of image:", textPart.text); throw new Error(i18n.aiReturnedText); }
-                console.error("API response structure:", JSON.stringify(data, null, 2));
-                throw new Error(data.error?.message || i18n.apiNoImage);
+                console.error('API response structure:', JSON.stringify(data, null, 2));
+                throw new Error(data.error?.message || "API did not return image data, quota limit may be reached");
             }
-            return part.inlineData.data;
+            return 'data:image/png;base64,' + part.inlineData.data;
         }
 
         async function ocrWithGemini(base64) {
-            const baseUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_TEXT_GEN}:generateContent`;
-            const url = apiKey ? `${baseUrl}?key=${apiKey}` : baseUrl;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_TEXT_GEN}:generateContent?key=${apiKey}`;
+
             const payload = {
                 contents: [{
                     parts: [
@@ -599,13 +1184,13 @@ For each text block, provide:
 - font_size_pt: estimated font size in points (typical range: 8-72)
 - font_weight: "normal" or "bold"
 - font_style: "normal" or "italic"
-- text_align: "left", "center", or "right" (based on text position in its container)
+- text_align: "left", "center", or "right"
 - color: hex color code like "000000" or "FFFFFF"
 - line_height: line height multiplier (typically 1.0-2.0)
 
-Return as JSON array. Be precise with bounding boxes.`
+Return as JSON array.`
                         },
-                        { inlineData: { mimeType: "image/png", data: base64 } }
+                        { inlineData: { mimeType: "image/png", data: base64.split(',')[1] } }
                     ]
                 }],
                 generationConfig: {
@@ -635,174 +1220,107 @@ Return as JSON array. Be precise with bounding boxes.`
                 body: JSON.stringify(payload)
             });
 
+            console.log('OCR API returned data:', data);
+
             if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                throw new Error(i18n.ocrFailed);
+                console.warn('OCR API did not return text content');
+                return [];
             }
 
-            const ocrText = data.candidates[0].content.parts[0].text;
             try {
-                return JSON.parse(ocrText);
-            } catch (parseError) {
-                console.error('OCR JSON parse failed:', ocrText.substring(0, 500));
-                console.warn('Cannot parse OCR result, keeping background only');
+                const rawText = data.candidates[0].content.parts[0].text;
+                console.log('OCR raw text:', rawText);
+                const parsed = JSON.parse(rawText);
+                console.log('OCR parsed result:', parsed);
+                return parsed;
+            } catch (e) {
+                console.error("OCR JSON parsing failed:", e);
+                console.error("Raw content:", data.candidates[0].content.parts[0].text);
                 return [];
             }
         }
 
-        function addResultCard(index, name, cleaned, error) {
-            const div = document.createElement('div');
-            div.className = 'result-card glass rounded-2xl overflow-hidden';
-            if (cleaned) { div.innerHTML = `<img src="data:image/png;base64,${cleaned}" class="w-full aspect-video object-cover"><div class="p-4 flex justify-between items-center text-[10px]"><span class="truncate max-w-[80%]">${name}</span><span class="text-emerald-400 font-bold">${i18n.success}</span></div>`; }
-            else { div.innerHTML = `<div class="p-6 text-center text-red-400 text-[10px]">${error || i18n.failed}</div>`; }
-            resultsGrid.appendChild(div);
-        }
+        async function fetchWithRetry(url, options, maxRetries = 5) {
+            const delays = [2000, 4000, 8000, 16000, 32000];
+            let lastError = null;
 
-        document.getElementById('export-combined-btn').onclick = async () => {
-            const valid = results.filter(r => r.cleaned);
-            if (!valid.length) return;
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    const text = await response.text();
 
-            const btn = document.getElementById('export-combined-btn');
-            btn.disabled = true;
-            btn.innerHTML = "Processing text...";
-
-            try {
-                const pptx = new PptxGenJS();
-                const ratio = document.getElementById('ratio-select').value;
-                pptx.layout = ratio === '16:9' ? 'LAYOUT_WIDE' : ratio === '4:3' ? 'LAYOUT_4x3' : 'LAYOUT_WIDE';
-
-                // Get slide actual dimensions (inches)
-                const slideWidth = ratio === '16:9' ? 13.333 : ratio === '4:3' ? 10 : 13.333;
-                const slideHeight = ratio === '16:9' ? 7.5 : ratio === '4:3' ? 7.5 : 7.5;
-
-                for (let i = 0; i < valid.length; i++) {
-                    const r = valid[i];
-                    const slide = pptx.addSlide();
-                    slide.addImage({ data: `data:image/png;base64,${r.cleaned}`, x: 0, y: 0, w: '100%', h: '100%' });
-
+                    let data;
                     try {
-                        // Choose text extraction method based on source type
-                        if (r.sourceType === 'pdf' && r.pdfTextData && r.pdfTextData.blocks.length > 0) {
-                            // PDF source: use already extracted precise text info (no API call needed)
-                            showToast(i18n.usingPdfText.replace('{current}', i+1).replace('{total}', valid.length));
-
-                            const { blocks, pageWidth, pageHeight } = r.pdfTextData;
-                            blocks.forEach(block => {
-                                if (!block.text.trim()) return;
-
-                                // Convert pixel coordinates to slide percentage coordinates
-                                const xPercent = (block.x / pageWidth) * 100;
-                                const yPercent = (block.y / pageHeight) * 100;
-                                const wPercent = (block.width / pageWidth) * 100;
-                                const hPercent = (block.height / pageHeight) * 100;
-
-                                // Calculate font size based on slide dimensions (pt)
-                                // PDF font size is relative to 2.0 scale, need to convert to slide actual size
-                                const scaleFactor = (slideHeight * 72) / pageHeight; // 72 pt per inch
-                                const fontSize = Math.max(6, Math.min(72, block.fontSize * scaleFactor * 0.8));
-
-                                slide.addText(block.text, {
-                                    x: `${xPercent}%`,
-                                    y: `${yPercent}%`,
-                                    w: `${Math.max(wPercent, 5)}%`,
-                                    h: `${Math.max(hPercent, 2)}%`,
-                                    fontSize: Math.round(fontSize),
-                                    color: '000000',
-                                    fontFace: 'Arial',
-                                    valign: 'top'
-                                });
-                            });
-                        } else if (r.ocrBlocks && r.ocrBlocks.length > 0) {
-                            // Image source: use pre-fetched OCR results (no API call needed)
-                            showToast(i18n.applyingTextLayer.replace('{current}', i+1).replace('{total}', valid.length));
-
-                            r.ocrBlocks.forEach(b => {
-                                if (!b.text || !b.text.trim()) return;
-                                if (!b.box_2d || b.box_2d.length !== 4) return;
-                                const [ymin, xmin, ymax, xmax] = b.box_2d;
-                                const textOptions = {
-                                    x: `${xmin/10}%`, y: `${ymin/10}%`,
-                                    w: `${Math.max((xmax-xmin)/10, 5)}%`, h: `${Math.max((ymax-ymin)/10, 2)}%`,
-                                    fontSize: b.font_size_pt || 14,
-                                    color: (b.color || "000000").replace("#", ""),
-                                    fontFace: 'Arial', valign: 'top'
-                                };
-                                if (b.font_weight === 'bold') textOptions.bold = true;
-                                if (b.font_style === 'italic') textOptions.italic = true;
-                                if (b.text_align) textOptions.align = b.text_align;
-                                slide.addText(b.text, textOptions);
-                            });
-                        } else {
-                            console.warn(`Slide ${i+1} has no OCR data, exporting background only`);
+                        data = JSON.parse(text);
+                    } catch (parseError) {
+                        const preview = text.substring(0, 200);
+                        console.error(`JSON parsing failed, response content: ${preview}`);
+                        if (text.includes('API key not valid') || text.includes('API_KEY_INVALID')) {
+                            throw new Error('Invalid API key, please check your Gemini API key');
                         }
-                    } catch (e) {
-                        console.warn("Text extraction failed for slide", i, e);
+                        if (text.trim() === '' || text.length < 10) {
+                            throw new Error('Free tier API quota may be exhausted (daily limit ~20 requests). Please try later or upgrade to paid plan (unlimited)');
+                        }
+                        throw new Error(`API response format error: ${preview}...`);
                     }
+
+                    if (response.ok) return data;
+
+                    if (response.status === 429) {
+                        rateLimitCount++;
+                        const errorMsg = data.error?.message || '';
+
+                        if (errorMsg.includes('quota') || errorMsg.includes('RESOURCE_EXHAUSTED')) {
+                            throw new Error('Free tier daily quota exhausted (limit ~20 requests/day). Please try tomorrow or upgrade to paid plan (unlimited).');
+                        }
+
+                        if (i < maxRetries - 1) {
+                            console.warn(`Rate limited, waiting ${delays[i]}ms before retry (${i + 1}/${maxRetries})`);
+                            await wait(delays[i]);
+                            continue;
+                        }
+                    }
+
+                    if (response.status === 403) {
+                        const errorMsg = data.error?.message || '';
+                        if (errorMsg.includes('quota') || errorMsg.includes('exceeded')) {
+                            throw new Error('Free tier API quota exceeded (daily limit ~20 requests). Please upgrade to paid plan for unlimited usage.');
+                        }
+                    }
+
+                    throw new Error(data.error?.message || `HTTP ${response.status}`);
+
+                } catch (e) {
+                    lastError = e;
+
+                    if (e.message.includes('quota') ||
+                        e.message.includes('key') ||
+                        e.message.includes('API key')) {
+                        throw e;
+                    }
+
+                    if (i === maxRetries - 1) {
+                        throw new Error(`API request failed (retried ${maxRetries} times): ${e.message}`);
+                    }
+
+                    console.warn(`Request failed, waiting 2 seconds before retry: ${e.message}`);
+                    await wait(2000);
                 }
-                pptx.writeFile({ fileName: `Result_${Date.now()}.pptx` });
-                showToast(i18n.exportSuccess);
-            } catch (e) {
-                console.error("Export error", e);
-                showToast(i18n.exportFailed + ": " + e.message, true);
             }
-            btn.disabled = false;
-            btn.innerHTML = "Export PPTX ⭐";
-        };
-
-        // Soft reset: Clear state and return to initial interface (preserve API Key)
-        function softReset() {
-            console.log('=== Executing soft reset ===');
-            console.log('Preserving API Key:', apiKey.substring(0, 8) + '...');
-
-            // Reset state variables
-            pendingItems = [];
-            results = [];
-            rateLimitCount = 0;
-
-            // Reset UI - Hide all sections
-            selectionSection.classList.add('hidden');
-            progressSection.classList.add('hidden');
-            resultsSection.classList.add('hidden');
-
-            // Show upload section
-            uploadSection.classList.remove('hidden');
-
-            // Clear content
-            selectionGrid.innerHTML = '';
-            resultsGrid.innerHTML = '';
-
-            // Reset progress bar
-            progressBar.style.width = '0%';
-            progressTitle.textContent = '';
-            progressDetail.textContent = '';
-            progressCount.textContent = '';
-
-            // Clear file input (temporarily remove event listener to avoid triggering change event)
-            fileInput.onchange = null;
-            fileInput.value = '';
-            fileInput.onchange = e => handleFiles(e.target.files);
-
-            // Reset upload zone HTML (restore initial state)
-            dropZone.innerHTML = `
-                <input type="file" id="file-input" class="hidden" accept="application/pdf,image/*" multiple>
-                <div class="w-20 h-20 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                </div>
-                <p class="text-2xl font-bold text-white mb-2">Drop PDF or Images Here</p>
-                <p class="text-slate-400">Click here to select files</p>
-                <div id="lib-warning" class="mt-4 text-xs text-amber-400 hidden">Warning: Components not ready, please wait...</div>
-            `;
-            dropZone.style.pointerEvents = 'auto';
-
-            // Reset selection count
-            selectedCountSpan.textContent = '0';
-
-            console.log('✓ Soft reset complete, API Key preserved');
-            showToast('✓ Reset complete, ready for new processing');
+            throw lastError || new Error('API request failed: unknown error');
         }
 
-        document.getElementById('reset-btn').onclick = softReset;
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
     </script>
 </body>
 </html>

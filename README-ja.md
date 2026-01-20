@@ -61,28 +61,40 @@ NotebookLM からエクスポートした PDF を**背景画像とテキスト�
 
 ## 使用方法
 
-### Google Gemini Canvas での使用
+### クイックスタート（3つの簡単なステップ）
+
+1. **ブラウザで HTML ファイルを開く**（Chrome/Edge 推奨）
+2. **ガイドに従ってセットアップ**し、Google から無料の API Key を取得
+3. **処理を開始**して、PDF または画像をすぐに変換！
+
+### 初回セットアップ
+
+アプリケーションを初めて開くと、親切なセットアップウィザードが以下の手順をガイドします：
+
+1. **Google AI Studio にアクセス** - [aistudio.google.com/apikey](https://aistudio.google.com/apikey) へのワンクリックリンク
+2. **無料の API Key を作成** - Google アカウントでサインイン（クレジットカード不要）
+3. **貼り付けて保存** - API Key をコピーしてアプリに貼り付け
+
+> 🔒 **API Key はブラウザに安全に保存され**、サーバーにアップロードされることはありません。
+
+### 無料 API クォータ
+
+Google Gemini API は寛大な無料枠を提供しています：
+- **1分あたり15リクエスト**
+- **1日あたり1,500リクエスト**
+- **クレジットカード不要**
+
+これは通常の日常使用には十分すぎるほどです！
+
+### 代替方法：Google Gemini Canvas での使用（上級者向け）
+
+Gemini Canvas 環境で実行したい場合：
 
 1. [Google Gemini](https://gemini.google.com/) を開く
-2. 以下のようなプロンプトを入力：
-   ```
-   そのまま実行してください。修正は不要です
-   ```
-3. Gemini が **Canvas モード**に入ったら（右側にコードエディタが表示される）
-4. プロジェクトの `index-ja.html`（または好みの言語バージョン）の完全なコードを Canvas に貼り付け
-5. Canvas の右上にある「**Preview**」ボタンをクリックして実行
+2. `index-ja.html` のコードを Canvas に貼り付け
+3. 「Preview」をクリックして実行
 
-### API Key の設定
-
-> **重要**：Gemini Canvas 環境で実行する場合、**個人の API Key は不要**です。システムはデフォルトの API 環境を自動的に使用します。
-
-Canvas 以外の環境（例：自前のサーバー）で実行する場合は、コード内の以下の行を見つけて Gemini API Key を入力してください：
-
-```javascript
-const apiKey = "YOUR_GEMINI_API_KEY";
-```
-
-> API Key の取得：[Google AI Studio](https://aistudio.google.com/app/apikey) にアクセス
+> ⚠️ **注意**：2026年1月現在、Canvas 環境でも API Key が必要です。アプリがセットアップを促します。
 
 ## ワークフロー
 
@@ -138,7 +150,7 @@ const apiKey = "YOUR_GEMINI_API_KEY";
 
 | 項目 | 説明 |
 |------|------|
-| AI モデル | Gemini 2.5 Flash (Image Edit + Text Gen) |
+| AI モデル | Gemini 2.5 Flash Image（テキスト削除）+ Gemini 2.5 Flash（OCR）|
 | テキスト削除 | 完全な削除と背景修復のための最適化プロンプト |
 | PDF 解析 | PDF.js 3.11.174 |
 | PPTX 生成 | PptxGenJS 3.12.0 |
@@ -157,15 +169,21 @@ const apiKey = "YOUR_GEMINI_API_KEY";
 
 ## よくある質問
 
-### Q: なぜ Gemini Canvas を使用するのですか？
-A: Canvas モードは、サーバーを設定せずにフロントエンドコードを実行できる安全なサンドボックス環境を提供します。さらに、デフォルトの API 環境を使用するため、個人の API Key は不要です。
+### Q: API Key を取得するにはクレジットカードが必要ですか？
+A: いいえ！Google Gemini API は完全に無料の枠を提供しており、クレジットカードは不要です。Google アカウントでサインインするだけです。
+
+### Q: API Key は安全ですか？
+A: はい！API Key はブラウザの localStorage にのみ保存され、Google の公式 Gemini API 以外のサーバーに送信されることはありません。
 
 ### Q: 処理が失敗した場合は？
-A: 一般的な原因：
-- API Key が無効または期限切れ（Canvas 以外で実行時）
+A: よくある原因：
+- API Key が無効（「AIza」で始まっているか確認）
 - ネットワーク接続が不安定
 - 画像が大きすぎるまたはサポートされていない形式
-- API レート制限を超過（待機後に再試行）
+- API レート制限を超過（無料枠：15/分、1500/日 - 待機後に再試行）
+
+### Q: このツールを他の人と共有できますか？
+A: もちろんです！HTML ファイルを共有するだけです。各ユーザーは自分の API Key を設定するため、全員が自分の無料クォータを持ちます。
 
 ### Q: オフラインで使用できますか？
 A: いいえ、このツールは AI 処理のために Gemini API 呼び出しが必要です。
