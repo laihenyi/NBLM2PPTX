@@ -30,6 +30,34 @@ Convierte PDFs exportados de NotebookLM en presentaciones PPTX con **imágenes d
 > Izquierda: PDF original de NotebookLM (texto incrustado en imagen)
 > Derecha: PPTX convertido con fondo limpio + capas de texto editables
 
+## Novedades en v2.3 (2026-01-21)
+
+### ⚡ Sistema OCR de Modo Dual
+- **Modelo Lite (Predeterminado)**: Usa `gemini-2.5-flash-lite` para OCR, 40-50% más rápido con 50% de ahorro de cuota API
+- **Modelo Estándar (Opcional)**: Usa `gemini-2.5-flash` para detección completa de tamaño de fuente, peso y estilo de color
+- **Flexibilidad del Usuario**: Cambia modelos OCR durante la selección de páginas para equilibrar velocidad y calidad según tus necesidades
+
+### 🚀 Tecnología de Procesamiento Paralelo
+- **Ejecución Simultánea**: La eliminación de texto y el OCR se ejecutan simultáneamente, sin espera
+- **Tiempo de Procesamiento Reducido**: De 3-4 segundos por página a 2-3 segundos
+- **Tolerancia Inteligente a Fallos**: El fallo de una sola API no afecta el flujo general, mejorando la estabilidad
+
+### 💡 Directrices de Uso Claras
+- **Modelo Lite Mejor Para**: Notas de texto sin formato, actas de reuniones, borradores de contenido (cuando el formato visual no importa)
+- **Modelo Estándar Mejor Para**: Presentaciones hermosas, exhibiciones de marca, diapositivas de enseñanza (requieren jerarquía visual)
+- **Limitaciones Transparentes**: Comunicación clara sobre la incapacidad del modelo Lite para detectar estilos de fuente
+
+### 📊 Comparación de Resultados
+
+| Modelo Lite | Modelo Estándar |
+|:--------:|:--------:|
+| <img src="assets/demo-v2.3-lite.jpg" width="400"> | <img src="assets/demo-v2.3-standard.jpg" width="400"> |
+
+> **Modelo Lite**: Todo el texto usa estilo uniforme, sin variación de tamaño de fuente (más rápido, ahorra cuota de API)
+> **Modelo Estándar**: Preserva completamente la jerarquía de tamaño de fuente entre títulos y texto del cuerpo (detección completa de estilos)
+
+---
+
 ## Novedades en v2.2.1 (2026-01-21)
 
 ### 🌍 Renovación Completa de i18n

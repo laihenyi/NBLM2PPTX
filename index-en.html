@@ -507,51 +507,78 @@
 <body>
     <div class="container">
         <header>
-            <h1>NotebookLM to PPTX</h1>
+            <h1>NotebookLM to PPTX <span style="color: var(--color-primary); font-size: 0.6em;">[Dual Mode]</span></h1>
             <p class="subtitle">Convert NotebookLM exported PDFs to editable PowerPoint presentations</p>
-            <div class="version-badge">
-                <span class="version-number">v2.2</span>
-                <span>Powered by Gemini 2.5</span>
+            <div class="version-badge" style="background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border-color: #3B82F6; color: #1E40AF;">
+                <span class="version-number" style="font-weight: 600;">v2.3-dual-mode</span>
+                <span style="font-weight: 500;">OCR Dual Mode: Lite (Fast & Quota-Saving) / Standard (Full Styling)</span>
             </div>
 
             <!-- Collapsible Alert Banner -->
             <div class="alert-banner">
                 <div class="alert-banner-header" id="alert-header">
-                    <svg class="icon-warning" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="color: #3B82F6;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                     </svg>
                     <div style="flex: 1;">
-                        <p style="font-weight: 600; color: #D97706; margin: 0;">Important: Free Tier Quota Limits</p>
-                        <p class="text-xs text-muted" style="margin: 0.25rem 0 0 0;">Click for details</p>
+                        <p style="font-weight: 600; color: #3B82F6; margin: 0;">⚡ Dual Mode Version: Choose OCR Model (Lite Fast & Save Quota / Standard Full Styling)</p>
+                        <p class="text-xs text-muted" style="margin: 0.25rem 0 0 0;">Switch OCR model during page selection to balance speed and quality - Click for detailed comparison</p>
                     </div>
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="color: #D97706;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="color: #3B82F6;">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </div>
                 <div class="alert-banner-content" id="alert-content">
-                    <div style="padding-left: 1.75rem; border-left: 3px solid #F59E0B; margin-left: 0.625rem;">
+                    <div style="padding-left: 1.75rem; border-left: 3px solid #3B82F6; margin-left: 0.625rem;">
                         <div class="flex items-start gap-2 mb-3">
                             <svg class="icon-info" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink: 0; margin-top: 0.125rem;">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                             <p class="text-sm text-muted" style="margin: 0;">
-                                <strong style="color: var(--color-text);">Free tier only:</strong> Gemini free API significantly reduced quotas in Dec 2025, now limited to approximately <strong style="color: var(--color-text);">20 requests/day</strong> (down from 250). Each image requires 2 requests, so approximately <strong style="color: var(--color-text);">10 images/day</strong> can be processed.
+                                <strong style="color: var(--color-text);">Version Features:</strong> This version uses the <code style="background: rgba(59,130,246,0.1); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8125rem; color: #3B82F6; font-weight: 600;">gemini-2.5-flash-lite</code> model for OCR text extraction, significantly saving free API quota while maintaining content accuracy.
                             </p>
                         </div>
                         <div class="flex items-start gap-2 mb-3">
-                            <svg class="icon-success" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink: 0; margin-top: 0.125rem;">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            <svg class="icon-info" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink: 0; margin-top: 0.125rem;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            <p class="text-sm" style="color: var(--color-success); margin: 0;">
-                                Paid plans have no such limits, unlimited processing
+                            <p class="text-sm text-muted" style="margin: 0;">
+                                <strong style="color: var(--color-text);">Model Configuration (Parallel Processing):</strong><br>
+                                • Text Removal: <code style="background: rgba(0,0,0,0.08); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8125rem;">gemini-2.5-flash-image</code> (Standard, no lite version available)<br>
+                                • OCR Extraction: <code style="background: rgba(59,130,246,0.1); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8125rem; color: #3B82F6; font-weight: 600;">gemini-2.5-flash-lite</code> (Lite, default)<br>
+                                <span style="color: var(--color-success); font-weight: 500;">⚡ Both run simultaneously, saving processing time</span>
+                            </p>
+                        </div>
+                        <div class="flex items-start gap-2 mb-3">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink: 0; margin-top: 0.125rem; color: #10B981;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                            </svg>
+                            <p class="text-sm" style="margin: 0;">
+                                <strong style="color: #10B981;">✅ Advantages:</strong><br>
+                                • Parallel processing → Speed improvement of approx. 40-50%<br>
+                                • OCR uses lite model → Save approx. 50% API quota<br>
+                                • Text content and position detection remain accurate<br>
+                                <span style="font-size: 0.75rem; color: var(--color-text-light);">⚠️ <strong>Not suitable for presentations requiring visual hierarchy</strong> (title sizes, bold emphasis, color differentiation, etc.)</span>
+                            </p>
+                        </div>
+                        <div class="flex items-start gap-2 mb-3">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink: 0; margin-top: 0.125rem; color: #DC2626;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <p class="text-sm text-muted" style="margin: 0;">
+                                <strong style="color: #DC2626;">⚠️ Confirmed Limitations:</strong> Lite model <strong>cannot detect font styles</strong> (font size, bold, color all missing). Exported PPTX will use uniform text styling, losing the original design's visual hierarchy.<br>
+                                <span style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.25rem; display: inline-block;">✅ Preserved: Text content, position, alignment | ❌ Missing: Font size, weight, color, line height</span>
                             </p>
                         </div>
                         <div class="flex items-start gap-2">
-                            <svg class="icon-danger" width="16" height="16" fill="currentColor" viewBox="0 0 24 24" style="flex-shrink: 0; margin-top: 0.125rem;">
-                                <circle cx="12" cy="12" r="10"/>
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink: 0; margin-top: 0.125rem; color: #3B82F6;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                             </svg>
                             <p class="text-sm text-muted" style="margin: 0;">
-                                <strong style="color: #DC2626;">Known issue:</strong> If your API Key project name contains <code style="background: rgba(0,0,0,0.08); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8125rem;">gen-lang-client</code>, it may be affected by a bug. Please create a new project with a custom name in Google Cloud Console.
+                                <strong style="color: #3B82F6;">📋 Usage Recommendations:</strong><br>
+                                • <strong>Suitable scenarios</strong>: Plain text notes, meeting minutes, content drafts (when visual formatting doesn't matter)<br>
+                                • <strong>Not suitable</strong>: Beautiful presentations, brand showcases, teaching slides (require visual hierarchy)<br>
+                                • <strong>For full styling</strong>: Use standard version <code style="background: rgba(0,0,0,0.08); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8125rem;">index.html</code>
                             </p>
                         </div>
                     </div>
@@ -636,15 +663,50 @@
                             </svg>
                             Deselect All
                         </button>
-                        <button id="process-btn" class="btn btn-cta">
-                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                            </svg>
-                            Start Processing
-                        </button>
                     </div>
                 </div>
                 <div id="selection-grid" class="thumbnail-grid"></div>
+
+                <!-- OCR Model Selection -->
+                <div style="margin-top: 1.5rem; padding: 1.25rem; background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); border: 2px solid #3B82F6; border-radius: 0.75rem;">
+                    <div style="display: flex; align-items: start; gap: 1rem;">
+                        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink: 0; color: #3B82F6; margin-top: 0.125rem;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <div style="flex: 1;">
+                            <label style="display: block; font-weight: 600; font-size: 1rem; color: #1E40AF; margin-bottom: 0.5rem;">
+                                Choose OCR Model
+                            </label>
+                            <div style="display: flex; gap: 1rem; margin-bottom: 0.75rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.75rem 1rem; background: white; border: 2px solid #3B82F6; border-radius: 0.5rem; flex: 1;">
+                                    <input type="radio" name="ocr-model" value="lite" checked style="width: 1.125rem; height: 1.125rem; accent-color: #3B82F6; cursor: pointer;">
+                                    <div>
+                                        <div style="font-weight: 600; color: #1E293B;">⚡ Lite Model (Recommended)</div>
+                                        <div class="text-xs text-muted">Fast, saves quota, but no style detection</div>
+                                    </div>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.75rem 1rem; background: white; border: 2px solid #E2E8F0; border-radius: 0.5rem; flex: 1;">
+                                    <input type="radio" name="ocr-model" value="standard" style="width: 1.125rem; height: 1.125rem; accent-color: #3B82F6; cursor: pointer;">
+                                    <div>
+                                        <div style="font-weight: 600; color: #1E293B;">🎨 Standard Model</div>
+                                        <div class="text-xs text-muted">Full style detection, but slower and consumes more quota</div>
+                                    </div>
+                                </label>
+                            </div>
+                            <div id="ocr-model-info" class="text-xs text-muted" style="padding-left: 0.25rem;">
+                                ⚡ <strong>Lite Model</strong>: Text content and position accurate, but font size, weight, color unified → Suitable for plain text conversion
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="process-btn" class="btn btn-cta" style="width: 100%; margin-top: 1rem; font-size: 1.125rem; padding: 0.875rem 1.5rem;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    Start Processing
+                </button>
             </div>
         </div>
 
@@ -763,13 +825,29 @@
         let apiKey = localStorage.getItem('gemini_api_key') || "";
 
         // Using stable models
-        const MODEL_IMAGE_EDIT = "gemini-2.5-flash-image";
-        const MODEL_TEXT_GEN = "gemini-2.5-flash";
+        // Model configuration (user selectable)
+        const MODEL_IMAGE_EDIT = "gemini-2.5-flash-image";  // Image editing has no lite version
+        let MODEL_TEXT_GEN = "gemini-2.5-flash-lite";       // Default to lite model
 
         // State management
         let pendingItems = [];
         let results = [];
         let rateLimitCount = 0;
+
+        // OCR Model Selection Handler
+        document.querySelectorAll('input[name="ocr-model"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const infoDiv = document.getElementById('ocr-model-info');
+                if (e.target.value === 'lite') {
+                    MODEL_TEXT_GEN = "gemini-2.5-flash-lite";
+                    infoDiv.innerHTML = '⚡ <strong>Lite Model</strong>: Text content and position accurate, but font size, weight, color unified → Suitable for plain text conversion';
+                } else {
+                    MODEL_TEXT_GEN = "gemini-2.5-flash";
+                    infoDiv.innerHTML = '🎨 <strong>Standard Model</strong>: Full detection of font size, bold, color and other styles → Preserves visual hierarchy, suitable for beautiful presentations';
+                }
+                console.log(`OCR model switched to: ${MODEL_TEXT_GEN}`);
+            });
+        });
 
         // Alert Banner Toggle
         document.getElementById('alert-header').addEventListener('click', function() {
@@ -995,30 +1073,62 @@
                 progressDetail.textContent = `Currently processing: ${item.name}`;
 
                 try {
-                    // Remove text
+                    // Parallel processing: run text removal and OCR simultaneously (saves time and avoids duplicate API calls)
+                    progressDetail.textContent = "AI is removing text and recognizing content (parallel processing)...";
+
                     let cleaned = null;
-                    let cleanedError = null;
-                    try {
-                        cleaned = await removeTextWithGemini(item.fullImage);
-                    } catch (e) {
-                        console.error("Text removal failed:", e);
-                        cleanedError = e;
-                    }
-
-                    // OCR - always run to get text position and style
-                    await wait(500);
-                    progressDetail.textContent = "AI is recognizing text content...";
-
                     let ocrBlocks = [];
-                    try {
-                        ocrBlocks = await ocrWithGemini(item.fullImage);
-                        console.log(`OCR successful: found ${ocrBlocks.length} text blocks`);
-                    } catch (e) {
-                        console.warn("OCR failed, text layer will be skipped during export:", e);
+                    let cleanedError = null;
+                    let ocrError = null;
+
+                    // Use Promise.allSettled to run both API calls in parallel
+                    const [cleanedResult, ocrResult] = await Promise.allSettled([
+                        removeTextWithGemini(item.fullImage),
+                        ocrWithGemini(item.fullImage)
+                    ]);
+
+                    // Handle text removal result
+                    if (cleanedResult.status === 'fulfilled') {
+                        cleaned = cleanedResult.value;
+                    } else {
+                        console.error("Text removal failed:", cleanedResult.reason);
+                        cleanedError = cleanedResult.reason;
                     }
 
-                    if (cleanedError && !cleaned) {
-                        throw cleanedError;
+                    // Handle OCR result
+                    if (ocrResult.status === 'fulfilled') {
+                        ocrBlocks = ocrResult.value || [];
+                        console.log(`OCR successful: found ${ocrBlocks.length} text blocks`);
+
+                        // DEBUG: Display style detection details
+                        if (ocrBlocks.length > 0) {
+                            const modelLabel = MODEL_TEXT_GEN.includes('lite') ? 'Lite Model' : 'Standard Model';
+                            console.group(`📊 [${modelLabel}] Style Detection Details - ${item.name}`);
+                            const fontSizes = new Set(ocrBlocks.map(b => b.font_size_pt));
+                            const fontWeights = new Set(ocrBlocks.map(b => b.font_weight));
+                            const colors = new Set(ocrBlocks.map(b => b.color));
+                            console.log('Font size types:', Array.from(fontSizes).sort((a,b) => a-b));
+                            console.log('Font weight types:', Array.from(fontWeights));
+                            console.log('Color types:', Array.from(colors));
+                            console.log('First 3 text block samples:');
+                            ocrBlocks.slice(0, 3).forEach((block, i) => {
+                                console.log(`  [${i+1}] "${block.text.substring(0, 30)}..."`, {
+                                    fontSize: block.font_size_pt,
+                                    weight: block.font_weight,
+                                    style: block.font_style,
+                                    color: block.color
+                                });
+                            });
+                            console.groupEnd();
+                        }
+                    } else {
+                        console.warn("OCR failed, text layer will be skipped during export:", ocrResult.reason);
+                        ocrError = ocrResult.reason;
+                    }
+
+                    // Continue if text removal failed but OCR succeeded (can use original image + text layer)
+                    if (cleanedError && !cleaned && !ocrBlocks.length) {
+                        throw cleanedError; // Only throw error if both failed
                     }
 
                     results.push({

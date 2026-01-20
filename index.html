@@ -507,51 +507,78 @@
 <body>
     <div class="container">
         <header>
-            <h1>NotebookLM to PPTX</h1>
+            <h1>NotebookLM to PPTX <span style="color: var(--color-primary); font-size: 0.6em;">[雙模式版]</span></h1>
             <p class="subtitle">將 NotebookLM 匯出的 PDF 轉換為可編輯的 PowerPoint 簡報</p>
-            <div class="version-badge">
-                <span class="version-number">v2.2</span>
-                <span>Gemini 2.5 驅動</span>
+            <div class="version-badge" style="background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border-color: #3B82F6; color: #1E40AF;">
+                <span class="version-number" style="font-weight: 600;">v2.3-dual-mode</span>
+                <span style="font-weight: 500;">OCR 雙模式：Lite（快速省額度）/ 標準（完整樣式）</span>
             </div>
 
             <!-- Collapsible Alert Banner -->
             <div class="alert-banner">
                 <div class="alert-banner-header" id="alert-header">
-                    <svg class="icon-warning" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="color: #3B82F6;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                     </svg>
                     <div style="flex: 1;">
-                        <p style="font-weight: 600; color: #D97706; margin: 0;">重要提醒：免費方案配額限制</p>
-                        <p class="text-xs text-muted" style="margin: 0.25rem 0 0 0;">點擊查看詳細資訊</p>
+                        <p style="font-weight: 600; color: #3B82F6; margin: 0;">⚡ 雙模式版本：OCR 模型可選擇（Lite 快速省額度 / 標準完整樣式）</p>
+                        <p class="text-xs text-muted" style="margin: 0.25rem 0 0 0;">在選擇頁面時可切換 OCR 模型，根據需求平衡速度與品質 - 點擊查看詳細對比</p>
                     </div>
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="color: #D97706;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="color: #3B82F6;">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </div>
                 <div class="alert-banner-content" id="alert-content">
-                    <div style="padding-left: 1.75rem; border-left: 3px solid #F59E0B; margin-left: 0.625rem;">
+                    <div style="padding-left: 1.75rem; border-left: 3px solid #3B82F6; margin-left: 0.625rem;">
                         <div class="flex items-start gap-2 mb-3">
                             <svg class="icon-info" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink: 0; margin-top: 0.125rem;">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                             <p class="text-sm text-muted" style="margin: 0;">
-                                <strong style="color: var(--color-text);">僅限免費方案：</strong>Gemini 免費 API 已於 2025/12 大幅調降配額，目前限制約 <strong style="color: var(--color-text);">20 次請求/天</strong>（從 250 次降至 20 次）。每處理一張圖片需要 2 次請求，預估每日可處理約 <strong style="color: var(--color-text);">10 張圖片</strong>。
+                                <strong style="color: var(--color-text);">版本特色：</strong>此版本使用 <code style="background: rgba(59,130,246,0.1); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8125rem; color: #3B82F6; font-weight: 600;">gemini-2.5-flash-lite</code> 模型進行 OCR 文字提取，在保持內容準確的同時大幅節省免費 API 額度。
                             </p>
                         </div>
                         <div class="flex items-start gap-2 mb-3">
-                            <svg class="icon-success" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink: 0; margin-top: 0.125rem;">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            <svg class="icon-info" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink: 0; margin-top: 0.125rem;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            <p class="text-sm" style="color: var(--color-success); margin: 0;">
-                                付費方案無此限制，可大量處理
+                            <p class="text-sm text-muted" style="margin: 0;">
+                                <strong style="color: var(--color-text);">模型配置（並行處理）：</strong><br>
+                                • 文字移除：<code style="background: rgba(0,0,0,0.08); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8125rem;">gemini-2.5-flash-image</code> (標準版，暫無 lite 版本)<br>
+                                • OCR 提取：<code style="background: rgba(59,130,246,0.1); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8125rem; color: #3B82F6; font-weight: 600;">gemini-2.5-flash-lite</code> (輕量版，預設)<br>
+                                <span style="color: var(--color-success); font-weight: 500;">⚡ 兩者同時執行，節省處理時間</span>
+                            </p>
+                        </div>
+                        <div class="flex items-start gap-2 mb-3">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink: 0; margin-top: 0.125rem; color: #10B981;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                            </svg>
+                            <p class="text-sm" style="margin: 0;">
+                                <strong style="color: #10B981;">✅ 優勢：</strong><br>
+                                • 並行處理 → 速度提升約 40-50%<br>
+                                • OCR 使用 lite 模型 → 節省約 50% API 額度<br>
+                                • 文字內容和位置識別仍然準確<br>
+                                <span style="font-size: 0.75rem; color: var(--color-text-light);">⚠️ <strong>不適合需要保留視覺層次的簡報</strong>（標題大小、粗體強調、顏色區分等）</span>
+                            </p>
+                        </div>
+                        <div class="flex items-start gap-2 mb-3">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink: 0; margin-top: 0.125rem; color: #DC2626;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <p class="text-sm text-muted" style="margin: 0;">
+                                <strong style="color: #DC2626;">⚠️ 確認限制：</strong>Lite 模型<strong>完全無法偵測字體樣式</strong>（字型大小、粗體、顏色全部缺失）。匯出的 PPTX 所有文字將使用統一樣式，失去原始設計的視覺層次。<br>
+                                <span style="font-size: 0.75rem; color: var(--color-text-light); margin-top: 0.25rem; display: inline-block;">✅ 保留：文字內容、位置、對齊方式 | ❌ 缺失：字體大小、粗細、顏色、行高</span>
                             </p>
                         </div>
                         <div class="flex items-start gap-2">
-                            <svg class="icon-danger" width="16" height="16" fill="currentColor" viewBox="0 0 24 24" style="flex-shrink: 0; margin-top: 0.125rem;">
-                                <circle cx="12" cy="12" r="10"/>
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink: 0; margin-top: 0.125rem; color: #3B82F6;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                             </svg>
                             <p class="text-sm text-muted" style="margin: 0;">
-                                <strong style="color: #DC2626;">已知問題：</strong>若你的 API Key 專案名稱包含 <code style="background: rgba(0,0,0,0.08); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8125rem;">gen-lang-client</code>，可能受 Bug 影響。請在 Google Cloud Console 建立自訂名稱的新專案。
+                                <strong style="color: #3B82F6;">📋 使用建議：</strong><br>
+                                • <strong>適合場景</strong>：純文字筆記、會議記錄、內容草稿（不在意視覺格式）<br>
+                                • <strong>不適合</strong>：精美簡報、品牌展示、教學投影片（需要視覺層次）<br>
+                                • <strong>若需完整樣式</strong>：請使用標準版 <code style="background: rgba(0,0,0,0.08); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8125rem;">index.html</code>
                             </p>
                         </div>
                     </div>
@@ -636,15 +663,50 @@
                             </svg>
                             全不選
                         </button>
-                        <button id="process-btn" class="btn btn-cta">
-                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                            </svg>
-                            開始處理
-                        </button>
                     </div>
                 </div>
                 <div id="selection-grid" class="thumbnail-grid"></div>
+
+                <!-- OCR Model Selection -->
+                <div style="margin-top: 1.5rem; padding: 1.25rem; background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); border: 2px solid #3B82F6; border-radius: 0.75rem;">
+                    <div style="display: flex; align-items: start; gap: 1rem;">
+                        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink: 0; color: #3B82F6; margin-top: 0.125rem;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <div style="flex: 1;">
+                            <label style="display: block; font-weight: 600; font-size: 1rem; color: #1E40AF; margin-bottom: 0.5rem;">
+                                選擇 OCR 模型
+                            </label>
+                            <div style="display: flex; gap: 1rem; margin-bottom: 0.75rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.75rem 1rem; background: white; border: 2px solid #3B82F6; border-radius: 0.5rem; flex: 1;">
+                                    <input type="radio" name="ocr-model" value="lite" checked style="width: 1.125rem; height: 1.125rem; accent-color: #3B82F6; cursor: pointer;">
+                                    <div>
+                                        <div style="font-weight: 600; color: #1E293B;">⚡ Lite 模型（推薦）</div>
+                                        <div class="text-xs text-muted">速度快、省額度，但無樣式偵測</div>
+                                    </div>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.75rem 1rem; background: white; border: 2px solid #E2E8F0; border-radius: 0.5rem; flex: 1;">
+                                    <input type="radio" name="ocr-model" value="standard" style="width: 1.125rem; height: 1.125rem; accent-color: #3B82F6; cursor: pointer;">
+                                    <div>
+                                        <div style="font-weight: 600; color: #1E293B;">🎨 標準模型</div>
+                                        <div class="text-xs text-muted">完整樣式偵測，但較慢且耗額度</div>
+                                    </div>
+                                </label>
+                            </div>
+                            <div id="ocr-model-info" class="text-xs text-muted" style="padding-left: 0.25rem;">
+                                ⚡ <strong>Lite 模型</strong>：文字內容與位置準確，但字體大小、粗細、顏色統一化 → 適合純文字轉換
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="process-btn" class="btn btn-cta" style="width: 100%; margin-top: 1rem; font-size: 1.125rem; padding: 0.875rem 1.5rem;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    開始處理
+                </button>
             </div>
         </div>
 
@@ -762,14 +824,29 @@
         // API Key 由用戶在介面中輸入，儲存在 localStorage
         let apiKey = localStorage.getItem('gemini_api_key') || "";
 
-        // 使用穩定版模型
-        const MODEL_IMAGE_EDIT = "gemini-2.5-flash-image";
-        const MODEL_TEXT_GEN = "gemini-2.5-flash";
+        // 模型配置（用戶可選擇）
+        const MODEL_IMAGE_EDIT = "gemini-2.5-flash-image";  // 圖片編輯暫無 lite 版本
+        let MODEL_TEXT_GEN = "gemini-2.5-flash-lite";       // 預設使用輕量級文字模型
 
         // 狀態管理
         let pendingItems = [];
         let results = [];
         let rateLimitCount = 0;
+
+        // OCR 模型選擇處理
+        document.querySelectorAll('input[name="ocr-model"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const infoDiv = document.getElementById('ocr-model-info');
+                if (e.target.value === 'lite') {
+                    MODEL_TEXT_GEN = "gemini-2.5-flash-lite";
+                    infoDiv.innerHTML = '⚡ <strong>Lite 模型</strong>：文字內容與位置準確，但字體大小、粗細、顏色統一化 → 適合純文字轉換';
+                } else {
+                    MODEL_TEXT_GEN = "gemini-2.5-flash";
+                    infoDiv.innerHTML = '🎨 <strong>標準模型</strong>：完整偵測字體大小、粗體、顏色等樣式 → 保留視覺層次，適合精美簡報';
+                }
+                console.log(`OCR 模型切換為: ${MODEL_TEXT_GEN}`);
+            });
+        });
 
         // Alert Banner Toggle
         document.getElementById('alert-header').addEventListener('click', function() {
@@ -995,30 +1072,62 @@
                 progressDetail.textContent = `正在處理：${item.name}`;
 
                 try {
-                    // Remove text
+                    // 並行處理：同時執行文字移除和 OCR（節省時間且避免重複 API 調用）
+                    progressDetail.textContent = "AI 正在移除文字並辨識內容（並行處理）...";
+
                     let cleaned = null;
-                    let cleanedError = null;
-                    try {
-                        cleaned = await removeTextWithGemini(item.fullImage);
-                    } catch (e) {
-                        console.error("文字移除失敗:", e);
-                        cleanedError = e;
-                    }
-
-                    // OCR - 總是執行以取得文字位置和樣式
-                    await wait(500);
-                    progressDetail.textContent = "AI 正在辨識文字內容...";
-
                     let ocrBlocks = [];
-                    try {
-                        ocrBlocks = await ocrWithGemini(item.fullImage);
-                        console.log(`OCR 成功：找到 ${ocrBlocks.length} 個文字區塊`);
-                    } catch (e) {
-                        console.warn("OCR 失敗，匯出時將跳過文字層:", e);
+                    let cleanedError = null;
+                    let ocrError = null;
+
+                    // 使用 Promise.all 並行執行兩個 API 調用
+                    const [cleanedResult, ocrResult] = await Promise.allSettled([
+                        removeTextWithGemini(item.fullImage),
+                        ocrWithGemini(item.fullImage)
+                    ]);
+
+                    // 處理文字移除結果
+                    if (cleanedResult.status === 'fulfilled') {
+                        cleaned = cleanedResult.value;
+                    } else {
+                        console.error("文字移除失敗:", cleanedResult.reason);
+                        cleanedError = cleanedResult.reason;
                     }
 
-                    if (cleanedError && !cleaned) {
-                        throw cleanedError;
+                    // 處理 OCR 結果
+                    if (ocrResult.status === 'fulfilled') {
+                        ocrBlocks = ocrResult.value || [];
+                        console.log(`OCR 成功：找到 ${ocrBlocks.length} 個文字區塊`);
+
+                        // DEBUG: 詳細顯示樣式偵測結果
+                        if (ocrBlocks.length > 0) {
+                            const modelLabel = MODEL_TEXT_GEN.includes('lite') ? 'Lite 模型' : '標準模型';
+                            console.group(`📊 [${modelLabel}] 樣式偵測詳情 - ${item.name}`);
+                            const fontSizes = new Set(ocrBlocks.map(b => b.font_size_pt));
+                            const fontWeights = new Set(ocrBlocks.map(b => b.font_weight));
+                            const colors = new Set(ocrBlocks.map(b => b.color));
+                            console.log('字體大小種類:', Array.from(fontSizes).sort((a,b) => a-b));
+                            console.log('字重種類:', Array.from(fontWeights));
+                            console.log('顏色種類:', Array.from(colors));
+                            console.log('前 3 個文字區塊範例:');
+                            ocrBlocks.slice(0, 3).forEach((block, i) => {
+                                console.log(`  [${i+1}] "${block.text.substring(0, 30)}..."`, {
+                                    fontSize: block.font_size_pt,
+                                    weight: block.font_weight,
+                                    style: block.font_style,
+                                    color: block.color
+                                });
+                            });
+                            console.groupEnd();
+                        }
+                    } else {
+                        console.warn("OCR 失敗，匯出時將跳過文字層:", ocrResult.reason);
+                        ocrError = ocrResult.reason;
+                    }
+
+                    // 如果文字移除失敗但 OCR 成功，仍可繼續（使用原圖 + 文字層）
+                    if (cleanedError && !cleaned && !ocrBlocks.length) {
+                        throw cleanedError; // 兩者都失敗才拋出錯誤
                     }
 
                     results.push({

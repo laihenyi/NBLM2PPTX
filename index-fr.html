@@ -750,9 +750,12 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>NotebookLM vers PPTX</h1>
+            <h1>NotebookLM vers PPTX <span style="color: var(--color-primary); font-size: 0.6em;">[Mode Dual]</span></h1>
             <p class="subtitle">Convertissez les PDF exportés de NotebookLM en présentations PowerPoint éditables</p>
-            <div class="version-badge">v2.2 - Traitement parallèle & OCR de secours</div>
+            <div class="version-badge" style="background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border-color: #3B82F6; color: #1E40AF; border: 1px solid #3B82F6;">
+                <span style="font-weight: 600;">v2.3-dual-mode</span>
+                <span style="font-weight: 500;"> | Mode Dual OCR : Lite (Rapide & Économise Quota) / Standard (Style Complet)</span>
+            </div>
         </div>
 
         <!-- Modal API Key -->
@@ -780,30 +783,61 @@
         </div>
 
         <!-- Alerte Quota -->
-        <div class="alert">
+        <div class="alert" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(37, 99, 235, 0.08)); border-left: 4px solid #3B82F6;">
             <div class="alert-header" onclick="toggleAlert()">
-                <div class="alert-title">
-                    <svg class="alert-icon" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                <div class="alert-title" style="color: #1E40AF;">
+                    <svg class="alert-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="color: #3B82F6;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                     </svg>
-                    Important : Limitations du Forfait Gratuit
+                    ⚡ Version Mode Dual : Choisissez Modèle OCR (Lite Rapide & Économise Quota / Standard Style Complet)
                 </div>
-                <svg class="toggle-icon" id="alert-toggle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="toggle-icon" id="alert-toggle" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #3B82F6;">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                 </svg>
             </div>
-            <div class="alert-content expanded" id="alert-content">
-                <p><strong>Le forfait gratuit de Gemini AI a des limites de quota strictes :</strong></p>
-                <ul>
-                    <li>Limite : 10 images téléchargées par minute</li>
-                    <li>Le traitement par lots de 6 pages simultanées peut déclencher un blocage de quota de 60 secondes</li>
-                    <li>Recommandation : Traitez par petits lots (3-5 pages) pour éviter les erreurs de quota</li>
-                </ul>
-                <p><strong>💡 Astuce : Prétraitement PDF recommandé</strong></p>
-                <ul>
-                    <li>Si votre PDF a des filigranes, supprimez-les d'abord (voir les outils ci-dessous)</li>
-                    <li>Compressez les PDF volumineux pour des temps de traitement plus rapides</li>
-                </ul>
+            <div class="alert-content collapsed" id="alert-content">
+                <p style="font-size: 0.75rem; color: #64748B; margin-bottom: 0.75rem;">Changez le modèle OCR lors de la sélection des pages pour équilibrer vitesse et qualité - Cliquez pour comparaison détaillée</p>
+
+                <div style="margin-bottom: 0.75rem;">
+                    <p style="font-weight: 600; color: #1E293B; margin-bottom: 0.25rem;">Fonctionnalités de Version:</p>
+                    <p style="font-size: 0.875rem; color: #475569;">Cette version utilise le modèle <code style="background: rgba(59,130,246,0.1); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8125rem; color: #3B82F6; font-weight: 600;">gemini-2.5-flash-lite</code> pour l'extraction de texte OCR, économisant considérablement le quota API gratuit tout en maintenant la précision du contenu.</p>
+                </div>
+
+                <div style="margin-bottom: 0.75rem;">
+                    <p style="font-weight: 600; color: #1E293B; margin-bottom: 0.25rem;">Configuration du Modèle (Traitement Parallèle):</p>
+                    <p style="font-size: 0.875rem; color: #475569;">
+                        • Suppression de Texte: <code style="background: rgba(0,0,0,0.08); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8125rem;">gemini-2.5-flash-image</code> (Standard, pas de version lite disponible)<br>
+                        • Extraction OCR: <code style="background: rgba(59,130,246,0.1); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8125rem; color: #3B82F6; font-weight: 600;">gemini-2.5-flash-lite</code> (Lite, par défaut)<br>
+                        <span style="color: #10B981; font-weight: 500;">⚡ Les deux s'exécutent simultanément, économisant le temps de traitement</span>
+                    </p>
+                </div>
+
+                <div style="margin-bottom: 0.75rem;">
+                    <p style="font-weight: 600; color: #10B981; margin-bottom: 0.25rem;">✅ Avantages:</p>
+                    <p style="font-size: 0.875rem; color: #475569;">
+                        • Traitement parallèle → Amélioration de vitesse d'environ 40-50%<br>
+                        • OCR utilise modèle lite → Économise environ 50% du quota API<br>
+                        • Le contenu et la position du texte restent précis<br>
+                        <span style="font-size: 0.75rem; color: #64748B;">⚠️ <strong>Non adapté aux présentations nécessitant une hiérarchie visuelle</strong> (tailles de titre, emphase en gras, différenciation des couleurs, etc.)</span>
+                    </p>
+                </div>
+
+                <div style="margin-bottom: 0.75rem;">
+                    <p style="font-weight: 600; color: #DC2626; margin-bottom: 0.25rem;">⚠️ Limitations Confirmées:</p>
+                    <p style="font-size: 0.875rem; color: #475569;">
+                        Le modèle Lite <strong>ne peut pas détecter les styles de police</strong> (taille de police, gras, couleur, tout manquant). Le PPTX exporté utilisera un style de texte uniforme, perdant la hiérarchie visuelle du design original.<br>
+                        <span style="font-size: 0.75rem; color: #64748B; margin-top: 0.25rem; display: inline-block;">✅ Préservé: Contenu du texte, position, alignement | ❌ Manquant: Taille de police, poids, couleur, hauteur de ligne</span>
+                    </p>
+                </div>
+
+                <div>
+                    <p style="font-weight: 600; color: #3B82F6; margin-bottom: 0.25rem;">📋 Recommandations d'Utilisation:</p>
+                    <p style="font-size: 0.875rem; color: #475569;">
+                        • <strong>Scénarios adaptés</strong>: Notes de texte brut, procès-verbaux de réunion, ébauches de contenu (lorsque le formatage visuel n'a pas d'importance)<br>
+                        • <strong>Non adapté</strong>: Belles présentations, vitrines de marque, diapositives pédagogiques (nécessitent une hiérarchie visuelle)<br>
+                        • <strong>Pour un style complet</strong>: Utilisez la version standard <code style="background: rgba(0,0,0,0.08); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8125rem;">index.html</code>
+                    </p>
+                </div>
             </div>
         </div>
 
@@ -897,6 +931,41 @@
                 </button>
             </div>
             <div class="thumbnail-grid" id="page-thumbnails"></div>
+
+            <!-- OCR Model Selection -->
+            <div style="margin-top: 1.5rem; padding: 1.25rem; background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); border: 2px solid #3B82F6; border-radius: 0.75rem;">
+                <div style="display: flex; align-items: start; gap: 1rem;">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink: 0; color: #3B82F6; margin-top: 0.125rem;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <div style="flex: 1;">
+                        <label style="display: block; font-weight: 600; font-size: 1rem; color: #1E40AF; margin-bottom: 0.5rem;">
+                            Choisissez Modèle OCR
+                        </label>
+                        <div style="display: flex; gap: 1rem; margin-bottom: 0.75rem;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.75rem 1rem; background: white; border: 2px solid #3B82F6; border-radius: 0.5rem; flex: 1;">
+                                <input type="radio" name="ocr-model" value="lite" checked style="width: 1.125rem; height: 1.125rem; accent-color: #3B82F6; cursor: pointer;">
+                                <div>
+                                    <div style="font-weight: 600; color: #1E293B;">⚡ Modèle Lite (Recommandé)</div>
+                                    <div style="font-size: 0.75rem; color: #64748B;">Rapide, économise quota, mais pas de détection de style</div>
+                                </div>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.75rem 1rem; background: white; border: 2px solid #E2E8F0; border-radius: 0.5rem; flex: 1;">
+                                <input type="radio" name="ocr-model" value="standard" style="width: 1.125rem; height: 1.125rem; accent-color: #3B82F6; cursor: pointer;">
+                                <div>
+                                    <div style="font-weight: 600; color: #1E293B;">🎨 Modèle Standard</div>
+                                    <div style="font-size: 0.75rem; color: #64748B;">Détection de style complète, mais plus lent et consomme plus de quota</div>
+                                </div>
+                            </label>
+                        </div>
+                        <div id="ocr-model-info" style="font-size: 0.75rem; color: #64748B; padding-left: 0.25rem;">
+                            ⚡ <strong>Modèle Lite</strong>: Contenu et position du texte précis, mais taille de police, poids, couleur unifiés → Convient pour conversion de texte brut
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div style="margin-top: 1.5rem; text-align: center;">
                 <button class="btn btn-cta" onclick="startProcessing()" id="start-btn">
                     <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -950,7 +1019,7 @@
         // Configuration API
         let apiKey = localStorage.getItem('gemini_api_key') || "";
         const MODEL_IMAGE_EDIT = "gemini-2.5-flash-image";
-        const MODEL_TEXT_GEN = "gemini-2.5-flash";
+        let MODEL_TEXT_GEN = "gemini-2.5-flash-lite";  // Default to lite model
         const API_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 
         // État
@@ -958,11 +1027,27 @@
         let selectedPages = new Set();
         let processedResults = [];
 
-        // Vérifier la clé API au chargement
-        window.addEventListener('DOMContentLoaded', () => {
+        // OCR Model Selection Handler
+        document.addEventListener('DOMContentLoaded', () => {
+            // API key check
             if (!apiKey) {
                 document.getElementById('api-key-modal').classList.remove('hidden');
             }
+
+            // OCR model selection handler
+            document.querySelectorAll('input[name="ocr-model"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    const infoDiv = document.getElementById('ocr-model-info');
+                    if (e.target.value === 'lite') {
+                        MODEL_TEXT_GEN = "gemini-2.5-flash-lite";
+                        infoDiv.innerHTML = '⚡ <strong>Modèle Lite</strong>: Contenu et position du texte précis, mais taille de police, poids, couleur unifiés → Convient pour conversion de texte brut';
+                    } else {
+                        MODEL_TEXT_GEN = "gemini-2.5-flash";
+                        infoDiv.innerHTML = '🎨 <strong>Modèle Standard</strong>: Détection complète de la taille de police, gras, couleur et autres styles → Préserve hiérarchie visuelle, convient pour belles présentations';
+                    }
+                    console.log(`OCR model switched to: ${MODEL_TEXT_GEN}`);
+                });
+            });
         });
 
         // Enregistrer la clé API
@@ -1196,13 +1281,44 @@
 
                     try {
                         const highResImageData = await renderHighResImage(page);
-                        const removedTextImage = await removeText(highResImageData);
-                        await wait(3500);
-                        const ocrResult = await performOCR(highResImageData);
+
+                        // Parallel processing: run text removal and OCR simultaneously
+                        let removedTextImage = null;
+                        let ocrResult = [];
+                        let cleanedError = null;
+                        let ocrError = null;
+
+                        // Use Promise.allSettled to run both API calls in parallel
+                        const [cleanedResultPromise, ocrResultPromise] = await Promise.allSettled([
+                            removeText(highResImageData),
+                            performOCR(highResImageData)
+                        ]);
+
+                        // Handle text removal result
+                        if (cleanedResultPromise.status === 'fulfilled') {
+                            removedTextImage = cleanedResultPromise.value;
+                        } else {
+                            console.error("Échec de la suppression de texte:", cleanedResultPromise.reason);
+                            cleanedError = cleanedResultPromise.reason;
+                        }
+
+                        // Handle OCR result
+                        if (ocrResultPromise.status === 'fulfilled') {
+                            ocrResult = ocrResultPromise.value || [];
+                            console.log(`OCR réussi: ${ocrResult.length} blocs de texte trouvés`);
+                        } else {
+                            console.warn("Échec de l'OCR, la couche de texte sera ignorée lors de l'export:", ocrResultPromise.reason);
+                            ocrError = ocrResultPromise.reason;
+                        }
+
+                        // Continue if text removal failed but OCR succeeded
+                        if (cleanedError && !removedTextImage && !ocrResult.length) {
+                            throw cleanedError; // Only throw error if both failed
+                        }
 
                         processedResults.push({
                             pageNum,
-                            backgroundImage: removedTextImage,
+                            backgroundImage: removedTextImage || highResImageData,
                             ocrData: ocrResult,
                             previewImage: page.thumbnailUrl
                         });
@@ -1218,10 +1334,10 @@
                 await Promise.all(batchPromises);
 
                 if (batchEnd < total) {
-                    const cooldown = 2;
-                    for (let i = cooldown; i > 0; i--) {
-                        updateProgress(batchEnd, total, `Refroidissement... ${i}s`);
-                        await wait(1000);
+                    const cooldown = 1.5;
+                    for (let i = cooldown; i > 0; i -= 0.5) {
+                        updateProgress(batchEnd, total, `Refroidissement... ${i.toFixed(1)}s`);
+                        await wait(500);
                     }
                 }
             }

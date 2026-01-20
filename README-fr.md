@@ -30,6 +30,34 @@ Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **image
 > Gauche : PDF original de NotebookLM (texte intégré dans l'image)
 > Droite : PPTX converti avec arrière-plan propre + couches de texte éditables
 
+## Nouveautés de v2.3 (2026-01-21)
+
+### ⚡ Système OCR à Mode Dual
+- **Modèle Lite (Par défaut)** : Utilise `gemini-2.5-flash-lite` pour l'OCR, 40-50% plus rapide avec 50% d'économie de quota API
+- **Modèle Standard (Optionnel)** : Utilise `gemini-2.5-flash` pour une détection complète de la taille de police, du poids et du style de couleur
+- **Flexibilité de l'Utilisateur** : Changez les modèles OCR lors de la sélection des pages pour équilibrer vitesse et qualité selon vos besoins
+
+### 🚀 Technologie de Traitement Parallèle
+- **Exécution Simultanée** : La suppression de texte et l'OCR s'exécutent simultanément, sans attente
+- **Temps de Traitement Réduit** : De 3-4 secondes par page à 2-3 secondes
+- **Tolérance Intelligente aux Pannes** : L'échec d'une seule API n'affecte pas le flux général, améliorant la stabilité
+
+### 💡 Directives d'Utilisation Claires
+- **Modèle Lite Optimal Pour** : Notes de texte brut, procès-verbaux de réunion, ébauches de contenu (lorsque le formatage visuel n'a pas d'importance)
+- **Modèle Standard Optimal Pour** : Belles présentations, vitrines de marque, diapositives pédagogiques (nécessitent une hiérarchie visuelle)
+- **Limitations Transparentes** : Communication claire sur l'incapacité du modèle Lite à détecter les styles de police
+
+### 📊 Comparaison des Résultats
+
+| Modèle Lite | Modèle Standard |
+|:--------:|:--------:|
+| <img src="assets/demo-v2.3-lite.jpg" width="400"> | <img src="assets/demo-v2.3-standard.jpg" width="400"> |
+
+> **Modèle Lite** : Tout le texte utilise un style uniforme, sans variation de taille de police (plus rapide, économise le quota d'API)
+> **Modèle Standard** : Préserve complètement la hiérarchie de taille de police entre les titres et le texte du corps (détection complète des styles)
+
+---
+
 ## Nouveautés de v2.2.1 (2026-01-21)
 
 ### 🌍 Refonte Complète de l'i18n

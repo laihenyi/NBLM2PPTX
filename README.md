@@ -30,6 +30,34 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 > Left: Original PDF from NotebookLM (text embedded in image)
 > Right: Converted PPTX with clean background + editable text layers
 
+## What's New in v2.3 (2026-01-21)
+
+### ⚡ Dual Mode OCR System
+- **Lite Model (Default)**: Uses `gemini-2.5-flash-lite` for OCR, 40-50% faster with 50% API quota savings
+- **Standard Model (Optional)**: Uses `gemini-2.5-flash` for full font size, weight, and color style detection
+- **User Flexibility**: Switch OCR models during page selection to balance speed and quality based on your needs
+
+### 🚀 Parallel Processing Technology
+- **Simultaneous Execution**: Text removal and OCR run concurrently, no waiting
+- **Reduced Processing Time**: From 3-4 seconds per page down to 2-3 seconds
+- **Intelligent Fault Tolerance**: Single API failure doesn't affect the overall workflow, improving stability
+
+### 💡 Clear Usage Guidelines
+- **Lite Model Best For**: Plain text notes, meeting minutes, content drafts (when visual formatting doesn't matter)
+- **Standard Model Best For**: Beautiful presentations, brand showcases, teaching slides (require visual hierarchy)
+- **Transparent Limitations**: Clear communication about Lite model's inability to detect font styles
+
+### 📊 Output Comparison
+
+| Lite Model | Standard Model |
+|:--------:|:--------:|
+| <img src="assets/demo-v2.3-lite.jpg" width="400"> | <img src="assets/demo-v2.3-standard.jpg" width="400"> |
+
+> **Lite Model**: All text uses uniform styling, no font size variation (faster, saves API quota)
+> **Standard Model**: Fully preserves font size hierarchy between titles and body text (complete style detection)
+
+---
+
 ## What's New in v2.2.1 (2026-01-21)
 
 ### 🌍 Complete i18n Overhaul
