@@ -7,7 +7,7 @@
 
 Convierte PDFs exportados de NotebookLM en presentaciones PPTX con **imágenes de fondo y capas de texto editables separadas**.
 
-> ✨ **Actualización (2026-01-20)**: Lanzamiento v2.2 - ¡Reinicio suave con persistencia de API Key! Además de optimización de velocidad y corrección de errores IMAGE_RECITATION.
+> ✨ **Actualización (2026-01-21)**: Lanzamiento v2.2.1 - ¡Renovación completa de i18n! Todas las versiones de idioma ahora cuentan con diseño de tema claro profesional con UX mejorada y documentación estandarizada.
 
 [English](README.md) | [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Français](README-fr.md)
 
@@ -29,6 +29,29 @@ Convierte PDFs exportados de NotebookLM en presentaciones PPTX con **imágenes d
 
 > Izquierda: PDF original de NotebookLM (texto incrustado en imagen)
 > Derecha: PPTX convertido con fondo limpio + capas de texto editables
+
+## Novedades en v2.2.1 (2026-01-21)
+
+### 🌍 Renovación Completa de i18n
+- **Diseño Profesional en Todos los Idiomas**: Rediseño completo de todas las versiones de idioma (inglés, español, japonés, francés, chino simplificado) desde tema oscuro a tema claro moderno
+- **Sistema de Fuentes Unificado**: Migración a Poppins (encabezados) + Open Sans (cuerpo) con fuentes de respaldo específicas del idioma (Noto Sans JP, Noto Sans SC, etc.)
+- **Esquema de Color Azul Profesional**: Implementación de color primario #3B82F6 consistente en todas las versiones para confianza y profesionalismo
+- **Modal de API Key Mejorado**: Almacenamiento de API Key basado en navegador con integración de localStorage elimina la necesidad de editar código
+- **Elementos UI Plegables**: Banner de alerta y sección de herramientas plegables para interfaz más limpia
+
+### 📚 Documentación Estandarizada
+- **READMEs Completos**: Todos los archivos README de idiomas ahora siguen estructura completa de 204 líneas
+- **Guía de Inicio Rápido**: Instrucciones de inicio rápido de 3 pasos añadidas para mejor incorporación
+- **Detalles de Cuota API Gratuita**: Documentación clara del nivel gratuito de Google Gemini (15 RPM, 1500 RPD, sin tarjeta de crédito)
+- **Sección FAQ Completa**: 5 pares de preguntas y respuestas cubriendo preguntas comunes sobre claves API, seguridad, fallos, compartir y uso sin conexión
+
+### 🎨 Actualizaciones del Sistema de Diseño
+- **Tema Claro**: Fondo #F8FAFC para mejor legibilidad
+- **Diseño de Tarjetas Moderno**: Bordes limpios (#E2E8F0) y sombras sutiles
+- **Iconos SVG Profesionales**: Iconos emoji reemplazados con gráficos SVG adecuados
+- **Tipografía Responsiva**: Tamaños de fuente y espaciado optimizados para todos los tamaños de pantalla
+
+---
 
 ## Novedades en v2.2 (2026-01-20)
 

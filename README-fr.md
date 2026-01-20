@@ -7,7 +7,7 @@
 
 Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **images d'arrière-plan et couches de texte éditables séparées**.
 
-> ✨ **Mise à jour (2026-01-20)**: Version v2.2 - Réinitialisation douce avec persistance de clé API ! Plus optimisation de vitesse et correction d'erreur IMAGE_RECITATION.
+> ✨ **Mise à jour (2026-01-21)**: Version v2.2.1 - Refonte complète de l'i18n ! Toutes les versions linguistiques présentent désormais un design professionnel en thème clair avec une UX améliorée et une documentation standardisée.
 
 [English](README.md) | [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Español](README-es.md)
 
@@ -29,6 +29,29 @@ Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **image
 
 > Gauche : PDF original de NotebookLM (texte intégré dans l'image)
 > Droite : PPTX converti avec arrière-plan propre + couches de texte éditables
+
+## Nouveautés de v2.2.1 (2026-01-21)
+
+### 🌍 Refonte Complète de l'i18n
+- **Design Professionnel pour Toutes les Langues** : Refonte complète de toutes les versions linguistiques (anglais, espagnol, japonais, français, chinois simplifié) du thème sombre au thème clair moderne
+- **Système de Polices Unifié** : Migration vers Poppins (titres) + Open Sans (corps) avec polices de secours spécifiques à la langue (Noto Sans JP, Noto Sans SC, etc.)
+- **Schéma de Couleurs Bleu Professionnel** : Implémentation d'une couleur primaire #3B82F6 cohérente dans toutes les versions pour la confiance et le professionnalisme
+- **Modal de Clé API Amélioré** : Stockage de clé API basé sur le navigateur avec intégration localStorage élimine le besoin d'éditer le code
+- **Éléments UI Repliables** : Bannière d'alerte et section d'outils repliables pour une interface plus propre
+
+### 📚 Documentation Standardisée
+- **READMEs Complets** : Tous les fichiers README linguistiques suivent désormais une structure complète de 204 lignes
+- **Guide de Démarrage Rapide** : Instructions de démarrage rapide en 3 étapes ajoutées pour une meilleure intégration
+- **Détails du Quota API Gratuit** : Documentation claire du niveau gratuit de Google Gemini (15 RPM, 1500 RPD, aucune carte de crédit)
+- **Section FAQ Complète** : 5 paires de Q&R couvrant les questions courantes sur les clés API, la sécurité, les échecs, le partage et l'utilisation hors ligne
+
+### 🎨 Mises à Jour du Système de Design
+- **Thème Clair** : Arrière-plan #F8FAFC pour une meilleure lisibilité
+- **Mise en Page de Cartes Moderne** : Bordures nettes (#E2E8F0) et ombres subtiles
+- **Icônes SVG Professionnelles** : Icônes emoji remplacées par des graphiques SVG appropriés
+- **Typographie Responsive** : Tailles de police et espacement optimisés pour toutes les tailles d'écran
+
+---
 
 ## Nouveautés de v2.2 (2026-01-20)
 

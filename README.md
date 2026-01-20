@@ -7,7 +7,7 @@
 
 Convert NotebookLM exported PDFs into PPTX presentations with **separated background images and editable text layers**.
 
-> ✨ **Updated (2026-01-20)**: v2.2 Release - Soft Reset with API Key Persistence! Plus speed optimization and IMAGE_RECITATION error fixes.
+> ✨ **Updated (2026-01-21)**: v2.2.1 Release - Complete i18n Overhaul! All language versions now feature professional light theme design with improved UX and standardized documentation.
 
 [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Español](README-es.md) | [Français](README-fr.md)
 
@@ -29,6 +29,29 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 
 > Left: Original PDF from NotebookLM (text embedded in image)
 > Right: Converted PPTX with clean background + editable text layers
+
+## What's New in v2.2.1 (2026-01-21)
+
+### 🌍 Complete i18n Overhaul
+- **Professional Design Across All Languages**: Completely redesigned all language versions (English, Spanish, Japanese, French, Simplified Chinese) from dark theme to modern light theme
+- **Unified Font System**: Migrated to Poppins (headings) + Open Sans (body) with language-specific fallbacks (Noto Sans JP, Noto Sans SC, etc.)
+- **Professional Blue Color Scheme**: Implemented consistent #3B82F6 primary color across all versions for trust and professionalism
+- **Enhanced API Key Modal**: Browser-based API Key storage with localStorage integration eliminates need for code editing
+- **Collapsible UI Elements**: Added collapsible alert banner and tools section for cleaner interface
+
+### 📚 Standardized Documentation
+- **Comprehensive READMEs**: All language README files now follow 204-line comprehensive structure
+- **Quick Start Guide**: Added 3-step quick start instructions for better onboarding
+- **Free API Quota Details**: Clear documentation of Google Gemini's free tier (15 RPM, 1500 RPD, no credit card)
+- **Complete FAQ Section**: 5 Q&A pairs covering common questions about API keys, security, failures, sharing, and offline usage
+
+### 🎨 Design System Updates
+- **Light Theme**: #F8FAFC background for better readability
+- **Modern Card Layout**: Clean borders (#E2E8F0) and subtle shadows
+- **Professional SVG Icons**: Replaced emoji icons with proper SVG graphics
+- **Responsive Typography**: Optimized font sizes and spacing for all screen sizes
+
+---
 
 ## What's New in v2.2 (2026-01-20)
 
