@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBLM2PPTX Demo Video</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            color: #94a3b8;
+            margin-bottom: 30px;
+        }
+        .video-wrapper {
+            position: relative;
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        video {
+            width: 100%;
+            max-width: 900px;
+            border-radius: 8px;
+        }
+        .info {
+            margin-top: 20px;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        .languages {
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .lang-btn {
+            padding: 10px 20px;
+            background: #1e293b;
+            border: 1px solid #3b82f6;
+            border-radius: 8px;
+            color: #3b82f6;
+            text-decoration: none;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .lang-btn:hover {
+            background: #3b82f6;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>NBLM2PPTX</h1>
+        <p class="subtitle">NotebookLM PDF to PPTX Converter - Product Demo</p>
+
+        <div class="video-wrapper">
+            <video controls poster="https://github.com/laihenyi/NBLM2PPTX/raw/main/assets/demo-v2.3-standard.jpg">
+                <source src="https://github.com/laihenyi/NBLM2PPTX/releases/download/v2.3-demo/demo-video-en.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+
+        <p class="info">40 seconds | 4.7 MB | English</p>
+
+        <div class="languages">
+            <span style="color: #64748b; margin-right: 10px;">Other Languages:</span>
+            <a class="lang-btn" href="#">🇹🇼 繁體中文</a>
+            <a class="lang-btn" href="#">🇨🇳 简体中文</a>
+            <a class="lang-btn" href="#">🇯🇵 日本語</a>
+            <a class="lang-btn" href="#">🇪🇸 Español</a>
+            <a class="lang-btn" href="#">🇫🇷 Français</a>
+        </div>
+    </div>
+</body>
+</html>
