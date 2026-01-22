@@ -13,6 +13,10 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 
 ## Demo
 
+### 🎬 Product Video (40s)
+
+https://github.com/laihenyi/NBLM2PPTX/assets/491662/assets/demo-video-en.mp4
+
 ### v1.1 - Hybrid Text Extraction
 
 | Original (NotebookLM PDF) | Output (Editable PPTX) |
