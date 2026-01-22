@@ -1,5 +1,6 @@
 import {
   AbsoluteFill,
+  Audio,
   Img,
   interpolate,
   spring,
@@ -241,7 +242,12 @@ export const DemoVideo = ({
   };
 
   return (
-    <AbsoluteFill style={styles.container}>
+    <>
+      <Audio
+        src={staticFile("music/background-music.mp3")}
+        volume={0.3}
+      />
+      <AbsoluteFill style={styles.container}>
       {isTitleScene && (
         <AbsoluteFill
           style={{
@@ -546,5 +552,6 @@ export const DemoVideo = ({
         </AbsoluteFill>
       )}
     </AbsoluteFill>
+    </>
   );
 };

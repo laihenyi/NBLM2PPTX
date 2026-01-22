@@ -51,6 +51,22 @@ Each language video (40 seconds @ 30fps = 1200 frames) includes:
 - `demo-v1.1-original.jpg` - Original PDF from NotebookLM
 - `demo-v1.1-output.jpg` - Editable PPTX output with precise text positioning
 
+## Background Music
+
+**"Happy Upbeat Ukulele"** by MaxKoMusic
+
+- **Source**: [SoundCloud](https://soundcloud.com/maxkomusic/happy-upbeat-ukulele-no-copyright-background-music-kids-free-download)
+- **License**: Royalty Free / No Copyright (Free for commercial use with attribution)
+- **Attribution Required**:
+  ```
+  Happy Upbeat Ukulele by MaxKoMusic | https://maxkomusic.com/
+  Music promoted by https://www.chosic.com/free-music/all/
+  Creative Commons Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)
+  https://creativecommons.org/licenses/by-sa/3.0/
+  ```
+
+The music is played at 30% volume to complement the visual content without overpowering it.
+
 ## Development
 
 Start the Remotion Studio preview:

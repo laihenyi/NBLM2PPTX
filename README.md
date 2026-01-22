@@ -19,6 +19,8 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 
 *[Direct Download (4.7 MB)](https://github.com/laihenyi/NBLM2PPTX/releases/download/v2.3-demo/demo-video-en.mp4)*
 
+**Background Music**: "Happy Upbeat Ukulele" by MaxKoMusic (CC BY-SA 3.0)
+
 ### v1.1 - Hybrid Text Extraction
 
 | Original (NotebookLM PDF) | Output (Editable PPTX) |
