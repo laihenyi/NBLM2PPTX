@@ -56,6 +56,11 @@
             flex-wrap: wrap;
             justify-content: center;
         }
+        .lang-label {
+            color: #64748b;
+            margin-right: 10px;
+            align-self: center;
+        }
         .lang-btn {
             padding: 10px 20px;
             background: #1e293b;
@@ -66,7 +71,7 @@
             transition: all 0.3s;
             cursor: pointer;
         }
-        .lang-btn:hover {
+        .lang-btn:hover, .lang-btn.active {
             background: #3b82f6;
             color: white;
         }
@@ -78,22 +83,57 @@
         <p class="subtitle">NotebookLM PDF to PPTX Converter - Product Demo</p>
 
         <div class="video-wrapper">
-            <video controls poster="https://github.com/laihenyi/NBLM2PPTX/raw/main/assets/demo-v2.3-standard.jpg">
-                <source src="https://github.com/laihenyi/NBLM2PPTX/releases/download/v2.3-demo/demo-video-en.mp4" type="video/mp4">
+            <video id="video" controls poster="https://github.com/laihenyi/NBLM2PPTX/raw/main/assets/demo-v2.3-standard.jpg">
+                <source id="videoSource" src="https://github.com/laihenyi/NBLM2PPTX/releases/download/v2.3-multilingual/demo-video-en.mp4" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
         </div>
 
-        <p class="info">40 seconds | 4.7 MB | English</p>
+        <p id="info" class="info">40 seconds | 4.5 MB | English</p>
 
         <div class="languages">
-            <span style="color: #64748b; margin-right: 10px;">Other Languages:</span>
-            <a class="lang-btn" href="#">🇹🇼 繁體中文</a>
-            <a class="lang-btn" href="#">🇨🇳 简体中文</a>
-            <a class="lang-btn" href="#">🇯🇵 日本語</a>
-            <a class="lang-btn" href="#">🇪🇸 Español</a>
-            <a class="lang-btn" href="#">🇫🇷 Français</a>
+            <span class="lang-label">Select Language:</span>
+            <button class="lang-btn active" data-lang="en" data-url="https://github.com/laihenyi/NBLM2PPTX/releases/download/v2.3-multilingual/demo-video-en.mp4">🇺🇸 English</button>
+            <button class="lang-btn" data-lang="zh-TW" data-url="https://github.com/laihenyi/NBLM2PPTX/releases/download/v2.3-multilingual/zh-TW-demo.mp4">🇹🇼 繁體中文</button>
+            <button class="lang-btn" data-lang="zh-CN" data-url="https://github.com/laihenyi/NBLM2PPTX/releases/download/v2.3-multilingual/zh-CN-demo.mp4">🇨🇳 简体中文</button>
+            <button class="lang-btn" data-lang="ja" data-url="https://github.com/laihenyi/NBLM2PPTX/releases/download/v2.3-multilingual/ja-demo.mp4">🇯🇵 日本語</button>
+            <button class="lang-btn" data-lang="es" data-url="https://github.com/laihenyi/NBLM2PPTX/releases/download/v2.3-multilingual/es-demo.mp4">🇪🇸 Español</button>
+            <button class="lang-btn" data-lang="fr" data-url="https://github.com/laihenyi/NBLM2PPTX/releases/download/v2.3-multilingual/fr-demo.mp4">🇫🇷 Français</button>
         </div>
     </div>
+
+    <script>
+        const videos = {
+            'en': { url: 'https://github.com/laihenyi/NBLM2PPTX/releases/download/v2.3-multilingual/demo-video-en.mp4', size: '4.5 MB', name: 'English' },
+            'zh-TW': { url: 'https://github.com/laihenyi/NBLM2PPTX/releases/download/v2.3-multilingual/zh-TW-demo.mp4', size: '4.3 MB', name: '繁體中文' },
+            'zh-CN': { url: 'https://github.com/laihenyi/NBLM2PPTX/releases/download/v2.3-multilingual/zh-CN-demo.mp4', size: '4.3 MB', name: '简体中文' },
+            'ja': { url: 'https://github.com/laihenyi/NBLM2PPTX/releases/download/v2.3-multilingual/ja-demo.mp4', size: '4.5 MB', name: '日本語' },
+            'es': { url: 'https://github.com/laihenyi/NBLM2PPTX/releases/download/v2.3-multilingual/es-demo.mp4', size: '4.6 MB', name: 'Español' },
+            'fr': { url: 'https://github.com/laihenyi/NBLM2PPTX/releases/download/v2.3-multilingual/fr-demo.mp4', size: '4.7 MB', name: 'Français' }
+        };
+
+        const video = document.getElementById('video');
+        const videoSource = document.getElementById('videoSource');
+        const info = document.getElementById('info');
+        const buttons = document.querySelectorAll('.lang-btn');
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const lang = btn.dataset.lang;
+                const videoData = videos[lang];
+
+                // Update active button
+                buttons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // Update video source
+                videoSource.src = videoData.url;
+                video.load();
+
+                // Update info
+                info.textContent = `40 seconds | ${videoData.size} | ${videoData.name}`;
+            });
+        });
+    </script>
 </body>
 </html>
