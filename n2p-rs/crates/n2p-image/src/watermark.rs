@@ -102,6 +102,36 @@ pub fn inpaint_region(image: &RgbImage, bbox: BBox, method: InpaintMethod) -> Rg
     }
 }
 
+/// 就地修補一個矩形區域，只動 `bbox` 之內的像素。
+///
+/// 與 [`inpaint_region`] 的差別是**不做整張影像的複製**：內部只裁出
+/// `bbox` 加 padding 的小區塊來處理再貼回。對「一頁有數十個文字區塊要擦除」
+/// 的情境，這決定了成本是「區塊面積」還是「整頁面積」。
+pub fn inpaint_bbox_in_place(image: &mut RgbImage, bbox: BBox, method: InpaintMethod) {
+    let padded = BBox::new(bbox.left - 2, bbox.top - 2, bbox.right + 2, bbox.bottom + 2)
+        .clamp(image.width as i64, image.height as i64);
+    if padded.is_empty() {
+        return;
+    }
+    let crop = image.crop(padded);
+    let local = BBox::new(
+        bbox.left - padded.left,
+        bbox.top - padded.top,
+        bbox.right - padded.left,
+        bbox.bottom - padded.top,
+    );
+    let cleaned = inpaint_region(&crop, local, method);
+    for y in 0..crop.height {
+        for x in 0..crop.width {
+            image.set_pixel(
+                padded.left as u32 + x,
+                padded.top as u32 + y,
+                cleaned.pixel(x, y),
+            );
+        }
+    }
+}
+
 /// 去除 NotebookLM 水印。
 pub fn inpaint_watermark(image: &RgbImage, method: InpaintMethod) -> Result<RgbImage, Error> {
     let bbox = watermark_box(image.width, image.height)?;

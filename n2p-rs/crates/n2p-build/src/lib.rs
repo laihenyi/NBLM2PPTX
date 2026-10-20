@@ -68,6 +68,22 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// 背景擦除的方式。
+///
+/// Python 版是「把區塊填成邊緣主色」（[`EraseMode::Flat`]）：背景是純色時看不出來，
+/// 但遇到漸層或跨越兩種顏色（例如文字壓在藍色圓角框上）就會留下明顯方塊。
+///
+/// [`EraseMode::Inpaint`] 改用 `n2p-image` 的修補引擎，從四周既有像素插值，
+/// 對插圖型簡報明顯較好。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum EraseMode {
+    /// 填單一顏色。與 Python 版等價。
+    Flat,
+    /// 從四周插值（預設）。
+    #[default]
+    Inpaint,
+}
+
 /// 背景圖的解析度策略。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BackgroundResolution {
@@ -86,6 +102,8 @@ pub struct BuildOptions {
     pub widescreen: bool,
     /// 是否在背景圖上擦除已轉成文字/圖片的區域。
     pub erase_background_regions: bool,
+    /// 擦除方式。
+    pub erase_mode: EraseMode,
     pub background_resolution: BackgroundResolution,
     /// 文字框是否寫入 `<a:normAutofit/>`。
     ///
@@ -99,6 +117,7 @@ impl Default for BuildOptions {
             font_name: "Calibri".to_owned(),
             widescreen: false,
             erase_background_regions: true,
+            erase_mode: EraseMode::default(),
             background_resolution: BackgroundResolution::PageSize,
             text_autofit: false,
         }
@@ -343,10 +362,23 @@ fn prepare_background(input: &PageInput<'_>, options: &BuildOptions) -> Result<V
             if bbox.is_empty() {
                 continue;
             }
-            let (_, fill_color) = edge_diversity(&image, bbox, ERASE_TOLERANCE);
-            for y in bbox.top..bbox.bottom {
-                for x in bbox.left..bbox.right {
-                    image.set_pixel(x as u32, y as u32, fill_color);
+            match options.erase_mode {
+                EraseMode::Flat => {
+                    // Python 版行為：整塊填成邊緣主色。
+                    let (_, fill_color) = edge_diversity(&image, bbox, ERASE_TOLERANCE);
+                    for y in bbox.top..bbox.bottom {
+                        for x in bbox.left..bbox.right {
+                            image.set_pixel(x as u32, y as u32, fill_color);
+                        }
+                    }
+                }
+                EraseMode::Inpaint => {
+                    // 從四周插值，避免在漸層或雙色背景上留下方塊。
+                    n2p_image::inpaint_bbox_in_place(
+                        &mut image,
+                        bbox,
+                        n2p_image::InpaintMethod::BackgroundSmooth,
+                    );
                 }
             }
         }
@@ -520,6 +552,91 @@ mod tests {
             kinds.first(),
             Some(&"p:pic"),
             "圖片應在最底層，實際 {kinds:?}"
+        );
+    }
+
+    #[test]
+    fn inpaint_erase_preserves_coloured_background_better_than_flat_fill() {
+        // 重現第 1 頁的白斑：文字只有一部分壓在藍色方塊上，其餘在白色背景上。
+        // 邊緣像素以白色居多 → 純色填色會整塊填白，把藍色方塊挖出一個白洞。
+        let mut image = RgbImage::filled(400, 200, [255, 255, 255]);
+        let blue = [80u8, 150, 220];
+        for y in 60..140 {
+            for x in 100..200 {
+                image.set_pixel(x, y, blue);
+            }
+        }
+        let text_bbox = BBox::new(150, 80, 300, 120);
+        // 黑色「文字」只出現在藍色方塊內的那一段
+        for y in 85..115 {
+            for x in 155..195 {
+                image.set_pixel(x, y, [0, 0, 0]);
+            }
+        }
+
+        let layout = LayoutPage {
+            size_pt: (400.0, 200.0),
+            blocks: vec![Block::new(BlockKind::Text, text_bbox)],
+        };
+        let base = BuildOptions {
+            background_resolution: BackgroundResolution::FullImage,
+            ..Default::default()
+        };
+
+        let background_of = |mode: EraseMode| -> RgbImage {
+            let options = BuildOptions {
+                erase_mode: mode,
+                ..base.clone()
+            };
+            let (deck, _) = build_deck(
+                &[PageInput {
+                    layout: &layout,
+                    image: &image,
+                }],
+                &options,
+            )
+            .unwrap();
+            let media = deck
+                .package()
+                .part_names()
+                .find(|p| p.starts_with("ppt/media/"))
+                .expect("應有背景影像")
+                .to_owned();
+            RgbImage::from_png_bytes(deck.package().part(&media).unwrap()).unwrap()
+        };
+
+        let flat = background_of(EraseMode::Flat);
+        let inpainted = background_of(EraseMode::Inpaint);
+
+        // 兩者都必須把黑字弄掉
+        assert!(
+            flat.pixel(175, 100)[0] > 100,
+            "Flat 應移除黑字，實際 {:?}",
+            flat.pixel(175, 100)
+        );
+        assert!(
+            inpainted.pixel(175, 100)[0] > 100,
+            "Inpaint 應移除黑字，實際 {:?}",
+            inpainted.pixel(175, 100)
+        );
+
+        // 關鍵差異：該處真正的背景是藍色，插值版本應接近它，填色版本會填成白色
+        let distance = |a: [u8; 3], b: [u8; 3]| -> i32 {
+            a.iter()
+                .zip(b.iter())
+                .map(|(x, y)| (*x as i32 - *y as i32).abs())
+                .max()
+                .unwrap()
+        };
+        let flat_pixel = flat.pixel(175, 100);
+        let inpainted_pixel = inpainted.pixel(175, 100);
+        assert!(
+            distance(inpainted_pixel, blue) < distance(flat_pixel, blue),
+            "插值應更接近背景藍：inpaint={inpainted_pixel:?} flat={flat_pixel:?} 藍={blue:?}"
+        );
+        assert!(
+            distance(flat_pixel, blue) > 60,
+            "這個情境下 Flat 應該明顯偏離藍色（重現白斑），實際 {flat_pixel:?}"
         );
     }
 

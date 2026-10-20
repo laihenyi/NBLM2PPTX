@@ -34,6 +34,14 @@ enum Command {
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
+enum EraseArg {
+    /// 從四周插值（預設）：漸層或雙色背景不會留下方塊
+    Inpaint,
+    /// 填單一顏色：與 Python 版等價，純色背景够用
+    Fill,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
 enum LayoutArg {
     /// 自動：macOS 用 Vision，其他平台退回 image
     Auto,
@@ -97,6 +105,10 @@ struct ConvertArgs {
     /// 背景保留完整點陣化解析度（檔案較大但較清晰）
     #[arg(long)]
     high_res_background: bool,
+
+    /// 背景擦除方式：`inpaint` 從四周插值，`fill` 填單色（Python 版行為）
+    #[arg(long, value_enum, default_value = "inpaint")]
+    erase: EraseArg,
 
     /// 保留中間產物（頁面 PNG）到此目錄
     #[arg(long, value_name = "DIR")]
@@ -175,6 +187,10 @@ fn convert(args: ConvertArgs) -> anyhow::Result<()> {
             font_name: args.font.clone(),
             widescreen: args.widescreen,
             text_autofit: args.autofit,
+            erase_mode: match args.erase {
+                EraseArg::Inpaint => n2p_build::EraseMode::Inpaint,
+                EraseArg::Fill => n2p_build::EraseMode::Flat,
+            },
             background_resolution: if args.high_res_background {
                 BackgroundResolution::FullImage
             } else {

@@ -30,7 +30,7 @@ pub mod watermark;
 pub use diversity::{Rgb, edge_average_color, edge_diversity, edge_pixels};
 pub use method::InpaintMethod;
 pub use transform::{is_widescreen, to_widescreen};
-pub use watermark::{inpaint_region, inpaint_watermark, watermark_box};
+pub use watermark::{inpaint_bbox_in_place, inpaint_region, inpaint_watermark, watermark_box};
 
 pub use mask::Mask;
 pub use n2p_core::{BBox, RgbImage};
