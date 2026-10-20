@@ -68,6 +68,10 @@ cargo run -p xtask -- visual-diff --dir ../rust-rewrite/assets/probe-pptx --reco
 cargo run -p xtask -- visual-diff --dir ../rust-rewrite/assets/probe-pptx
 ```
 
+`visual-diff` 的基準圖在 `rust-rewrite/assets/visual/`，旁邊的 `meta.json` 記著產生它的
+LibreOffice 版本與 DPI；環境不符時會先警告再比對。實測 LibreOffice 的渲染逐位元可重現
+（25 頁平均差全部 0.00），所以任何非零差異都是真的改到了東西。
+
 `compat` 只會關閉自己開啟的文件，永不碰使用者在 PowerPoint 裡的其他簡報，
 也不會呼叫 `quit`。macOS 上 PowerPoint 的 AppleScript 有若干陷阱
 （拿不到畫布高度、無匯出 PDF 命令、集合迭代會卡死、相對路徑會彈 modal），
@@ -99,6 +103,8 @@ cargo run -p xtask -- visual-diff --dir ../rust-rewrite/assets/probe-pptx
 | `n2p-pdf/tests/reference.rs` | PyMuPDF | 頁數、頁面尺寸、像素尺寸（2867×1600）完全相同 |
 | `n2p-image/tests/golden.rs` | numpy 實作 | 4 種方法**逐像素相同**（0 個不同像素） |
 | `n2p-pipeline` | 端到端 | Vision 實際辨識出頁面中文標題，位置與 `ppt_creater` 語意一致 |
+| `xtask compat` | Microsoft PowerPoint 16.101 | 我們產生的 pptx 開得起來，頁數／寬度／形狀名稱與文字都正確 |
+| `xtask visual-diff` | LibreOffice 26.8.1.1 | 17 份 fixture、25 頁，平均差全部 0.00 |
 
 交叉驗證：產出的 PPTX 另以 `python-pptx`（與 Spire、與本專案都無關的第三個實作）讀取，
 確認畫布、背景填滿、文字位置與內容都正確。

@@ -325,6 +325,9 @@ fn visual_diff(args: VisualDiffArgs) -> Result<usize> {
         return Err(anyhow!("沒有可比對的 pptx；請用 --file 或 --dir 指定"));
     }
 
+    let libreoffice_version = soffice::version(&binary).unwrap_or_else(|_| "unknown".to_owned());
+    let mut recorded: Vec<(String, usize)> = Vec::new();
+
     let thresholds = Thresholds {
         max_mean_abs: args.max_mean_abs,
         max_bad_ratio: args.max_bad_ratio,
@@ -346,7 +349,13 @@ fn visual_diff(args: VisualDiffArgs) -> Result<usize> {
                 page.save(file_ref_dir.join(format!("page_{:04}.png", index + 1)))?;
             }
             println!("  已記錄參考圖到 {}", file_ref_dir.display());
+            recorded.push((name.clone(), pages.len()));
             continue;
+        }
+
+        // 參考圖是在特定 LibreOffice 版本與 DPI 下產生的；不一致就沒得比。
+        if let Some(warning) = reference_mismatch(&reference_dir, args.dpi, &libreoffice_version) {
+            println!("  ⚠ {warning}");
         }
 
         if !file_ref_dir.exists() {
@@ -390,10 +399,53 @@ fn visual_diff(args: VisualDiffArgs) -> Result<usize> {
         }
     }
 
-    if !args.record && failures == 0 {
+    if args.record {
+        let meta = serde_json::json!({
+            "generator": "xtask visual-diff --record",
+            "libreoffice": libreoffice_version,
+            "dpi": args.dpi,
+            "pixel_threshold": thresholds.pixel_threshold,
+            "files": recorded.iter().map(|(n, p)| serde_json::json!({"name": n, "pages": p})).collect::<Vec<_>>(),
+        });
+        std::fs::write(
+            reference_dir.join("meta.json"),
+            format!("{}\n", serde_json::to_string_pretty(&meta)?),
+        )?;
+        println!(
+            "\n已記錄 {} 個檔案、{} 頁到 {}",
+            recorded.len(),
+            recorded.iter().map(|(_, p)| p).sum::<usize>(),
+            reference_dir.display()
+        );
+    } else if failures == 0 {
         println!("\n全部通過");
     }
     Ok(failures)
+}
+
+/// 參考圖的產生環境與現在不同時回傳警告。
+///
+/// 換 LibreOffice 版本或改變 DPI 都會讓像素比對失去意義，先講清楚比對失敗的原因。
+fn reference_mismatch(reference_dir: &Path, dpi: f64, current_version: &str) -> Option<String> {
+    let path = reference_dir.join("meta.json");
+    let text = std::fs::read_to_string(path).ok()?;
+    let meta: serde_json::Value = serde_json::from_str(&text).ok()?;
+    let recorded_dpi = meta.get("dpi").and_then(serde_json::Value::as_f64)?;
+    let recorded_version = meta
+        .get("libreoffice")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("");
+    if (recorded_dpi - dpi).abs() > f64::EPSILON {
+        return Some(format!(
+            "參考圖以 {recorded_dpi} dpi 產生，目前是 {dpi} dpi，比對結果不可信"
+        ));
+    }
+    if !recorded_version.is_empty() && recorded_version != current_version {
+        return Some(format!(
+            "參考圖由 LibreOffice「{recorded_version}」產生，目前是「{current_version}」，字型與排版可能有差"
+        ));
+    }
+    None
 }
 
 // ── 輔助 ────────────────────────────────────────────────────────────────────

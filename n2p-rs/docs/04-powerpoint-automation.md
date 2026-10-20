@@ -185,7 +185,32 @@ $ cargo run -p xtask -- compat --dir ../rust-rewrite/assets/probe-pptx
 
 執行後 PowerPoint 沒有殘留開啟的簡報，也沒有 `~$` 鎖檔。
 
-`xtask visual-diff` 已實作完成，但本機沒有 LibreOffice，尚未實跑。
+### 視覺回歸（LibreOffice 26.8.1.1）
+
+```
+$ cargo run -p xtask -- visual-diff --dir ../rust-rewrite/assets/probe-pptx --record
+已記錄 17 個檔案、25 頁
+
+$ cargo run -p xtask -- visual-diff --dir ../rust-rewrite/assets/probe-pptx
+sz_4x3   第 1 頁 ✓ 平均差 0.00、顯著差異 0.00%
+…
+全部通過
+```
+
+**25 頁的平均差全部是 0.00** —— LibreOffice 的渲染逐位元可重現，所以這個 harness 沒有雜訊，
+任何非零差異都代表真的改到了東西。基準圖 400 KB。
+
+基準圖旁邊會自動寫一份 `meta.json`，記下產生它的 LibreOffice 版本與 DPI。比對時若環境
+不符會先警告，避免「換版本 → 一堆無法解釋的失敗」：
+
+```
+$ cargo run -p xtask -- visual-diff --file 1_text.pptx --dpi 150
+  ⚠ 參考圖以 100 dpi 產生，目前是 150 dpi，比對結果不可信
+  第 1 頁 ✗ 尺寸不符
+```
+
+CI 上另有一個 `visual-regression` job，只在手動觸發（`workflow_dispatch`）時跑 ——
+LibreOffice 的安裝要 1–3 分鐘，不值得拖慢每次 push。
 
 ### 順帶修掉的 fixture 問題
 

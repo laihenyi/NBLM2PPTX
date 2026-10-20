@@ -1,0 +1,76 @@
+{
+  "dpi": 100.0,
+  "files": [
+    {
+      "name": "1_text",
+      "pages": 1
+    },
+    {
+      "name": "2_background",
+      "pages": 1
+    },
+    {
+      "name": "3_picture",
+      "pages": 1
+    },
+    {
+      "name": "4_merged",
+      "pages": 3
+    },
+    {
+      "name": "5_cleaned",
+      "pages": 3
+    },
+    {
+      "name": "6_newline",
+      "pages": 1
+    },
+    {
+      "name": "fix_a",
+      "pages": 1
+    },
+    {
+      "name": "fix_b",
+      "pages": 1
+    },
+    {
+      "name": "fix_c",
+      "pages": 1
+    },
+    {
+      "name": "fix_cleaned",
+      "pages": 3
+    },
+    {
+      "name": "fix_merged",
+      "pages": 3
+    },
+    {
+      "name": "src_a",
+      "pages": 1
+    },
+    {
+      "name": "src_b",
+      "pages": 1
+    },
+    {
+      "name": "src_c",
+      "pages": 1
+    },
+    {
+      "name": "sz_16x10",
+      "pages": 1
+    },
+    {
+      "name": "sz_16x9",
+      "pages": 1
+    },
+    {
+      "name": "sz_4x3",
+      "pages": 1
+    }
+  ],
+  "generator": "xtask visual-diff --record",
+  "libreoffice": "LibreOffice 26.8.1.1 bf6ef2662401c7d6dce671ab4deb26ee0af3a7c1",
+  "pixel_threshold": 24
+}
