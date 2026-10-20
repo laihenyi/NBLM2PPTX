@@ -6,7 +6,8 @@
 | :--- | :--- |
 | [01-spire-engine-surface.md](01-spire-engine-surface.md) | 引擎架構判定（.NET NativeAOT）、3,927 個 C ABI 匯出、本專案實際需要的 400 個、REA 使用紀錄、授權界線 |
 | [02-ooxml-reference.md](02-ooxml-reference.md) | 本專案需要的 8 個操作的逐節點 OOXML 規格與單位換算 |
-| [03-findings-and-rust-plan.md](03-findings-and-rust-plan.md) | 7 項關鍵發現、對 Phase 2 的修正估計（14–17 天） |
+| [03-findings-and-rust-plan.md](03-findings-and-rust-plan.md) | 8 項關鍵發現、平台修正、各階段完成狀態與驗證結果 |
+| [04-powerpoint-automation.md](04-powerpoint-automation.md) | 為何不用 PowerPoint 產生檔案、macOS AppleScript 的七個坑、驗證工具的安全規則 |
 
 ## 取得方式
 

@@ -51,6 +51,28 @@ n2p methods                # 列出六種去水印方法
 n2p ocr page.png           # 單張影像的 Vision 辨識結果與邊界框
 ```
 
+### 驗證工具（xtask）
+
+```bash
+cargo run -p xtask -- doctor        # 檢查 PowerPoint / LibreOffice 是否可用
+
+# PowerPoint 讀得懂我們產生的 OOXML 嗎？（即時產生簡報再開檔驗證）
+cargo run -p xtask -- compat
+
+# 對既有檔案做基準回歸
+cargo run -p xtask -- compat --record --dir ../rust-rewrite/assets/probe-pptx
+cargo run -p xtask -- compat --dir ../rust-rewrite/assets/probe-pptx
+
+# 像素級視覺回歸（需要 LibreOffice）
+cargo run -p xtask -- visual-diff --dir ../rust-rewrite/assets/probe-pptx --record
+cargo run -p xtask -- visual-diff --dir ../rust-rewrite/assets/probe-pptx
+```
+
+`compat` 只會關閉自己開啟的文件，永不碰使用者在 PowerPoint 裡的其他簡報，
+也不會呼叫 `quit`。macOS 上 PowerPoint 的 AppleScript 有若干陷阱
+（拿不到畫布高度、無匯出 PDF 命令、集合迭代會卡死、相對路徑會彈 modal），
+全部記錄在 [`../rust-rewrite/04-powerpoint-automation.md`](../rust-rewrite/04-powerpoint-automation.md)。
+
 ## 模組
 
 | crate | 職責 | 與 Python 版的關係 |

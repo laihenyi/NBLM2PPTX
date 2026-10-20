@@ -9,6 +9,7 @@ members = [
     "crates/n2p-ooxml",
     "crates/n2p-pdf",
     "crates/n2p-pipeline",
+    "xtask",
     "crates/n2p-vision",
     "crates/n2p-cli",
 ]
