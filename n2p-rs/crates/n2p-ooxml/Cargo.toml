@@ -1,0 +1,12 @@
+[package]
+name = "n2p-ooxml"
+description = "Minimal PPTX/OOXML writer for NotebookLM2PPT (OPC container + p:sp / p:bg / p:pic)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+quick-xml.workspace = true
+zip.workspace = true

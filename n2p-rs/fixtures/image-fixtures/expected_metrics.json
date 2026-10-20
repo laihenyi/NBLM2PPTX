@@ -1,0 +1,29 @@
+{
+  "box": {
+    "left": 60,
+    "top": 40,
+    "right": 100,
+    "bottom": 55
+  },
+  "size": {
+    "width": 160,
+    "height": 100
+  },
+  "edge_diversity_default": 0.4363636363636364,
+  "edge_diversity_fill_color": [
+    241,
+    243,
+    248
+  ],
+  "edge_diversity_tolerance20": 0.4363636363636364,
+  "edge_diversity_tolerance20_fill_color": [
+    241,
+    243,
+    248
+  ],
+  "edge_average_color": [
+    239,
+    242,
+    248
+  ]
+}

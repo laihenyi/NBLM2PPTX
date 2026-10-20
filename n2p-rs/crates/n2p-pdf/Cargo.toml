@@ -1,0 +1,15 @@
+[package]
+name = "n2p-pdf"
+description = "PDF → PNG 點陣化（hayro），取代 PyMuPDF"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+hayro.workspace = true
+n2p-core = { path = "../n2p-core" }
+image.workspace = true
+png.workspace = true
+rayon.workspace = true

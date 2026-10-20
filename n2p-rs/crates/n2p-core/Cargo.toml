@@ -1,0 +1,11 @@
+[package]
+name = "n2p-core"
+description = "共用型別：RGB 點陣圖、邊界框、錯誤"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+png.workspace = true

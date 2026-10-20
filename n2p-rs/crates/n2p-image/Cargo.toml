@@ -1,0 +1,15 @@
+[package]
+name = "n2p-image"
+description = "邊緣色彩統計與去水印修補（取代 numpy/scipy 實作）"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+n2p-core = { path = "../n2p-core" }
+serde.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

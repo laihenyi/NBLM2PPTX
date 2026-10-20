@@ -1,0 +1,41 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/n2p-build",
+    "crates/n2p-core",
+    "crates/n2p-image",
+    "crates/n2p-layout",
+    "crates/n2p-mineru",
+    "crates/n2p-ooxml",
+    "crates/n2p-pdf",
+    "crates/n2p-pipeline",
+    "crates/n2p-vision",
+    "crates/n2p-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+rust-version = "1.87"
+
+[workspace.dependencies]
+thiserror = "2"
+quick-xml = "0.42"
+zip = { version = "9", default-features = false, features = ["deflate"] }
+hayro = "0.8"
+png = "0.18"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "rayon"] }
+rayon = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+clap = { version = "4", features = ["derive"] }
+strsim = "0.11"
+anyhow = "1"
+objc2 = "0.6"
+objc2-foundation = "0.3"
+objc2-core-foundation = "0.3"
+objc2-core-graphics = "0.3"
+objc2-core-video = "0.3"
+objc2-vision = "0.3"
+block2 = "0.6"
