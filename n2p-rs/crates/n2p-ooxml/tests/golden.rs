@@ -184,6 +184,36 @@ fn text_box_left_aligned_matches_paragraph_title_style() {
 }
 
 #[test]
+fn east_asian_font_is_emitted_separately_from_latin() {
+    // CJK 字元實際用的是 <a:ea>；只寫 <a:latin> 會落到主題字型，
+    // 渲染字高與原稿差約一成。
+    let plain = TextBox::default().build(2);
+    let latin_only = plain.path(&["p:txBody", "a:p", "a:r", "a:rPr"]).unwrap();
+    assert!(latin_only.child_el("a:latin").is_some());
+    assert!(latin_only.child_el("a:ea").is_none(), "未指定時不該寫 a:ea");
+
+    let with_ea = TextBox::default()
+        .east_asian_font("Microsoft JhengHei")
+        .build(2);
+    let r_pr = with_ea.path(&["p:txBody", "a:p", "a:r", "a:rPr"]).unwrap();
+    assert_eq!(
+        r_pr.child_el("a:ea").and_then(|e| e.get_attr("typeface")),
+        Some("Microsoft JhengHei")
+    );
+}
+
+#[test]
+fn wrap_none_is_emitted_and_default_is_square() {
+    let default_box = TextBox::default().build(2);
+    let body_pr = default_box.path(&["p:txBody", "a:bodyPr"]).unwrap();
+    assert!(body_pr.get_attr("wrap").is_none(), "預設不寫 wrap 屬性");
+
+    let no_wrap = TextBox::default().wrap(n2p_ooxml::Wrap::None).build(2);
+    let body_pr = no_wrap.path(&["p:txBody", "a:bodyPr"]).unwrap();
+    assert_eq!(body_pr.get_attr("wrap"), Some("none"));
+}
+
+#[test]
 fn autofit_is_opt_in_because_spire_emits_none() {
     let default = TextBox::default().build(2);
     assert!(

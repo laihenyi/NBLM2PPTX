@@ -221,9 +221,15 @@ fn block_from_observation(observation: &Observation, size_pt: (f64, f64)) -> Blo
 /// 規則（刻意保守，寧可少併也不要錯併）：
 ///
 /// 1. 依垂直位置排序（上到下），同高則由左到右。
-/// 2. 若下一個觀測的垂直間距小於「行高的一半」，且水平範圍與目前區塊重疊超過 30%，
-///    就併入同一區塊。
+/// 2. 只有同時滿足以下三點才併入同一區塊：
+///    * 垂直間距 ≤ `0.5 × 較小那行的高度`
+///    * 水平重疊 > 30%
+///    * **兩行高度比 ≤ 1.5**（字級差太多就不是同一段）
 /// 3. 否則開新區塊。
+///
+/// 第三條是實測補上的：`CH9` 第 1 頁的大標題行高 0.185、下方小字行高 0.062，
+/// 原本只用「較大行高 × 0.5」判斷間距，結果小字被吸進標題區塊，整段跟著用
+/// 88 pt 渲染 —— 字級看起來完全失控。
 pub fn group_observations(observations: &[Observation], size_pt: (f64, f64)) -> Vec<Block> {
     if observations.is_empty() {
         return Vec::new();
@@ -249,10 +255,15 @@ pub fn group_observations(observations: &[Observation], size_pt: (f64, f64)) -> 
             let last = group.last()?;
             let last_bottom = last.bbox_norm.1 + last.bbox_norm.3;
             let next_top = observation.bbox_norm.1;
-            let line_height = last.bbox_norm.3.max(observation.bbox_norm.3);
+            let small = last.bbox_norm.3.min(observation.bbox_norm.3);
+            let large = last.bbox_norm.3.max(observation.bbox_norm.3);
+            if small <= 0.0 {
+                return None;
+            }
             let vertical_gap = next_top - last_bottom;
             let overlap = overlap_ratio(last.bbox_norm, observation.bbox_norm);
-            (vertical_gap <= line_height * 0.5 && overlap > 0.3).then_some(group)
+            let same_scale = large / small <= 1.5;
+            (same_scale && vertical_gap <= small * 0.5 && overlap > 0.3).then_some(group)
         });
         match merged {
             Some(group) => group.push(observation),
@@ -347,6 +358,28 @@ mod tests {
         assert_eq!(blocks[0].text, "第一行\n第二行");
         assert_eq!(blocks[0].lines.len(), 2);
         assert_eq!(blocks[1].text, "遠處");
+    }
+
+    #[test]
+    fn does_not_group_lines_with_very_different_sizes() {
+        // CH9 第 1 頁的真實幾何：大標題第二行 + 下方小字
+        let observations = vec![
+            obs("好好愛他們！", 0.238, 0.406, 0.508, 0.185),
+            obs("創造共享的溫暖", 0.552, 0.649, 0.217, 0.062),
+        ];
+        let blocks = group_observations(&observations, (1376.0, 768.0));
+        assert_eq!(blocks.len(), 2, "字級差 3 倍的行不該併成同一區塊");
+    }
+
+    #[test]
+    fn still_groups_lines_of_similar_size() {
+        let observations = vec![
+            obs("提升學生正向幸福", 0.217, 0.649, 0.244, 0.060),
+            obs("感的課堂領導力", 0.229, 0.716, 0.217, 0.067),
+        ];
+        let blocks = group_observations(&observations, (1376.0, 768.0));
+        assert_eq!(blocks.len(), 1, "同級的小字應該併成一個區塊");
+        assert_eq!(blocks[0].lines.len(), 2);
     }
 
     #[test]

@@ -124,6 +124,9 @@ LibreOffice 版本與 DPI；環境不符時會先警告再比對。實測 LibreO
 | 多行文字 | 換行字元塞進 `<a:t>` | `<a:br/>`（可用 `Literal` 還原） | 規格正確寫法，視覺相同 |
 | 文字溢出 | `FitTextToShape` 實際不寫任何 autofit | 預設相同，`--autofit` 可修 | 等價優先，改善選用 |
 | 背景擦除 | 把文字區塊填成邊緣主色 | 預設從四周插值（`--erase inpaint`），`--erase fill` 可還原舊行為 | 單色填色會在漸層／雙色背景留下方塊 |
+| 字級估算 | `bbox高度 × 0.75` | 中文用字寬（`em ≈ 行寬 / 全形字數`），多行用行距 | 舊公式對 OCR 的墨跡框系統性偏小 30% |
+| 文字框尺寸 | 直接用 bbox | 依「字級 × 行數」重算，並關閉自動折行 | bbox 貼齊墨跡，裝不下 PowerPoint 的行距 |
+| 東亞字型 | 只寫 `<a:latin>` | 中文簡報自動補 `<a:ea typeface="Microsoft JhengHei">` | CJK 字元走 `a:ea`，不指定就落到主題字型 |
 | `docProps/app.xml` | 16:9 寫成「全屏显示(4:3)」、3 頁寫 `Slides=1` | 寫對 | Spire 的 bug，不重現 |
 | `griddata`／`skimage` 修補 | SciPy／scikit-image | IDW／調和插值 | Rust 無等價物；視覺接近，用 `n2p methods` 可查 |
 

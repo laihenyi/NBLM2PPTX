@@ -21,6 +21,8 @@
 //!   縮成 1376×768）再當背景，等於丟掉一半解析度。這裡預設維持原行為以求等價，
 //!   但可以用 [`BackgroundResolution::FullImage`] 保留完整解析度。
 
+pub mod fontsize;
+
 use n2p_core::{BBox, RgbImage};
 use n2p_image::edge_diversity;
 use n2p_layout::{Block, BlockKind, LayoutPage};
@@ -43,8 +45,33 @@ const H_PADDING_BODY_PT: f64 = 15.0;
 const H_PADDING_TITLE_PT: f64 = 5.0;
 /// 最小字級。
 const MIN_FONT_SIZE_PT: f64 = 8.0;
-/// 字級相對 bbox 高度的比例（`font_size = height * 0.75`）。
-const FONT_HEIGHT_RATIO: f64 = 0.75;
+/// PowerPoint 單行行距約為 1.2 em。
+const LINE_PITCH_RATIO: f64 = 1.2;
+/// 文字框排版用的行距倍率（略大於 1.2，含 CJK 字型的額外行高）。
+const LINE_SPACING_RATIO: f64 = 1.3;
+/// 額外留白（以行數計），吸收字型升降部的差異。
+const TEXT_SLACK_LINES: f64 = 0.25;
+/// 字級上限，避免異常邊界框產生荒謬結果。
+const MAX_FONT_SIZE_PT: f64 = 400.0;
+/// 中文簡報預設的東亞字型（macOS／Windows 的 PowerPoint 都有）。
+const DEFAULT_CJK_FONT: &str = "Microsoft JhengHei";
+
+/// 內文是否以中文（全形字）為主。
+fn deck_is_cjk_dominant(inputs: &[PageInput<'_>]) -> bool {
+    let mut full = 0usize;
+    let mut total = 0usize;
+    for input in inputs {
+        for block in input.layout.text_blocks() {
+            for c in block.text.chars().filter(|c| !c.is_whitespace()) {
+                total += 1;
+                if fontsize::is_full_width(c) {
+                    full += 1;
+                }
+            }
+        }
+    }
+    total > 0 && (full as f64 / total as f64) >= 0.5
+}
 /// 背景擦除時用的顏色容差（`tolerance=20`）。
 const ERASE_TOLERANCE: u8 = 20;
 /// 前景圖片向外擴張的像素數（`expand_px=2`）。
@@ -98,6 +125,8 @@ pub enum BackgroundResolution {
 #[derive(Debug, Clone)]
 pub struct BuildOptions {
     pub font_name: String,
+    /// 東亞字型。`None` 時依內文是否以中文為主自動選擇。
+    pub east_asian_font_name: Option<String>,
     /// 是否把頁面調整成 16:9。
     pub widescreen: bool,
     /// 是否在背景圖上擦除已轉成文字/圖片的區域。
@@ -115,6 +144,7 @@ impl Default for BuildOptions {
     fn default() -> Self {
         Self {
             font_name: "Calibri".to_owned(),
+            east_asian_font_name: None,
             widescreen: false,
             erase_background_regions: true,
             erase_mode: EraseMode::default(),
@@ -171,6 +201,13 @@ pub fn build_deck(inputs: &[PageInput<'_>], options: &BuildOptions) -> Result<(D
     let slide_size = SlideSize::from_ratio(first.layout.size_pt.0, first.layout.size_pt.1);
     deck.set_slide_size(slide_size).map_err(Error::Ooxml)?;
 
+    // CJK 字元用的是 `<a:ea>` 而不是 `<a:latin>`。不指定就會落到主題字型，
+    // 字高與原稿差約一成。以內文是否以中文為主來決定預設值。
+    let east_asian = options
+        .east_asian_font_name
+        .clone()
+        .or_else(|| deck_is_cjk_dominant(inputs).then(|| DEFAULT_CJK_FONT.to_owned()));
+
     let mut report = BuildReport {
         pages: Vec::with_capacity(inputs.len()),
         slide_size,
@@ -180,7 +217,14 @@ pub fn build_deck(inputs: &[PageInput<'_>], options: &BuildOptions) -> Result<(D
         if index > 0 {
             merge::append_slide(&mut deck, &template, 0).map_err(Error::Ooxml)?;
         }
-        let page_report = build_page(&mut deck, index, input, &slide_size, options)?;
+        let page_report = build_page(
+            &mut deck,
+            index,
+            input,
+            &slide_size,
+            options,
+            east_asian.as_deref(),
+        )?;
         report.pages.push(page_report);
     }
 
@@ -194,6 +238,7 @@ fn build_page(
     input: &PageInput<'_>,
     slide_size: &SlideSize,
     options: &BuildOptions,
+    east_asian_font: Option<&str>,
 ) -> Result<PageReport> {
     let layout = input.layout;
     let (slide_cx, slide_cy) = slide_size.emu();
@@ -209,8 +254,14 @@ fn build_page(
 
     // ── 1. 文字框 ──────────────────────────────────────────────────────────
     for block in layout.text_blocks() {
-        let Some(text_box) = text_box_for(block, scale, slide_width_pt, slide_height_pt, options)
-        else {
+        let Some(text_box) = text_box_for(
+            block,
+            scale,
+            slide_width_pt,
+            slide_height_pt,
+            options,
+            east_asian_font,
+        ) else {
             report.skipped_text += 1;
             continue;
         };
@@ -250,6 +301,7 @@ fn text_box_for(
     slide_width_pt: f64,
     slide_height_pt: f64,
     options: &BuildOptions,
+    east_asian_font: Option<&str>,
 ) -> Option<TextBox> {
     if should_skip(block) {
         return None;
@@ -260,9 +312,7 @@ fn text_box_for(
     let bx2 = block.bbox.right as f64;
     let by2 = block.bbox.bottom as f64;
 
-    let height_pt = (by2 - by1) * scale;
-    let line_count = block.lines.len().max(1);
-    let font_size_pt = calculate_font_size(height_pt, line_count);
+    let font_size_pt = estimate_font_size(block, scale);
 
     let is_title = block.kind == BlockKind::ParagraphTitle;
     let (alignment, h_padding) = if is_title {
@@ -276,12 +326,44 @@ fn text_box_for(
     let right = bx2 * scale;
     let bottom = by2 * scale + TEXT_DELTA_Y_PT;
 
-    let rect = Rect::ltrb(
-        left.max(0.0),
-        (top - V_PADDING_PT).max(0.0),
-        (right + h_padding + h_padding).min(slide_width_pt),
-        (bottom + V_PADDING_PT).min(slide_height_pt),
-    );
+    let box_width_pt = right - left;
+    let box_height_pt = bottom - top;
+    if box_width_pt <= 0.0 || box_height_pt <= 0.0 {
+        return None;
+    }
+
+    // 依「字級 × 行數」重算需要的空間。
+    //
+    // 不能直接用 bbox 當框：bbox 是貼齊墨跡的，而 PowerPoint 會在第一行上方加行距、
+    // 最後一行下方加 descender，所以兩行字的墨跡框裝不下兩行字。字級估得越準，
+    // 這個誤差越明顯（文字溢出框外，甚至被折行）。
+    let line_count = block.lines.len().max(1) as f64;
+    let units = fontsize::full_width_units(&block.text);
+    let needed_width_pt = (units * font_size_pt).max(box_width_pt);
+    let needed_height_pt = (line_count * LINE_SPACING_RATIO + TEXT_SLACK_LINES) * font_size_pt;
+
+    let rect = match alignment {
+        // 內文（Vision 的全部文字）：以原 bbox 中心為中心放大
+        Align::Center => {
+            let cx = (left + right) / 2.0;
+            let cy = (top + bottom) / 2.0;
+            let half_w = (needed_width_pt / 2.0) + h_padding;
+            let half_h = (needed_height_pt / 2.0) + V_PADDING_PT;
+            Rect::ltrb(
+                (cx - half_w).max(0.0),
+                (cy - half_h).max(0.0),
+                (cx + half_w).min(slide_width_pt),
+                (cy + half_h).min(slide_height_pt),
+            )
+        }
+        // 標題（MinerU 的 paragraph_title）：保留左緣
+        _ => Rect::ltrb(
+            left.max(0.0),
+            (top - V_PADDING_PT).max(0.0),
+            (left + needed_width_pt + h_padding * 2.0).min(slide_width_pt),
+            (bottom + needed_height_pt - box_height_pt + V_PADDING_PT).min(slide_height_pt),
+        ),
+    };
     if rect.width_pt() <= 0.0 || rect.height_pt() <= 0.0 {
         return None;
     }
@@ -292,7 +374,12 @@ fn text_box_for(
         rect,
     )
     .font(options.font_name.clone(), font_size_pt)
-    .align(alignment);
+    .align(alignment)
+    // 原稿每個視覺行就是一行：不讓 PowerPoint 重新折行，位置才不會跑掉。
+    .wrap(n2p_ooxml::Wrap::None);
+    if let Some(ea) = east_asian_font {
+        text_box = text_box.east_asian_font(ea);
+    }
     if options.text_autofit {
         text_box = text_box.autofit(AutoFit::Normal);
     }
@@ -314,14 +401,93 @@ fn should_skip(block: &Block) -> bool {
     false
 }
 
-/// 對應 `calculate_font_size`：以 bbox 高度推算字級。
-fn calculate_font_size(height_pt: f64, line_count: usize) -> f64 {
-    let font_size = if line_count > 1 {
-        (height_pt / line_count as f64) * FONT_HEIGHT_RATIO
+/// 估算區塊的字級（點）。
+///
+/// 三個訊號依可靠度排序，取加權結果：
+///
+/// 1. **行距**（多行時最穩）：與字形無關，PowerPoint 單行行距約 1.2 em。
+/// 2. **字寬**（中文為主時最準）：CJK 等寬全形，一個字就是一個 em。
+/// 3. **墨跡高度**（備援）：同一字級下 `一二三` 與 `提學國` 的墨跡差到 40%，
+///    因此信心值最低。
+///
+/// 舊版用 `bbox高度 × 0.75`，對 Vision 的貼齊墨跡框會系統性偏小 30% 以上。
+fn estimate_font_size(block: &Block, scale: f64) -> f64 {
+    // 行距
+    let by_pitch = line_pitch_pt(block)
+        .map(|pitch| pitch * scale)
+        .and_then(|pitch| fontsize::from_line_pitch(pitch, LINE_PITCH_RATIO));
+
+    // 字寬 —— 用最寬的那一行，避免最後一行字少而被低估
+    let widest = block
+        .lines
+        .iter()
+        .filter_map(|line| line.bbox.map(|b| (line.text(), b.width() as f64 * scale)))
+        .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+    let by_width = widest
+        .as_ref()
+        .and_then(|(text, width)| fontsize::from_width(text, *width));
+
+    // 墨跡高度
+    let ink_height = block.bbox.height().max(1) as f64 * scale / block.lines.len().max(1) as f64;
+    let by_height = fontsize::from_ink_height(
+        &block.text,
+        ink_height,
+        fontsize::ink_ratio_for(&block.text),
+    );
+
+    let em = if fontsize::full_width_ratio(&block.text) >= 0.5 {
+        // 中文簡報：字寬幾乎是精確的，不要讓不可靠的墨跡高度把它拉走。
+        by_width
+            .map(|e| e.em_pt)
+            .or_else(|| by_pitch.map(|e| e.em_pt))
+            .or_else(|| by_height.map(|e| e.em_pt))
     } else {
-        height_pt * FONT_HEIGHT_RATIO
+        // 拉丁文字：字寬取決於字元組成、墨跡高度取決於有無升降部，兩者都不準。
+        // 有行距就信行距，否則取兩者平均。
+        by_pitch
+            .map(|e| e.em_pt)
+            .or_else(|| fontsize::blend(by_width, by_height))
     };
-    font_size.max(MIN_FONT_SIZE_PT).round()
+
+    let em = em
+        .unwrap_or(MIN_FONT_SIZE_PT)
+        .clamp(MIN_FONT_SIZE_PT, MAX_FONT_SIZE_PT)
+        .round();
+    if std::env::var("N2P_DEBUG_FONT").is_ok() {
+        eprintln!(
+            "[font] {:?} bbox={:?} em={em} units={:.2} lineWidth={:?} pitch={:?} height={:?} text={:?}",
+            block.kind,
+            block.bbox,
+            fontsize::full_width_units(&block.text),
+            widest.as_ref().map(|(_, w)| *w),
+            by_pitch.map(|e| e.em_pt),
+            by_height.map(|e| e.em_pt),
+            block.text.chars().take(18).collect::<String>(),
+        );
+    }
+    em
+}
+
+/// 相鄰行的垂直間距（取中位數，抗離群）。
+fn line_pitch_pt(block: &Block) -> Option<f64> {
+    let tops: Vec<f64> = block
+        .lines
+        .iter()
+        .filter_map(|line| line.bbox.map(|b| b.top as f64))
+        .collect();
+    if tops.len() < 2 {
+        return None;
+    }
+    let mut gaps: Vec<f64> = tops
+        .windows(2)
+        .map(|w| w[1] - w[0])
+        .filter(|g| *g > 0.5)
+        .collect();
+    if gaps.is_empty() {
+        return None;
+    }
+    gaps.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    Some(gaps[gaps.len() / 2])
 }
 
 fn ppt_rect(bbox: BBox, scale: f64) -> Rect {
@@ -458,10 +624,53 @@ mod tests {
     }
 
     #[test]
-    fn font_size_follows_bbox_height() {
-        assert_eq!(calculate_font_size(60.0, 1), 45.0);
-        assert_eq!(calculate_font_size(60.0, 2), 23.0);
-        assert_eq!(calculate_font_size(2.0, 1), MIN_FONT_SIZE_PT);
+    fn font_size_uses_line_width_for_chinese() {
+        // 8 個全形字、框寬 336 pt → em 應約 42 pt，而不是舊公式的 336*0.75=252
+        let mut block = Block::new(BlockKind::Text, BBox::new(0, 0, 336, 50));
+        block.text = "提升學生正向幸福".into();
+        block.lines = vec![n2p_layout::Line {
+            spans: vec![n2p_layout::Span {
+                text: Some(block.text.clone()),
+                image_path: None,
+            }],
+            bbox: Some(BBox::new(0, 0, 336, 50)),
+        }];
+        let size = estimate_font_size(&block, 1.0);
+        assert!((size - 42.0).abs() <= 1.0, "應約 42 pt，實際 {size}");
+    }
+
+    #[test]
+    fn font_size_uses_line_pitch_for_multiline() {
+        // 三行、行距 60 pt → em 應約 50 pt（60 / 1.2）
+        let mut block = Block::new(BlockKind::Text, BBox::new(0, 0, 400, 160));
+        block.text = "第一行\n第二行\n第三行".into();
+        block.lines = (0..3)
+            .map(|i| n2p_layout::Line {
+                spans: vec![n2p_layout::Span {
+                    text: Some(["第一行", "第二行", "第三行"][i].to_string()),
+                    image_path: None,
+                }],
+                bbox: Some(BBox::new(0, i as i64 * 60, 150, i as i64 * 60 + 50)),
+            })
+            .collect();
+        let size = estimate_font_size(&block, 1.0);
+        assert!((size - 50.0).abs() <= 2.0, "應約 50 pt，實際 {size}");
+    }
+
+    #[test]
+    fn font_size_is_clamped_to_sane_range() {
+        let mut block = Block::new(BlockKind::Text, BBox::new(0, 0, 2, 2));
+        block.text = "x".into();
+        block.lines = vec![n2p_layout::Line {
+            spans: vec![n2p_layout::Span {
+                text: Some("x".into()),
+                image_path: None,
+            }],
+            bbox: Some(BBox::new(0, 0, 2, 2)),
+        }];
+        let size = estimate_font_size(&block, 1.0);
+        assert!(size >= MIN_FONT_SIZE_PT, "實際 {size}");
+        assert!(size <= MAX_FONT_SIZE_PT);
     }
 
     #[test]

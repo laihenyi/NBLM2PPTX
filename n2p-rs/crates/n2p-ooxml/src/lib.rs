@@ -70,4 +70,4 @@ pub use error::{Error, Result};
 pub use merge::{AppendOutcome, MergeOptions, MergeReport};
 pub use opc::{Package, Relationship, Relationships};
 pub use picture::Picture;
-pub use shape::{Align, Anchor, AutoFit, NewlineMode, TextBox};
+pub use shape::{Align, Anchor, AutoFit, NewlineMode, TextBox, Wrap};

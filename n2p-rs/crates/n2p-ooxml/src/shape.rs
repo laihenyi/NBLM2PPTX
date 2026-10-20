@@ -47,6 +47,17 @@ impl Anchor {
     }
 }
 
+/// 文字換行方式。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Wrap {
+    /// 依框寬自動換行（PowerPoint 預設）。
+    #[default]
+    Square,
+    /// 不換行（`wrap="none"`）。本專案預設：每個視覺行就是一行，
+    /// 換行會讓字數與原稿不符，也會讓框高算不準。
+    None,
+}
+
 /// 文字自動縮放。預設 `None` 是**刻意還原 Spire 的既有行為**。
 ///
 /// 實測 Spire 11.8.1 對 `TextFrame.FitTextToShape = True` 不寫任何 autofit 元素，
@@ -93,6 +104,11 @@ pub struct TextBox {
     pub text: String,
     pub rect: Rect,
     pub font_family: String,
+    /// 東亞字型（`<a:ea>`）。CJK 字元實際用的是這個，不是 `a:latin`。
+    ///
+    /// 不指定時 PowerPoint 會落到主題字型（`+mn-ea`），渲染結果與原稿的字型
+    /// 不一致，字高會有約一成的偏差。
+    pub east_asian_font_family: Option<String>,
     pub font_size_pt: f64,
     pub color_rgb: [u8; 3],
     pub align: Align,
@@ -105,6 +121,8 @@ pub struct TextBox {
     pub emit_style: bool,
     /// 多行文字如何表示。
     pub newline: NewlineMode,
+    /// 換行方式。
+    pub wrap: Wrap,
 }
 
 impl Default for TextBox {
@@ -114,6 +132,7 @@ impl Default for TextBox {
             text: String::new(),
             rect: Rect::ltrb(60.0, 40.0, 660.0, 120.0),
             font_family: "Calibri".to_owned(),
+            east_asian_font_family: None,
             font_size_pt: 24.0,
             color_rgb: [0, 0, 0],
             align: Align::Center,
@@ -123,6 +142,7 @@ impl Default for TextBox {
             autofit: AutoFit::None,
             emit_style: true,
             newline: NewlineMode::default(),
+            wrap: Wrap::default(),
         }
     }
 }
@@ -140,6 +160,12 @@ impl TextBox {
     pub fn font(mut self, family: impl Into<String>, size_pt: f64) -> Self {
         self.font_family = family.into();
         self.font_size_pt = size_pt;
+        self
+    }
+
+    /// 指定東亞字型（CJK 字元實際採用的字型）。
+    pub fn east_asian_font(mut self, family: impl Into<String>) -> Self {
+        self.east_asian_font_family = Some(family.into());
         self
     }
 
@@ -163,6 +189,11 @@ impl TextBox {
         self
     }
 
+    pub fn wrap(mut self, wrap: Wrap) -> Self {
+        self.wrap = wrap;
+        self
+    }
+
     /// 產生 `<p:sp>`。
     pub fn build(&self, shape_id: u32) -> Element {
         let (x, y) = self.rect.emu_offset();
@@ -174,6 +205,9 @@ impl TextBox {
             body_pr.set_attr("tIns", "0");
             body_pr.set_attr("rIns", "0");
             body_pr.set_attr("bIns", "0");
+        }
+        if self.wrap == Wrap::None {
+            body_pr.set_attr("wrap", "none");
         }
         body_pr.set_attr("rtlCol", "0");
         body_pr.set_attr("anchor", self.anchor.token());
@@ -274,6 +308,10 @@ impl TextBox {
                 )),
             )
             .child(Element::new("a:latin").attr("typeface", self.font_family.as_str()));
+        let r_pr = match &self.east_asian_font_family {
+            Some(ea) => r_pr.child(Element::new("a:ea").attr("typeface", ea.as_str())),
+            None => r_pr,
+        };
 
         Element::new("a:r")
             .child(r_pr)
