@@ -125,7 +125,7 @@ struct ConvertArgs {
     erase: EraseArg,
 
     /// 文字合成方式：`cover` 不動背景、文字框自帶底色；`erase` 先擦背景再疊文字
-    #[arg(long, value_enum, default_value = "cover")]
+    #[arg(long, value_enum, default_value = "erase")]
     text_mode: TextModeArg,
 
     /// 保留中間產物（頁面 PNG）到此目錄
