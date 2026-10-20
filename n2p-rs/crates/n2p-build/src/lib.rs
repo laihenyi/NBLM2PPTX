@@ -21,6 +21,7 @@
 //!   縮成 1376×768）再當背景，等於丟掉一半解析度。這裡預設維持原行為以求等價，
 //!   但可以用 [`BackgroundResolution::FullImage`] 保留完整解析度。
 
+pub mod fonts;
 pub mod fontsize;
 
 use n2p_core::{BBox, RgbImage};
@@ -51,10 +52,12 @@ const LINE_PITCH_RATIO: f64 = 1.2;
 const LINE_SPACING_RATIO: f64 = 1.3;
 /// 額外留白（以行數計），吸收字型升降部的差異。
 const TEXT_SLACK_LINES: f64 = 0.25;
+/// 非中文簡報的預設拉丁字型。
+const DEFAULT_LATIN_FONT: &str = "Calibri";
 /// 字級上限，避免異常邊界框產生荒謬結果。
 const MAX_FONT_SIZE_PT: f64 = 400.0;
-/// 中文簡報預設的東亞字型（macOS／Windows 的 PowerPoint 都有）。
-const DEFAULT_CJK_FONT: &str = "Microsoft JhengHei";
+/// 使用者沒有指定字型時，代表「自動挑選」。
+pub const AUTO_FONT: &str = "auto";
 
 /// 內文是否以中文（全形字）為主。
 fn deck_is_cjk_dominant(inputs: &[PageInput<'_>]) -> bool {
@@ -143,7 +146,7 @@ pub struct BuildOptions {
 impl Default for BuildOptions {
     fn default() -> Self {
         Self {
-            font_name: "Calibri".to_owned(),
+            font_name: AUTO_FONT.to_owned(),
             east_asian_font_name: None,
             widescreen: false,
             erase_background_regions: true,
@@ -203,10 +206,23 @@ pub fn build_deck(inputs: &[PageInput<'_>], options: &BuildOptions) -> Result<(D
 
     // CJK 字元用的是 `<a:ea>` 而不是 `<a:latin>`。不指定就會落到主題字型，
     // 字高與原稿差約一成。以內文是否以中文為主來決定預設值。
+    //
+    // 寫死字型名很危險：沒安裝時 PowerPoint 會靜默落到主題字型，等於沒設定。
+    // 因此改成偵測系統實際裝了什麼，挑第一個可用的候選。
+    let cjk = deck_is_cjk_dominant(inputs);
+    let picked = cjk.then(fonts::pick_east_asian).flatten();
     let east_asian = options
         .east_asian_font_name
         .clone()
-        .or_else(|| deck_is_cjk_dominant(inputs).then(|| DEFAULT_CJK_FONT.to_owned()));
+        .or_else(|| picked.map(str::to_owned));
+
+    // 中文簡報若沒指定拉丁字型，也用同一個字型 —— Noto Sans CJK 含完整拉丁字形，
+    // 整份簡報只用一個字型最接近原稿。
+    let latin = if options.font_name == AUTO_FONT {
+        picked.unwrap_or(DEFAULT_LATIN_FONT).to_owned()
+    } else {
+        options.font_name.clone()
+    };
 
     let mut report = BuildReport {
         pages: Vec::with_capacity(inputs.len()),
@@ -224,6 +240,7 @@ pub fn build_deck(inputs: &[PageInput<'_>], options: &BuildOptions) -> Result<(D
             &slide_size,
             options,
             east_asian.as_deref(),
+            &latin,
         )?;
         report.pages.push(page_report);
     }
@@ -239,6 +256,7 @@ fn build_page(
     slide_size: &SlideSize,
     options: &BuildOptions,
     east_asian_font: Option<&str>,
+    latin_font: &str,
 ) -> Result<PageReport> {
     let layout = input.layout;
     let (slide_cx, slide_cy) = slide_size.emu();
@@ -259,8 +277,9 @@ fn build_page(
             scale,
             slide_width_pt,
             slide_height_pt,
-            options,
+            latin_font,
             east_asian_font,
+            options.text_autofit,
         ) else {
             report.skipped_text += 1;
             continue;
@@ -300,8 +319,9 @@ fn text_box_for(
     scale: f64,
     slide_width_pt: f64,
     slide_height_pt: f64,
-    options: &BuildOptions,
+    latin_font: &str,
     east_asian_font: Option<&str>,
+    text_autofit: bool,
 ) -> Option<TextBox> {
     if should_skip(block) {
         return None;
@@ -373,14 +393,14 @@ fn text_box_for(
         block.text.clone(),
         rect,
     )
-    .font(options.font_name.clone(), font_size_pt)
+    .font(latin_font, font_size_pt)
     .align(alignment)
     // 原稿每個視覺行就是一行：不讓 PowerPoint 重新折行，位置才不會跑掉。
     .wrap(n2p_ooxml::Wrap::None);
     if let Some(ea) = east_asian_font {
         text_box = text_box.east_asian_font(ea);
     }
-    if options.text_autofit {
+    if text_autofit {
         text_box = text_box.autofit(AutoFit::Normal);
     }
     Some(text_box)

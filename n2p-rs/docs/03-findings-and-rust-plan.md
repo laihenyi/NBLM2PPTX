@@ -272,6 +272,36 @@ n2p convert ... --high-res-background
 
 寬度全部在 ±4% 內。高度仍有個位數到兩成的差異，來源是字型本身的差異（原稿的字型不明，只能用系統字型近似），不是字級算錯。
 
+### 字型：Noto Sans TC
+
+NotebookLM（現在的 Gemini Notebook）產出的簡報是**圖片**，字型被畫進像素裡，PDF 裡
+沒有任何字型屬性可讀（實測 `page.get_text("dict")` 回傳 0 個 span）。所以只能用外觀推測。
+
+查證後採用 **Noto Sans TC（思源黑體）**：
+
+* Google 的產出物，社群處理繁中 NotebookLM 簡報時的共識也是 Noto Sans TC／思源黑體
+  （[就享知](https://www.digiknow.com.tw/knowledge/19f7ff4acd944)、
+  [小企鵝 Penchan](https://penchan.co/ai/presentation/ai-presentation-prompt-tips/)）。
+* Google Slides 的 zh-Hant 標準字型方案就是 Noto Sans TC
+  （[OpenPresentation](https://www.openpresentation.org/catalogs/font-schemes/noto-sans-tc)）。
+* Noto Sans CJK TC 含完整拉丁字形，整份簡報可以只用一個字型。
+
+實作上不寫死名字。第一版寫死 `Microsoft JhengHei`，但本機根本沒裝 —— PowerPoint 會
+**靜默**落到主題字型，等於沒設定。改成偵測標準字型目錄並依偏好序挑選：
+
+```
+$ n2p fonts
+  ✓ 已安裝  Noto Sans TC  ← 將使用
+  · 未安裝  Source Han Sans TC
+  · 未安裝  PingFang TC
+  · 未安裝  Microsoft JhengHei
+  ✓ 已安裝  Heiti TC
+  · 未安裝  LiHei Pro
+```
+
+`system_profiler SPFontsDataType` 要 8 秒，不能每次轉換都跑；改成掃四個標準字型目錄的
+檔名（一次 `read_dir`），對這幾個候選字型而言檔名是穩定的。
+
 ### 未完成的部分與理由
 
 * **GUI**：CLI 已能完成全部工作，GUI 屬於體驗層，等核心穩定再做較合理。

@@ -31,6 +31,8 @@ enum Command {
     Methods,
     /// 對單張影像跑 OCR，用於診斷版面結果
     Ocr(OcrArgs),
+    /// 列出候選東亞字型與其安裝狀態
+    Fonts,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -94,9 +96,13 @@ struct ConvertArgs {
     #[arg(long, value_name = "RANGE")]
     pages: Option<String>,
 
-    /// 文字框字型
-    #[arg(long, default_value = "Calibri")]
+    /// 拉丁字型；`auto` 表示依內文自動挑選
+    #[arg(long, default_value = "auto")]
     font: String,
+
+    /// 東亞字型（CJK 字元實際使用的字型）；預設自動挑選
+    #[arg(long, value_name = "NAME")]
+    ea_font: Option<String>,
 
     /// 讓 PowerPoint 自動縮放文字以塞入框內
     #[arg(long)]
@@ -151,6 +157,10 @@ fn run(cli: Cli) -> anyhow::Result<()> {
             Ok(())
         }
         Command::Ocr(args) => ocr(args),
+        Command::Fonts => {
+            fonts();
+            Ok(())
+        }
     }
 }
 
@@ -185,6 +195,7 @@ fn convert(args: ConvertArgs) -> anyhow::Result<()> {
         layout,
         build: n2p_build::BuildOptions {
             font_name: args.font.clone(),
+            east_asian_font_name: args.ea_font.clone(),
             widescreen: args.widescreen,
             text_autofit: args.autofit,
             erase_mode: match args.erase {
@@ -249,6 +260,29 @@ fn methods() {
         );
         println!("  {:<18} {}", "", method.description());
     }
+}
+
+fn fonts() {
+    println!("候選東亞字型（依偏好排序，實際使用的是第一個已安裝者）：");
+    let mut picked = false;
+    for (family, installed) in n2p_build::fonts::availability() {
+        let mark = if installed {
+            "✓ 已安裝"
+        } else {
+            "· 未安裝"
+        };
+        let tag = if installed && !picked {
+            picked = true;
+            "  ← 將使用"
+        } else {
+            ""
+        };
+        println!("  {mark}  {family}{tag}");
+    }
+    if !picked {
+        println!("\n  找不到任何候選字型；<a:ea> 不會寫入，PowerPoint 會用主題字型。");
+    }
+    println!("\n可用 --font / --ea-font 指定其他字型。");
 }
 
 fn ocr(args: OcrArgs) -> anyhow::Result<()> {
