@@ -123,6 +123,9 @@ pub struct TextBox {
     pub newline: NewlineMode,
     /// 換行方式。
     pub wrap: Wrap,
+    /// 文字框填色。`Some` 時畫一個不透明的底色矩形（覆蓋式做法），
+    /// `None` 時無填色（靠背景已被擦除）。
+    pub fill: Option<[u8; 3]>,
 }
 
 impl Default for TextBox {
@@ -143,6 +146,7 @@ impl Default for TextBox {
             emit_style: true,
             newline: NewlineMode::default(),
             wrap: Wrap::default(),
+            fill: None,
         }
     }
 }
@@ -191,6 +195,12 @@ impl TextBox {
 
     pub fn wrap(mut self, wrap: Wrap) -> Self {
         self.wrap = wrap;
+        self
+    }
+
+    /// 設定文字框填色（覆蓋式做法：用底色矩形蓋住原稿的文字）。
+    pub fn fill(mut self, rgb: [u8; 3]) -> Self {
+        self.fill = Some(rgb);
         self
     }
 
@@ -257,8 +267,16 @@ impl TextBox {
                 ),
         );
         sp_pr = sp_pr.child(Element::new("a:prstGeom").attr("prst", "rect"));
-        // Fill.FillType = none
-        sp_pr = sp_pr.child(Element::new("a:noFill"));
+        // 覆蓋式：填底色蓋住原稿文字；否則無填色
+        sp_pr = match self.fill {
+            Some(rgb) => sp_pr.child(
+                Element::new("a:solidFill").child(
+                    Element::new("a:srgbClr")
+                        .attr("val", format!("{:02X}{:02X}{:02X}", rgb[0], rgb[1], rgb[2])),
+                ),
+            ),
+            None => sp_pr.child(Element::new("a:noFill")),
+        };
         // Line.FillType = none
         sp_pr = sp_pr.child(Element::new("a:ln").child(Element::new("a:noFill")));
 

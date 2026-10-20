@@ -98,6 +98,25 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// 文字與背景的合成方式。
+///
+/// * [`TextMode::Erase`]：先從背景圖擦掉原稿文字，再把文字框疊上去。
+///   需要「像素級正確」的擦除 —— 位置、子彈點、漸層、外框光暈都要對，
+///   任何一點沒對上就是可見瑕疵。
+/// * [`TextMode::Cover`]：**背景圖完全不動**，每個文字框自帶不透明底色矩形，
+///   直接把原稿的文字（連同外框光暈）蓋掉。圖示、裝飾因此不可能被破壞。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TextMode {
+    /// 覆蓋式：背景不動，文字框自帶底色把原稿文字蓋掉。
+    ///
+    /// 實測**不比擦除式好**：覆蓋矩形必須比原稿文字大才蓋得住，於是又會壓到
+    /// 旁邊的圖示；底色是單一顏色，遇到漸層就看得出來。保留為可選項。
+    Cover,
+    /// 擦除式（預設）：先擦背景再疊文字。
+    #[default]
+    Erase,
+}
+
 /// 背景擦除的方式。
 ///
 /// Python 版是「把區塊填成邊緣主色」（[`EraseMode::Flat`]）：背景是純色時看不出來，
@@ -134,8 +153,10 @@ pub struct BuildOptions {
     pub widescreen: bool,
     /// 是否在背景圖上擦除已轉成文字/圖片的區域。
     pub erase_background_regions: bool,
-    /// 擦除方式。
+    /// 擦除方式（僅 `TextMode::Erase` 時有效）。
     pub erase_mode: EraseMode,
+    /// 文字與背景的合成方式。
+    pub text_mode: TextMode,
     pub background_resolution: BackgroundResolution,
     /// 文字框是否寫入 `<a:normAutofit/>`。
     ///
@@ -151,6 +172,7 @@ impl Default for BuildOptions {
             widescreen: false,
             erase_background_regions: true,
             erase_mode: EraseMode::default(),
+            text_mode: TextMode::default(),
             background_resolution: BackgroundResolution::PageSize,
             text_autofit: false,
         }
@@ -269,27 +291,59 @@ fn build_page(
     let scale = slide_width_pt / layout.size_pt.0;
 
     let mut report = PageReport::default();
+    let image_scale = input.image.width as f64 / layout.size_pt.0;
 
     // ── 1. 文字框 ──────────────────────────────────────────────────────────
+    //
+    // 同時記下「真的轉成文字框」的區塊與其擦除範圍。背景擦除只處理這些 ——
+    // 沒轉成文字框的區塊（例如只有一個 `◎` 的子彈點）必須留在背景上，
+    // 擦掉就等於把原稿的圖示刪了。
+    let mut erase_regions: Vec<(BBox, f64)> = Vec::new();
     for block in layout.text_blocks() {
-        let Some(text_box) = text_box_for(
-            block,
+        // 先用幾何判斷把左側的項目符號／小圖示從 bbox 排除，再拿「純文字 bbox」
+        // 去算字級、置中與擦除。少了這一步，bbox 含子彈點會讓字級偏大、
+        // 文字置中後壓到子彈點上。
+        let text_region = trim_block_icon(input.image, block.bbox, image_scale, &block.text);
+
+        // 短小的非中文區塊若壓在圖形上，通常是 Vision 把裝飾讀成文字
+        // （第 3 頁的引號裝飾被讀成 "99"）。這種區塊留給背景，不要重複畫一次。
+        if is_decoration_block(input.image, text_region, image_scale, &block.text) {
+            report.skipped_text += 1;
+            continue;
+        }
+        // 原稿的文字顏色（未必是黑；CH9 是深藍）
+        let text_color = sample_text_color(input.image, text_region, image_scale);
+        let env = TextEnv {
             scale,
             slide_width_pt,
             slide_height_pt,
             latin_font,
             east_asian_font,
-            options.text_autofit,
-        ) else {
+            text_autofit: options.text_autofit,
+            text_mode: options.text_mode,
+        };
+        let Some(text_box) = text_box_for(block, text_region, &env, text_color) else {
             report.skipped_text += 1;
             continue;
         };
+        let text_box = if options.text_mode == TextMode::Cover {
+            // 取文字框外圍的顏色當底色 —— 那一圈基本上是背景
+            let pad_px =
+                (text_box.font_size_pt / scale.max(f64::EPSILON) * image_scale * 0.35) as i64 + 3;
+            let fill = background_color(input.image, text_region.scale(image_scale), pad_px);
+            text_box.fill(fill)
+        } else {
+            text_box
+        };
         deck.push_text_box(index, &text_box).map_err(Error::Ooxml)?;
         report.text_boxes += 1;
+        let font_size_pt = text_box.font_size_pt;
+
+        // 擦除範圍 = 同一塊「純文字」區域，因此字級、位置、擦除三者一致。
+        erase_regions.push((text_region, font_size_pt / scale.max(f64::EPSILON)));
     }
 
     // ── 2. 前景圖片（裁切後置底）───────────────────────────────────────────
-    let image_scale = input.image.width as f64 / layout.size_pt.0;
     for block in layout.foreground_blocks() {
         let expanded = expand_bbox(block.bbox, FOREGROUND_EXPAND_PX)
             .clamp(input.image.width as i64, input.image.height as i64);
@@ -305,7 +359,7 @@ fn build_page(
     }
 
     // ── 3. 背景 ────────────────────────────────────────────────────────────
-    let background = prepare_background(input, options)?;
+    let background = prepare_background(input, options, &erase_regions)?;
     deck.set_background_picture(index, background, "png")
         .map_err(Error::Ooxml)?;
 
@@ -314,23 +368,40 @@ fn build_page(
 }
 
 /// 由區塊產生文字框；跳過空白與 NotebookLM 頁尾水印。
-fn text_box_for(
-    block: &Block,
+/// 產生文字框所需的環境資訊（避免參數列過長）。
+struct TextEnv<'a> {
     scale: f64,
     slide_width_pt: f64,
     slide_height_pt: f64,
-    latin_font: &str,
-    east_asian_font: Option<&str>,
+    latin_font: &'a str,
+    east_asian_font: Option<&'a str>,
     text_autofit: bool,
+    text_mode: TextMode,
+}
+
+fn text_box_for(
+    block: &Block,
+    region: BBox,
+    env: &TextEnv<'_>,
+    text_color: [u8; 3],
 ) -> Option<TextBox> {
+    let TextEnv {
+        scale,
+        slide_width_pt,
+        slide_height_pt,
+        latin_font,
+        east_asian_font,
+        text_autofit,
+        text_mode,
+    } = *env;
     if should_skip(block) {
         return None;
     }
 
-    let bx1 = block.bbox.left as f64;
-    let by1 = block.bbox.top as f64;
-    let bx2 = block.bbox.right as f64;
-    let by2 = block.bbox.bottom as f64;
+    let bx1 = region.left as f64;
+    let by1 = region.top as f64;
+    let bx2 = region.right as f64;
+    let by2 = region.bottom as f64;
 
     let font_size_pt = estimate_font_size(block, scale);
 
@@ -358,9 +429,27 @@ fn text_box_for(
     // 最後一行下方加 descender，所以兩行字的墨跡框裝不下兩行字。字級估得越準，
     // 這個誤差越明顯（文字溢出框外，甚至被折行）。
     let line_count = block.lines.len().max(1) as f64;
-    let units = fontsize::full_width_units(&block.text);
+    // 用剝掉項目符號後的文字算寬度 —— 否則會把子彈點的寬度算進去，
+    // 文字框因此變寬、置中後往左壓到子彈點上。
+    // 框寬用「最寬的那一行」，不是所有行的總和 ——
+    // 舊版把整段的字數加起來，多行區塊的框會寬到蓋住旁邊的插圖。
+    let units = block
+        .lines
+        .iter()
+        .map(|line| fontsize::full_width_units(strip_leading_bullet(&line.text()).0))
+        .fold(0.0_f64, f64::max)
+        .max(fontsize::full_width_units(strip_leading_bullet(&block.text).0) / line_count);
     let needed_width_pt = (units * font_size_pt).max(box_width_pt);
-    let needed_height_pt = (line_count * LINE_SPACING_RATIO + TEXT_SLACK_LINES) * font_size_pt;
+    // 高度取「估算值」與「原 bbox」的較大者：字型的行距比原稿緊時，
+    // 純估算會讓框比原稿矮，覆蓋式就會露出下面的原稿文字。
+    let needed_height_pt =
+        ((line_count * LINE_SPACING_RATIO + TEXT_SLACK_LINES) * font_size_pt).max(box_height_pt);
+    // 覆蓋式要把原稿的外框光暈也蓋住，留白稍大一點
+    let cover_padding_pt = if text_mode == TextMode::Cover {
+        font_size_pt * 0.18
+    } else {
+        0.0
+    };
 
     let rect = match alignment {
         // 內文（Vision 的全部文字）：以原 bbox 中心為中心放大
@@ -387,13 +476,21 @@ fn text_box_for(
     if rect.width_pt() <= 0.0 || rect.height_pt() <= 0.0 {
         return None;
     }
+    // 覆蓋式要在文字周圍多留一點，把原稿的外框光暈一起蓋住
+    let rect = Rect::ltrb(
+        (rect.left_pt - cover_padding_pt).max(0.0),
+        (rect.top_pt - cover_padding_pt).max(0.0),
+        (rect.right_pt + cover_padding_pt).min(slide_width_pt),
+        (rect.bottom_pt + cover_padding_pt).min(slide_height_pt),
+    );
 
     let mut text_box = TextBox::new(
         format!("Block_{}", block.kind.label()),
-        block.text.clone(),
+        strip_leading_bullet(&block.text).0.to_owned(),
         rect,
     )
     .font(latin_font, font_size_pt)
+    .color(text_color)
     .align(alignment)
     // 原稿每個視覺行就是一行：不讓 PowerPoint 重新折行，位置才不會跑掉。
     .wrap(n2p_ooxml::Wrap::None);
@@ -406,12 +503,86 @@ fn text_box_for(
     Some(text_box)
 }
 
+/// 判斷是否為「裝飾被誤讀成文字」的區塊。
+///
+/// 條件：去符號後 ≤ 3 個字元、不含中日韓文字，而且所在區域色彩複雜
+/// （代表它壓在圖形上，原稿的裝飾本來就會留在背景）。
+fn is_decoration_block(image: &RgbImage, region: BBox, image_scale: f64, text: &str) -> bool {
+    let display = strip_leading_bullet(text).0.trim();
+    let count = display.chars().count();
+    if count == 0 || count > 3 || display.chars().any(fontsize::is_full_width) {
+        return false;
+    }
+    let bbox = region
+        .scale(image_scale)
+        .clamp(image.width as i64, image.height as i64);
+    if bbox.is_empty() {
+        return false;
+    }
+    let (diversity, _) = edge_diversity(image, bbox, ERASE_TOLERANCE);
+    diversity > 0.35
+}
+
+/// 把文字區塊左側的項目符號／小圖示排除，回傳「純文字」的邊界框（layout pt）。
+///
+/// 兩階段：先用寬度粗估字級，拿它當「圖示最大寬度」去投影找空隙，再用縮小後的
+/// 寬度重估字級。這樣字級、置中、擦除三者都對齊同一塊區域。
+fn trim_block_icon(image: &RgbImage, bbox: BBox, image_scale: f64, text: &str) -> BBox {
+    let units = fontsize::full_width_units(strip_leading_bullet(text).0);
+    if units < 0.5 {
+        return bbox;
+    }
+    let prelim_em = (bbox.width() as f64 / units).max(1.0);
+    let trimmed = trim_leading_icon(image, bbox.scale(image_scale), prelim_em * image_scale);
+    let trimmed = BBox::new(
+        (trimmed.left as f64 / image_scale).round() as i64,
+        (trimmed.top as f64 / image_scale).round() as i64,
+        (trimmed.right as f64 / image_scale).round() as i64,
+        (trimmed.bottom as f64 / image_scale).round() as i64,
+    );
+    if trimmed.width() >= 3 { trimmed } else { bbox }
+}
+
+/// 當作項目符號／裝飾的符號。
+///
+/// 這些是 Unicode 字元，Vision 會把它們讀成文字，於是同一個子彈點同時存在於
+/// 背景圖（原稿的向量圖形）與文字框（我們新增的），看起來就是重疊錯位。
+/// 全形標點（`「」`、`，`）**不在**此列 —— 那是內容的一部分。
+const BULLET_CHARS: &[char] = &[
+    '•', '‧', '∙', '◦', '○', '●', '◎', '◇', '◆', '■', '□', '▪', '▫', '▸', '‣', '⁃', '·', '※', '★',
+    '☆', '✓', '✔', '→', '⇒', '➤', '❖', '❚',
+];
+
+/// 剝掉行首的項目符號，回傳 `(剩餘文字, 被剝掉的寬度（em）)`。
+///
+/// 只剝「行首連續的符號 + 空白」，內文的符號不動。
+///
+/// 回傳的 em 寬度用來決定**擦除要從哪裡開始** —— 原稿的子彈點是背景圖的一部分，
+/// 擦掉就沒了，所以擦除範圍必須往右縮。
+fn strip_leading_bullet(text: &str) -> (&str, f64) {
+    let mut rest = text.trim_start();
+    let mut advance = 0.0;
+    while let Some(c) = rest.chars().next() {
+        if BULLET_CHARS.contains(&c) {
+            advance += if fontsize::is_full_width(c) { 1.0 } else { 0.5 };
+            rest = &rest[c.len_utf8()..];
+        } else if c.is_whitespace() {
+            advance += 0.25;
+            rest = &rest[c.len_utf8()..];
+        } else {
+            break;
+        }
+    }
+    (rest, advance)
+}
+
 /// 對應 `should_skip_text_block`。
 fn should_skip(block: &Block) -> bool {
     if !block.kind.is_text() {
         return true;
     }
-    if block.text.trim().is_empty() {
+    if strip_leading_bullet(&block.text).0.trim().is_empty() {
+        // 純符號區塊（例如只有一個 `◎`）：不要產生文字框，讓原稿的圖示留在背景。
         return true;
     }
     // 跳過 NotebookLM 的頁尾水印文字
@@ -528,8 +699,200 @@ fn expand_bbox(bbox: BBox, expand: i64) -> BBox {
     )
 }
 
-/// 準備背景影像：選擇性擦除已處理的區域。
-fn prepare_background(input: &PageInput<'_>, options: &BuildOptions) -> Result<Vec<u8>> {
+/// 從原圖取樣文字顏色。
+///
+/// 兩個關鍵取捨：
+///
+/// 1. **背景要從 bbox 外圍取樣**。Vision 的框貼齊文字，密集段落裡文字面積大於
+///    空白，直接用框內的眾數會把文字色當成背景。
+/// 2. **文字色取「離背景最遠」的顏色，不是出現最多的顏色**。原稿常有白色外框／
+///    光暈（CH9 的標題是深藍字 + 白光暈），光暈像素數往往多於字心，取眾數會得到
+///    白色，產出「白字壓在淺底上」。
+fn sample_text_color(image: &RgbImage, bbox: BBox, image_scale: f64) -> [u8; 3] {
+    let bbox = bbox
+        .scale(image_scale)
+        .clamp(image.width as i64, image.height as i64);
+    if bbox.is_empty() {
+        return [0, 0, 0];
+    }
+    let background = background_color(image, bbox, (bbox.height() / 3).max(6));
+    let distance_from_bg = |c: [u8; 3]| -> u32 {
+        c.iter()
+            .zip(background.iter())
+            .map(|(a, b)| a.abs_diff(*b) as u32)
+            .max()
+            .unwrap_or(0)
+    };
+
+    // 量化到 16 階分桶，記下每桶的像素數與總和
+    let mut buckets: std::collections::HashMap<[u8; 3], (usize, [u64; 3])> =
+        std::collections::HashMap::new();
+    for y in bbox.top..bbox.bottom {
+        for x in bbox.left..bbox.right {
+            let pixel = image.pixel(x as u32, y as u32);
+            if distance_from_bg(pixel) > 60 {
+                let key = [pixel[0] & 0xF0, pixel[1] & 0xF0, pixel[2] & 0xF0];
+                let entry = buckets.entry(key).or_insert((0, [0; 3]));
+                entry.0 += 1;
+                entry.1[0] += pixel[0] as u64;
+                entry.1[1] += pixel[1] as u64;
+                entry.1[2] += pixel[2] as u64;
+            }
+        }
+    }
+    let Some(max_count) = buckets.values().map(|(count, _)| *count).max() else {
+        return [0, 0, 0];
+    };
+
+    // 只考慮出現次數不算少的桶，避免單一雜訊像素勝出
+    let threshold = (max_count / 10).max(4);
+    let mut best: Option<(u32, [u8; 3])> = None;
+    for (count, sums) in buckets.values() {
+        if *count < threshold {
+            continue;
+        }
+        let color = [
+            (sums[0] / *count as u64) as u8,
+            (sums[1] / *count as u64) as u8,
+            (sums[2] / *count as u64) as u8,
+        ];
+        let distance = distance_from_bg(color);
+        if best.is_none_or(|(d, _)| distance > d) {
+            best = Some((distance, color));
+        }
+    }
+
+    match best {
+        // 與背景差異太小代表這個區塊其實沒有明顯文字
+        Some((distance, color)) if distance >= 60 => color,
+        _ => [0, 0, 0],
+    }
+}
+
+/// 找出區域內最常見的顏色（背景估計）。
+fn dominant_color(image: &RgbImage, bbox: BBox) -> [u8; 3] {
+    let mut counts: std::collections::HashMap<[u8; 3], usize> = std::collections::HashMap::new();
+    for y in bbox.top..bbox.bottom {
+        for x in bbox.left..bbox.right {
+            *counts.entry(image.pixel(x as u32, y as u32)).or_insert(0) += 1;
+        }
+    }
+    counts
+        .into_iter()
+        .max_by_key(|(_, n)| *n)
+        .map(|(c, _)| c)
+        .unwrap_or([255, 255, 255])
+}
+
+/// 估計文字區塊的背景色。
+///
+/// **不能直接用 bbox 內的最常見顏色**：Vision 的框貼齊文字，密集段落裡文字的
+/// 面積往往大於空白，主色會變成文字色，後續「與背景不同 = 墨跡」的判斷就整個
+/// 反過來。改成從 bbox 往外擴 `pad` 之後再取樣 —— 那一圈基本上是背景。
+fn background_color(image: &RgbImage, bbox: BBox, pad: i64) -> [u8; 3] {
+    let outer = BBox::new(
+        bbox.left - pad,
+        bbox.top - pad,
+        bbox.right + pad,
+        bbox.bottom + pad,
+    )
+    .clamp(image.width as i64, image.height as i64);
+    if outer.is_empty() {
+        return [255, 255, 255];
+    }
+    dominant_color(image, outer)
+}
+
+/// 若區域左側是一個「孤立的窄圖形」（項目符號、小圖示），把它排除在擦除範圍外。
+///
+/// 判斷依據是**墨跡的水平投影**：原稿的子彈點與文字之間有明顯空隙，而文字本身
+/// 字與字相連。所以「最左側的墨跡島寬度 ≤ 1.3 em，且後面接一個 ≥ 0.25 em 的空隙」
+/// 就視為圖示，把擦除的左緣移到空隙之後。
+///
+/// 這比「靠 OCR 有沒有讀到符號」可靠：Vision 有時把 `◎` 讀成文字，有時完全不提，
+/// 但幾何上空隙一定在。
+fn trim_leading_icon(image: &RgbImage, bbox: BBox, em_px: f64) -> BBox {
+    let bbox = bbox.clamp(image.width as i64, image.height as i64);
+    if bbox.width() < 3 || bbox.height() < 3 || em_px <= 0.0 || !em_px.is_finite() {
+        return bbox;
+    }
+    let background = background_color(image, bbox, (em_px * 0.5) as i64);
+    // 每欄是否有「與背景明顯不同」的像素
+    let mut ink = vec![false; bbox.width() as usize];
+    for x in bbox.left..bbox.right {
+        let mut has_ink = false;
+        for y in bbox.top..bbox.bottom {
+            let pixel = image.pixel(x as u32, y as u32);
+            let distance = pixel
+                .iter()
+                .zip(background.iter())
+                .map(|(a, b)| a.abs_diff(*b))
+                .max()
+                .unwrap_or(0);
+            if distance > 40 {
+                has_ink = true;
+                break;
+            }
+        }
+        ink[(x - bbox.left) as usize] = has_ink;
+    }
+
+    // 最左側的連續墨跡島
+    let Some(first) = ink.iter().position(|v| *v) else {
+        return bbox;
+    };
+    let island_end = ink[first..]
+        .iter()
+        .position(|v| !*v)
+        .map(|p| first + p)
+        .unwrap_or(ink.len());
+    let island_width = (island_end - first) as f64;
+    // 這個簡報的子彈點是約 1.5 em 的圓形圖形，不是窄符號，門檻要放寬。
+    if island_width > em_px * 2.5 {
+        return bbox; // 太寬，是一整段文字
+    }
+
+    // 之後必須有夠寬的空隙才判定為圖示
+    let gap_end = ink[island_end..]
+        .iter()
+        .position(|v| *v)
+        .map(|p| island_end + p)
+        .unwrap_or(ink.len());
+    let gap_width = (gap_end - island_end) as f64;
+    // 空隙要夠寬（文字的字距不會這麼大），而且後面要接一大段墨跡。
+    if gap_width < em_px * 0.4 || gap_end >= ink.len() {
+        return bbox;
+    }
+    let rest_ink = ink[gap_end..].iter().filter(|v| **v).count() as f64;
+    if rest_ink < em_px * 2.0 || rest_ink <= island_width {
+        return bbox;
+    }
+
+    if std::env::var("N2P_DEBUG_TRIM").is_ok() {
+        eprintln!(
+            "[trim] bbox={:?} em_px={:.1} island={:.0} gap={:.0} gap_end={} bg={:?}",
+            bbox, em_px, island_width, gap_width, gap_end, background
+        );
+    }
+    BBox::new(
+        bbox.left + gap_end as i64,
+        bbox.top,
+        bbox.right,
+        bbox.bottom,
+    )
+}
+
+/// 準備背景影像：擦除「已轉成文字框」的區域。
+///
+/// 只擦 `erase_regions`（呼叫端算好的文字框範圍），不是整份版面的可擦除區塊。
+/// 差別在於：沒有轉成文字框的區塊（例如被判定為純符號的子彈點）會原樣留在
+/// 背景上，等於保留原稿的圖示。
+fn prepare_background(
+    input: &PageInput<'_>,
+    options: &BuildOptions,
+    erase_regions: &[(BBox, f64)],
+) -> Result<Vec<u8>> {
+    let _ = input.layout;
     let layout = input.layout;
     let mut image = match options.background_resolution {
         BackgroundResolution::FullImage => input.image.clone(),
@@ -540,11 +903,21 @@ fn prepare_background(input: &PageInput<'_>, options: &BuildOptions) -> Result<V
         )?,
     };
 
-    if options.erase_background_regions {
+    if options.erase_background_regions && options.text_mode == TextMode::Erase {
         let image_scale = image.width as f64 / layout.size_pt.0;
-        for block in layout.erasable_blocks() {
-            let bbox = expand_bbox(block.bbox.scale(image_scale), FOREGROUND_EXPAND_PX)
+        for (region, em_layout_pt) in erase_regions {
+            let bbox = expand_bbox(region.scale(image_scale), FOREGROUND_EXPAND_PX)
                 .clamp(image.width as i64, image.height as i64);
+            // 讓開左側的項目符號／小圖示
+            let bbox = trim_leading_icon(&image, bbox, em_layout_pt * image_scale);
+            if std::env::var("N2P_DEBUG_ERASE").is_ok() {
+                eprintln!(
+                    "[erase] region={:?} -> bbox={:?} em_px={:.1}",
+                    region,
+                    bbox,
+                    em_layout_pt * image_scale
+                );
+            }
             if bbox.is_empty() {
                 continue;
             }
@@ -803,12 +1176,22 @@ mod tests {
             }
         }
 
+        let mut block = Block::new(BlockKind::Text, text_bbox);
+        block.text = "文字文字文字".into();
+        block.lines = vec![n2p_layout::Line {
+            spans: vec![n2p_layout::Span {
+                text: Some(block.text.clone()),
+                image_path: None,
+            }],
+            bbox: Some(text_bbox),
+        }];
         let layout = LayoutPage {
             size_pt: (400.0, 200.0),
-            blocks: vec![Block::new(BlockKind::Text, text_bbox)],
+            blocks: vec![block],
         };
         let base = BuildOptions {
             background_resolution: BackgroundResolution::FullImage,
+            text_mode: TextMode::Erase,
             ..Default::default()
         };
 
@@ -866,6 +1249,208 @@ mod tests {
         assert!(
             distance(flat_pixel, blue) > 60,
             "這個情境下 Flat 應該明顯偏離藍色（重現白斑），實際 {flat_pixel:?}"
+        );
+    }
+
+    #[test]
+    fn bullet_only_block_is_skipped_and_left_in_background() {
+        // 第 7 頁的 `◎`：Vision 把它讀成一個獨立文字區塊。
+        // 它應該被跳過（不產生文字框），而且**不能被擦除** —— 原稿的圖示要留在背景。
+        let mut bullet = Block::new(BlockKind::Text, BBox::new(100, 100, 120, 130));
+        bullet.text = "◎".into();
+        bullet.lines = vec![n2p_layout::Line {
+            spans: vec![n2p_layout::Span {
+                text: Some("◎".into()),
+                image_path: None,
+            }],
+            bbox: Some(bullet.bbox),
+        }];
+        let mut body = Block::new(BlockKind::Text, BBox::new(200, 100, 380, 140));
+        body.text = "差異的根源".into();
+        body.lines = vec![n2p_layout::Line {
+            spans: vec![n2p_layout::Span {
+                text: Some("差異的根源".into()),
+                image_path: None,
+            }],
+            bbox: Some(body.bbox),
+        }];
+
+        let layout = LayoutPage {
+            size_pt: (400.0, 200.0),
+            blocks: vec![bullet, body],
+        };
+        let mut image = RgbImage::filled(400, 200, [255, 255, 255]);
+        // 子彈點位置畫一個紅色圓（模擬原稿的圖示）
+        for y in 100..130 {
+            for x in 100..120 {
+                image.set_pixel(x, y, [200, 40, 40]);
+            }
+        }
+        // 內文位置畫黑字
+        for y in 105..135 {
+            for x in 205..375 {
+                image.set_pixel(x, y, [0, 0, 0]);
+            }
+        }
+
+        let options = BuildOptions {
+            background_resolution: BackgroundResolution::FullImage,
+            text_mode: TextMode::Erase,
+            ..Default::default()
+        };
+        let (deck, report) = build_deck(
+            &[PageInput {
+                layout: &layout,
+                image: &image,
+            }],
+            &options,
+        )
+        .unwrap();
+
+        assert_eq!(report.pages[0].text_boxes, 1, "只有內文該變成文字框");
+        assert_eq!(report.pages[0].skipped_text, 1, "純符號區塊應被跳過");
+
+        let media = deck
+            .package()
+            .part_names()
+            .find(|p| p.starts_with("ppt/media/"))
+            .unwrap()
+            .to_owned();
+        let background = RgbImage::from_png_bytes(deck.package().part(&media).unwrap()).unwrap();
+
+        // 圖示必須原樣保留
+        assert_eq!(
+            background.pixel(110, 115),
+            [200, 40, 40],
+            "子彈點圖示不該被擦除"
+        );
+        // 內文的黑字必須被擦掉
+        assert!(background.pixel(300, 120)[0] > 100, "內文黑字應被擦除");
+    }
+
+    #[test]
+    fn leading_bullet_is_stripped_from_text_but_kept_on_background() {
+        let mut block = Block::new(BlockKind::Text, BBox::new(100, 100, 400, 140));
+        block.text = "◎ 差異的根源".into();
+        block.lines = vec![n2p_layout::Line {
+            spans: vec![n2p_layout::Span {
+                text: Some(block.text.clone()),
+                image_path: None,
+            }],
+            bbox: Some(block.bbox),
+        }];
+        let layout = LayoutPage {
+            size_pt: (400.0, 200.0),
+            blocks: vec![block],
+        };
+        // 幾何要接近真實比例：子彈點約 1 em、間隙約 0.5 em。
+        // 這個區塊的 em 粗估為 (400-100)/5 = 60 px。
+        let mut image = RgbImage::filled(400, 200, [255, 255, 255]);
+        for y in 100..140 {
+            for x in 100..160 {
+                image.set_pixel(x, y, [200, 40, 40]); // 子彈點（1 em）
+            }
+            for x in 190..395 {
+                image.set_pixel(x, y, [0, 0, 0]); // 文字（間隙 0.5 em）
+            }
+        }
+
+        let options = BuildOptions {
+            background_resolution: BackgroundResolution::FullImage,
+            text_mode: TextMode::Erase,
+            ..Default::default()
+        };
+        let (deck, _) = build_deck(
+            &[PageInput {
+                layout: &layout,
+                image: &image,
+            }],
+            &options,
+        )
+        .unwrap();
+
+        // 文字框不該含子彈點字元
+        let names = n2p_ooxml::slide::text_shapes(&deck.slide(0).unwrap()).unwrap();
+        assert_eq!(names.len(), 1);
+        assert_eq!(names[0].text, "差異的根源", "行首符號應被剝掉");
+
+        let media = deck
+            .package()
+            .part_names()
+            .find(|p| p.starts_with("ppt/media/"))
+            .unwrap()
+            .to_owned();
+        let background = RgbImage::from_png_bytes(deck.package().part(&media).unwrap()).unwrap();
+        assert_eq!(
+            background.pixel(130, 120),
+            [200, 40, 40],
+            "擦除要從文字起點開始，子彈點必須留在背景"
+        );
+        assert!(
+            background.pixel(300, 120)[0] > 100,
+            "文字應被擦除，實際 {:?}（測試用影像文字範圍 x 130..395）",
+            background.pixel(300, 120)
+        );
+    }
+
+    #[test]
+    fn cover_mode_leaves_the_background_untouched() {
+        // 覆蓋式的架構優點：背景圖完全不動，所以圖示、裝飾不可能被破壞。
+        let mut block = Block::new(BlockKind::Text, BBox::new(100, 100, 300, 140));
+        block.text = "測試文字".into();
+        block.lines = vec![n2p_layout::Line {
+            spans: vec![n2p_layout::Span {
+                text: Some(block.text.clone()),
+                image_path: None,
+            }],
+            bbox: Some(block.bbox),
+        }];
+        let layout = LayoutPage {
+            size_pt: (400.0, 200.0),
+            blocks: vec![block],
+        };
+        let mut image = RgbImage::filled(400, 200, [255, 255, 255]);
+        for y in 100..140 {
+            for x in 100..300 {
+                image.set_pixel(x, y, [0, 0, 0]);
+            }
+        }
+
+        let options = BuildOptions {
+            background_resolution: BackgroundResolution::FullImage,
+            text_mode: TextMode::Cover,
+            ..Default::default()
+        };
+        let (deck, _) = build_deck(
+            &[PageInput {
+                layout: &layout,
+                image: &image,
+            }],
+            &options,
+        )
+        .unwrap();
+
+        let media = deck
+            .package()
+            .part_names()
+            .find(|p| p.starts_with("ppt/media/"))
+            .unwrap()
+            .to_owned();
+        let background = RgbImage::from_png_bytes(deck.package().part(&media).unwrap()).unwrap();
+        assert_eq!(background, image, "覆蓋式不該改動背景任何一個像素");
+
+        // 但文字框本身要帶底色，否則原稿文字會露出來
+        let doc = deck.slide(0).unwrap();
+        let sp = doc
+            .root
+            .path(&["p:sld", "p:cSld", "p:spTree"])
+            .unwrap()
+            .elements("p:sp")
+            .next()
+            .unwrap();
+        assert!(
+            sp.path(&["p:spPr", "a:solidFill"]).is_some(),
+            "覆蓋式的文字框必須有不透明底色"
         );
     }
 

@@ -36,6 +36,14 @@ enum Command {
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
+enum TextModeArg {
+    /// 覆蓋式：背景圖完全不動，文字框自帶底色蓋住原稿文字（圖示 decoration 不會被破壞）
+    Cover,
+    /// 擦除式：先從背景擦掉原稿文字，再疊上文字框
+    Erase,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
 enum EraseArg {
     /// 從四周插值（預設）：漸層或雙色背景不會留下方塊
     Inpaint,
@@ -115,6 +123,10 @@ struct ConvertArgs {
     /// 背景擦除方式：`inpaint` 從四周插值，`fill` 填單色（Python 版行為）
     #[arg(long, value_enum, default_value = "inpaint")]
     erase: EraseArg,
+
+    /// 文字合成方式：`cover` 不動背景、文字框自帶底色；`erase` 先擦背景再疊文字
+    #[arg(long, value_enum, default_value = "cover")]
+    text_mode: TextModeArg,
 
     /// 保留中間產物（頁面 PNG）到此目錄
     #[arg(long, value_name = "DIR")]
@@ -198,6 +210,10 @@ fn convert(args: ConvertArgs) -> anyhow::Result<()> {
             east_asian_font_name: args.ea_font.clone(),
             widescreen: args.widescreen,
             text_autofit: args.autofit,
+            text_mode: match args.text_mode {
+                TextModeArg::Cover => n2p_build::TextMode::Cover,
+                TextModeArg::Erase => n2p_build::TextMode::Erase,
+            },
             erase_mode: match args.erase {
                 EraseArg::Inpaint => n2p_build::EraseMode::Inpaint,
                 EraseArg::Fill => n2p_build::EraseMode::Flat,
