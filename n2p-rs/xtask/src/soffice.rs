@@ -76,8 +76,7 @@ pub fn to_pdf(binary: &Path, pptx: &Path, out_dir: &Path) -> Result<PathBuf> {
     // soffice 對這種路徑會靜默不產生輸出 —— 但它仍回傳 exit 0。
     let safe_name = format!("input-{}.pptx", short_hash(pptx));
     let safe_input = out_dir.join(&safe_name);
-    std::fs::copy(pptx, &safe_input)
-        .with_context(|| format!("無法複製 {}", pptx.display()))?;
+    std::fs::copy(pptx, &safe_input).with_context(|| format!("無法複製 {}", pptx.display()))?;
 
     let output = Command::new(binary)
         .arg("--headless")

@@ -37,10 +37,12 @@ enum Command {
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum TextModeArg {
-    /// 覆蓋式：背景圖完全不動，文字框自帶底色蓋住原稿文字（圖示 decoration 不會被破壞）
-    Cover,
-    /// 擦除式：先從背景擦掉原稿文字，再疊上文字框
+    /// 擦除式（預設）：先從背景擦掉原稿文字筆畫，再疊上文字框
     Erase,
+    /// 覆蓋式：背景不動，文字框自帶底色蓋住原稿文字
+    Cover,
+    /// 疊加式：背景完全不動、文字全透明。視覺等於原稿，文字仍可選取編輯
+    Overlay,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -213,8 +215,9 @@ fn convert(args: ConvertArgs) -> anyhow::Result<()> {
             widescreen: args.widescreen,
             text_autofit: args.autofit,
             text_mode: match args.text_mode {
-                TextModeArg::Cover => n2p_build::TextMode::Cover,
                 TextModeArg::Erase => n2p_build::TextMode::Erase,
+                TextModeArg::Cover => n2p_build::TextMode::Cover,
+                TextModeArg::Overlay => n2p_build::TextMode::Overlay,
             },
             erase_mode: match args.erase {
                 EraseArg::Stroke => n2p_build::EraseMode::StrokeMask,

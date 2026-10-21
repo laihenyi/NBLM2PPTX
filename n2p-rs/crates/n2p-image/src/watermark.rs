@@ -137,15 +137,20 @@ pub fn inpaint_bbox_in_place(image: &mut RgbImage, bbox: BBox, method: InpaintMe
 /// 與 [`inpaint_bbox_in_place`] 的差別：這裡的遮罩是**逐像素**的，不是整個矩形。
 /// 用途是「只移除文字筆畫」—— 同一區域裡的彩色圖示、外框光暈因為不符遮罩條件，
 /// 一個像素都不會被動到。
-pub fn inpaint_mask_in_place(
-    image: &mut RgbImage,
-    mask: &Mask,
-    method: InpaintMethod,
-    fill_hint: [u8; 3],
-) {
-    let Some(padded) = mask.padded_bbox(2) else {
+pub fn inpaint_mask_in_place(image: &mut RgbImage, mask: &Mask, method: InpaintMethod) {
+    let Some(bbox) = mask.bbox() else {
         return;
     };
+    // 裁剪範圍要比遮罩大一圈，否則「非遮罩像素」仍全是文字周圍的光暈／反鋸齒，
+    // 取來的主色會是白色（CH7 第 5 頁的深色背景上留下一條白帶）。
+    let pad = (bbox.height() / 3).max(6);
+    let padded = BBox::new(
+        bbox.left - pad,
+        bbox.top - pad,
+        bbox.right + pad,
+        bbox.bottom + pad,
+    )
+    .clamp(image.width as i64, image.height as i64);
     let crop = image.crop(padded);
     let mut local = Mask::new(crop.width, crop.height);
     for y in 0..crop.height {
@@ -155,8 +160,11 @@ pub fn inpaint_mask_in_place(
             }
         }
     }
-    // 填充色由呼叫端給：遮罩貼齊筆畫，直接用「遮罩邊緣的主色」會取到文字本身。
-    let background = fill_hint;
+    // 填充色從「遮罩以外的像素」取主色。
+    //
+    // 不能由呼叫端從 bbox 外圍取樣：文字帶白色光暈時，那一圈仍是光暈 → 填成白色，
+    // 於是在深色背景上留下一條白帶（CH7 第 5 頁實測）。
+    let background = dominant_unmasked_color(&crop, &local);
     let cleaned = match method {
         InpaintMethod::Onion => inpaint::onion(&crop, &local),
         InpaintMethod::Harmonic => inpaint::harmonic(&crop, &local, 500),
@@ -182,6 +190,34 @@ pub fn inpaint_mask_in_place(
 
 fn padded_bbox_of(mask: &Mask) -> BBox {
     mask.bbox().unwrap_or(BBox::new(0, 0, 0, 0))
+}
+
+/// 遮罩以外像素的主色（量化到 16 階後取眾數再平均）。
+fn dominant_unmasked_color(image: &RgbImage, mask: &Mask) -> [u8; 3] {
+    let mut buckets: std::collections::HashMap<[u8; 3], (usize, [u64; 3])> =
+        std::collections::HashMap::new();
+    for y in 0..image.height {
+        for x in 0..image.width {
+            if mask.get(x, y) {
+                continue;
+            }
+            let pixel = image.pixel(x, y);
+            let key = [pixel[0] & 0xF0, pixel[1] & 0xF0, pixel[2] & 0xF0];
+            let entry = buckets.entry(key).or_insert((0, [0; 3]));
+            entry.0 += 1;
+            entry.1[0] += pixel[0] as u64;
+            entry.1[1] += pixel[1] as u64;
+            entry.1[2] += pixel[2] as u64;
+        }
+    }
+    match buckets.into_values().max_by_key(|(count, _)| *count) {
+        Some((count, sums)) => [
+            (sums[0] / count as u64) as u8,
+            (sums[1] / count as u64) as u8,
+            (sums[2] / count as u64) as u8,
+        ],
+        None => [255, 255, 255],
+    }
 }
 
 /// 去除 NotebookLM 水印。

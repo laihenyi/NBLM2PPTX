@@ -126,6 +126,8 @@ pub struct TextBox {
     /// 文字框填色。`Some` 時畫一個不透明的底色矩形（覆蓋式做法），
     /// `None` 時無填色（靠背景已被擦除）。
     pub fill: Option<[u8; 3]>,
+    /// 文字透明度（0 = 完全透明，即 OCR overlay 做法）。
+    pub text_alpha: Option<u8>,
 }
 
 impl Default for TextBox {
@@ -147,6 +149,7 @@ impl Default for TextBox {
             newline: NewlineMode::default(),
             wrap: Wrap::default(),
             fill: None,
+            text_alpha: None,
         }
     }
 }
@@ -201,6 +204,12 @@ impl TextBox {
     /// 設定文字框填色（覆蓋式做法：用底色矩形蓋住原稿的文字）。
     pub fn fill(mut self, rgb: [u8; 3]) -> Self {
         self.fill = Some(rgb);
+        self
+    }
+
+    /// 設定文字透明度。`0` 表示文字看不見但仍可選取、編輯（OCR overlay）。
+    pub fn text_alpha(mut self, alpha: u8) -> Self {
+        self.text_alpha = Some(alpha);
         self
     }
 
@@ -316,15 +325,21 @@ impl TextBox {
             .attr("lang", self.lang.as_str())
             .attr("sz", centipoint_from_pt(self.font_size_pt).to_string())
             .attr("dirty", "1")
-            .child(
-                Element::new("a:solidFill").child(Element::new("a:srgbClr").attr(
+            .child(Element::new("a:solidFill").child({
+                let color = Element::new("a:srgbClr").attr(
                     "val",
                     format!(
                         "{:02X}{:02X}{:02X}",
                         self.color_rgb[0], self.color_rgb[1], self.color_rgb[2]
                     ),
-                )),
-            )
+                );
+                match self.text_alpha {
+                    Some(alpha) => color.child(
+                        Element::new("a:alpha").attr("val", ((alpha as u32) * 1000).to_string()),
+                    ),
+                    None => color,
+                }
+            }))
             .child(Element::new("a:latin").attr("typeface", self.font_family.as_str()));
         let r_pr = match &self.east_asian_font_family {
             Some(ea) => r_pr.child(Element::new("a:ea").attr("typeface", ea.as_str())),

@@ -115,6 +115,12 @@ pub enum TextMode {
     /// 擦除式（預設）：先擦背景再疊文字。
     #[default]
     Erase,
+    /// 疊加式：**背景完全不動**，文字設為全透明。
+    ///
+    /// 視覺上等於原稿（逐像素相同），文字框仍可選取、可編輯 —— 改動它
+    /// （或改顏色）就會顯示出來。這是「文字帶大片光暈、壓在照片上」這類
+    /// 無法可靠擦除的頁面的正解（例如 CH7 的深色攝影背景簡報）。
+    Overlay,
 }
 
 /// 背景擦除的方式。
@@ -314,8 +320,18 @@ fn build_page(
             report.skipped_text += 1;
             continue;
         }
-        // 原稿的文字顏色（未必是黑；CH9 是深藍）
-        let text_color = sample_text_color(input.image, text_region, image_scale);
+        // 原稿的文字顏色（未必是黑；CH9 是深藍）。
+        // `None` = 文字色與背景太接近，無法可靠分離。
+        let sampled_text_color = sample_text_color(input.image, text_region, image_scale);
+        let text_color = sampled_text_color.unwrap_or([0, 0, 0]);
+        // 先算遮罩：`None` 代表這塊壓在紋理（照片、木紋）上，
+        // 遮罩不可靠 —— 這時改用「透明文字」（OCR overlay）：
+        // 背景一個像素都不動，文字框存在但看不見，點進去改字才顯示。
+        let em_px = estimate_font_size(block, scale) / scale.max(f64::EPSILON) * image_scale;
+        let stroke_mask = sampled_text_color.and_then(|color| {
+            build_stroke_mask(input.image, text_region, image_scale, color, em_px)
+        });
+
         let env = TextEnv {
             scale,
             slide_width_pt,
@@ -329,7 +345,13 @@ fn build_page(
             report.skipped_text += 1;
             continue;
         };
-        let text_box = if options.text_mode == TextMode::Cover {
+        let text_box = if options.text_mode == TextMode::Overlay {
+            // 疊加式：文字全透明，背景不動
+            text_box.text_alpha(0)
+        } else if stroke_mask.is_none() && options.text_mode == TextMode::Erase {
+            // 紋理背景：文字透明，避免與原稿文字重疊
+            text_box.text_alpha(0)
+        } else if options.text_mode == TextMode::Cover {
             // 取文字框外圍的顏色當底色 —— 那一圈基本上是背景
             let pad_px =
                 (text_box.font_size_pt / scale.max(f64::EPSILON) * image_scale * 0.35) as i64 + 3;
@@ -340,15 +362,17 @@ fn build_page(
         };
         deck.push_text_box(index, &text_box).map_err(Error::Ooxml)?;
         report.text_boxes += 1;
-        let font_size_pt = text_box.font_size_pt;
 
         // 擦除範圍 = 同一塊「純文字」區域，因此字級、位置、擦除三者一致。
-        erase_regions.push(EraseRegion {
-            region: text_region,
-            em_layout_pt: font_size_pt / scale.max(f64::EPSILON),
-            text_color,
-            trimmed_bbox: text_region,
-        });
+        if options.text_mode == TextMode::Overlay {
+            continue;
+        }
+        if let Some(mask) = stroke_mask {
+            erase_regions.push(EraseRegion {
+                region: text_region,
+                mask,
+            });
+        }
     }
 
     // ── 2. 前景圖片（裁切後置底）───────────────────────────────────────────
@@ -511,30 +535,51 @@ fn text_box_for(
     Some(text_box)
 }
 
-/// 建立「只含文字筆畫」的遮罩。
+/// 建立「只含文字筆畫」的遮罩；回傳 `None` 代表這一塊無法可靠分離（見下）。
 ///
-/// 這是整個去字流程的關鍵：**遮罩要對準筆畫，不是整個區塊矩形**。
-/// 用矩形當遮罩會把同一區域裡的彩色子彈點、外框光暈一起抹掉，於是必須靠
-/// 「墨跡投影找空隙」「島寬 ≤ 2.5em」之類的幾何啟發式去補救 —— 那條路沒有終點。
+/// 判準是**顏色距離**：只有「接近取樣文字色」的像素才進遮罩。
+/// 子彈點是黃底藍環、光暈是白色、裝飾是別的顏色，都不符條件，因此不會被動到。
 ///
-/// 改成逐像素判斷：只有「顏色接近取樣文字色」的像素才進遮罩。子彈點是黃色、
-/// 光暈是白色，都不符條件，因此一個像素都不會被動到，不需要任何規則。
+/// 為什麼不用「模糊差異」（局部對比）判斷：bbox 是貼齊文字的，框內文字佔比很高，
+/// 模糊後的平均值落在文字與背景之間，於是**文字與背景都會被判定為有差異**。
+/// 實測 CH9 的正常文字區塊覆蓋率達 61–94%，完全不可用。
+///
+/// 回傳 `None` 的條件：取樣文字色與背景的對比太小（例如白字壓在淺色木紋上）。
+/// 這種情況顏色距離無法分離筆畫，呼叫端應改用「透明文字」—— 不動背景、
+/// 不產生雙重文字。
 fn build_stroke_mask(
     image: &RgbImage,
     region: BBox,
     image_scale: f64,
     text_color: [u8; 3],
     em_px: f64,
-) -> Mask {
+) -> Option<Mask> {
     let bbox = region
         .scale(image_scale)
         .clamp(image.width as i64, image.height as i64);
     let mut mask = Mask::new(image.width, image.height);
     if bbox.is_empty() {
-        return mask;
+        return None;
     }
+
+    let background = background_color(image, bbox, (bbox.height() / 4).max(6));
+    let contrast = text_color
+        .iter()
+        .zip(background.iter())
+        .map(|(a, b)| a.abs_diff(*b))
+        .max()
+        .unwrap_or(0);
+    if contrast < 60 {
+        if std::env::var("N2P_DEBUG_MASK").is_ok() {
+            eprintln!("[mask] 對比太低（{contrast}）→ 改用透明文字 bbox={bbox:?}");
+        }
+        return None;
+    }
+
     // 容差隨字級放大：大字的反鋸齒邊緣較寬
     let tolerance = (26.0 + em_px * 0.35).clamp(26.0, 80.0) as u8;
+    let mut masked = 0usize;
+    let total = (bbox.width() * bbox.height()).max(1) as usize;
     for y in bbox.top..bbox.bottom {
         for x in bbox.left..bbox.right {
             let pixel = image.pixel(x as u32, y as u32);
@@ -546,22 +591,22 @@ fn build_stroke_mask(
                 .unwrap_or(255);
             if distance <= tolerance {
                 mask.set(x as u32, y as u32, true);
+                masked += 1;
             }
         }
     }
 
-    // 膨脹一兩圈，把反鋸齒邊緣一起吃掉。
-    // 少了這步，筆畫周圍會留一圈半透明像素 —— 既看得出殘影，
-    // 也讓背景 PNG 變成高頻雜訊（實測體積從 0.6 MB 漲到 1.6 MB/張）。
-    let radius = ((em_px * 0.06) as i64).clamp(1, 3);
+    // 膨脹 1–3 px 吃掉反鋸齒邊緣。少了這步會留殘影，且背景 PNG 因高頻雜訊
+    // 從 0.6 MB 漲到 1.6 MB/張。
+    let grow = ((em_px * 0.06) as i64).clamp(1, 3);
     let original = mask.clone();
     for y in bbox.top..bbox.bottom {
         for x in bbox.left..bbox.right {
             if !original.get(x as u32, y as u32) {
                 continue;
             }
-            for dy in -radius..=radius {
-                for dx in -radius..=radius {
+            for dy in -grow..=grow {
+                for dx in -grow..=grow {
                     let nx = x + dx;
                     let ny = y + dy;
                     if nx >= 0 && ny >= 0 && nx < image.width as i64 && ny < image.height as i64 {
@@ -573,14 +618,11 @@ fn build_stroke_mask(
     }
     if std::env::var("N2P_DEBUG_MASK").is_ok() {
         eprintln!(
-            "[mask] region={:?} color={:?} tol={} count={}",
-            bbox,
-            text_color,
-            tolerance,
-            mask.count()
+            "[mask] bbox={bbox:?} 對比={contrast} 遮罩 {:.0}%",
+            masked as f64 / total as f64 * 100.0
         );
     }
-    mask
+    Some(mask)
 }
 
 /// 判斷是否為「裝飾被誤讀成文字」的區塊。
@@ -788,12 +830,12 @@ fn expand_bbox(bbox: BBox, expand: i64) -> BBox {
 /// 2. **文字色取「離背景最遠」的顏色，不是出現最多的顏色**。原稿常有白色外框／
 ///    光暈（CH9 的標題是深藍字 + 白光暈），光暈像素數往往多於字心，取眾數會得到
 ///    白色，產出「白字壓在淺底上」。
-fn sample_text_color(image: &RgbImage, bbox: BBox, image_scale: f64) -> [u8; 3] {
+fn sample_text_color(image: &RgbImage, bbox: BBox, image_scale: f64) -> Option<[u8; 3]> {
     let bbox = bbox
         .scale(image_scale)
         .clamp(image.width as i64, image.height as i64);
     if bbox.is_empty() {
-        return [0, 0, 0];
+        return None;
     }
     let background = background_color(image, bbox, (bbox.height() / 3).max(6));
     let distance_from_bg = |c: [u8; 3]| -> u32 {
@@ -820,9 +862,7 @@ fn sample_text_color(image: &RgbImage, bbox: BBox, image_scale: f64) -> [u8; 3] 
             }
         }
     }
-    let Some(max_count) = buckets.values().map(|(count, _)| *count).max() else {
-        return [0, 0, 0];
-    };
+    let max_count = buckets.values().map(|(count, _)| *count).max()?;
 
     // 只考慮出現次數不算少的桶，避免單一雜訊像素勝出
     let threshold = (max_count / 10).max(4);
@@ -842,10 +882,11 @@ fn sample_text_color(image: &RgbImage, bbox: BBox, image_scale: f64) -> [u8; 3] 
         }
     }
 
+    // 與背景差異太小代表「文字色與背景幾乎相同」（例如白字壓在淺色木紋上），
+    // 這時顏色距離無法分離筆畫 —— 回傳 None，由呼叫端改用透明文字。
     let chosen = match best {
-        // 與背景差異太小代表這個區塊其實沒有明顯文字
-        Some((distance, color)) if distance >= 60 => color,
-        _ => [0, 0, 0],
+        Some((distance, color)) if distance >= 60 => Some(color),
+        _ => None,
     };
     if std::env::var("N2P_DEBUG_MASK").is_ok() {
         eprintln!(
@@ -976,13 +1017,11 @@ fn trim_leading_icon(image: &RgbImage, bbox: BBox, em_px: f64) -> BBox {
 /// 差別在於：沒有轉成文字框的區塊（例如被判定為純符號的子彈點）會原樣留在
 /// 背景上，等於保留原稿的圖示。
 /// 一個要從背景移除的區域。
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct EraseRegion {
     region: BBox,
-    em_layout_pt: f64,
-    text_color: [u8; 3],
-    #[allow(dead_code)]
-    trimmed_bbox: BBox,
+    /// 已算好的筆畫遮罩（只含文字筆畫）。
+    mask: Mask,
 }
 
 fn prepare_background(
@@ -1003,25 +1042,10 @@ fn prepare_background(
 
     if options.erase_background_regions && options.text_mode == TextMode::Erase {
         let image_scale = image.width as f64 / layout.size_pt.0;
-        for EraseRegion {
-            region,
-            em_layout_pt,
-            text_color,
-            ..
-        } in erase_regions
-        {
-            let bbox = expand_bbox(region.scale(image_scale), FOREGROUND_EXPAND_PX)
+        for EraseRegion { region, mask } in erase_regions {
+            let bbox = region
+                .scale(image_scale)
                 .clamp(image.width as i64, image.height as i64);
-            // 讓開左側的項目符號／小圖示
-            let bbox = trim_leading_icon(&image, bbox, em_layout_pt * image_scale);
-            if std::env::var("N2P_DEBUG_ERASE").is_ok() {
-                eprintln!(
-                    "[erase] region={:?} -> bbox={:?} em_px={:.1}",
-                    region,
-                    bbox,
-                    em_layout_pt * image_scale
-                );
-            }
             if bbox.is_empty() {
                 continue;
             }
@@ -1044,22 +1068,11 @@ fn prepare_background(
                     );
                 }
                 EraseMode::StrokeMask => {
-                    // 只修補文字筆畫：子彈點、光暈、圖示因為不是文字色，
-                    // 一個像素都不會被動到。
-                    let mask = build_stroke_mask(
-                        &image,
-                        *region,
-                        image_scale,
-                        *text_color,
-                        em_layout_pt * image_scale,
-                    );
-                    let em_px = em_layout_pt * image_scale;
-                    let fill = background_color(&image, bbox, (em_px * 1.5) as i64 + 4);
+                    // 遮罩在文字階段就算好了，這裡只負責修補文字筆畫。
                     n2p_image::inpaint_mask_in_place(
                         &mut image,
-                        &mask,
+                        mask,
                         n2p_image::InpaintMethod::BackgroundSmooth,
-                        fill,
                     );
                 }
             }
@@ -1375,6 +1388,31 @@ mod tests {
         );
     }
 
+    /// 在區域內畫出「像文字」的垂直細條紋（實心方塊屬於低頻，不會被遮罩判為筆畫）。
+    fn draw_glyph_stripes(image: &mut RgbImage, bbox: BBox, color: [u8; 3]) {
+        for y in bbox.top..bbox.bottom {
+            for x in bbox.left..bbox.right {
+                if (x - bbox.left) % 24 < 3 {
+                    image.set_pixel(x as u32, y as u32, color);
+                }
+            }
+        }
+    }
+
+    /// 區域平均亮度，用來判斷「筆畫有沒有被擦掉」。
+    fn mean_luma(image: &RgbImage, bbox: BBox) -> f64 {
+        let mut sum = 0f64;
+        let mut count = 0f64;
+        for y in bbox.top..bbox.bottom {
+            for x in bbox.left..bbox.right {
+                let p = image.pixel(x as u32, y as u32);
+                sum += 0.2126 * p[0] as f64 + 0.7152 * p[1] as f64 + 0.0722 * p[2] as f64;
+                count += 1.0;
+            }
+        }
+        sum / count.max(1.0)
+    }
+
     #[test]
     fn bullet_only_block_is_skipped_and_left_in_background() {
         // 第 7 頁的 `◎`：Vision 把它讀成一個獨立文字區塊。
@@ -1409,12 +1447,9 @@ mod tests {
                 image.set_pixel(x, y, [200, 40, 40]);
             }
         }
-        // 內文位置畫黑字
-        for y in 105..135 {
-            for x in 205..375 {
-                image.set_pixel(x, y, [0, 0, 0]);
-            }
-        }
+        // 內文位置畫「像文字」的細條紋
+        let text_bbox = BBox::new(205, 105, 375, 135);
+        draw_glyph_stripes(&mut image, text_bbox, [0, 0, 0]);
 
         let options = BuildOptions {
             background_resolution: BackgroundResolution::FullImage,
@@ -1447,8 +1482,13 @@ mod tests {
             [200, 40, 40],
             "子彈點圖示不該被擦除"
         );
-        // 內文的黑字必須被擦掉
-        assert!(background.pixel(300, 120)[0] > 100, "內文黑字應被擦除");
+        // 內文的筆畫必須被擦掉（用平均亮度判斷，單點可能剛好落在條紋間隙）
+        assert!(
+            mean_luma(&background, text_bbox) > mean_luma(&image, text_bbox) + 20.0,
+            "內文筆畫應被擦除：擦除前 {:.0}、擦除後 {:.0}",
+            mean_luma(&image, text_bbox),
+            mean_luma(&background, text_bbox)
+        );
     }
 
     #[test]
@@ -1473,10 +1513,9 @@ mod tests {
             for x in 100..160 {
                 image.set_pixel(x, y, [200, 40, 40]); // 子彈點（1 em）
             }
-            for x in 190..395 {
-                image.set_pixel(x, y, [0, 0, 0]); // 文字（間隙 0.5 em）
-            }
         }
+        let text_bbox = BBox::new(190, 100, 395, 140);
+        draw_glyph_stripes(&mut image, text_bbox, [0, 0, 0]); // 文字（間隙 0.5 em）
 
         let options = BuildOptions {
             background_resolution: BackgroundResolution::FullImage,
@@ -1510,9 +1549,10 @@ mod tests {
             "擦除要從文字起點開始，子彈點必須留在背景"
         );
         assert!(
-            background.pixel(300, 120)[0] > 100,
-            "文字應被擦除，實際 {:?}（測試用影像文字範圍 x 130..395）",
-            background.pixel(300, 120)
+            mean_luma(&background, text_bbox) > mean_luma(&image, text_bbox) + 20.0,
+            "文字筆畫應被擦除：擦除前 {:.0}、擦除後 {:.0}",
+            mean_luma(&image, text_bbox),
+            mean_luma(&background, text_bbox)
         );
     }
 
@@ -1575,6 +1615,83 @@ mod tests {
             sp.path(&["p:spPr", "a:solidFill"]).is_some(),
             "覆蓋式的文字框必須有不透明底色"
         );
+    }
+
+    #[test]
+    fn texture_background_gets_invisible_text_instead_of_erasing() {
+        // 紋理背景（雜訊）上，筆畫遮罩不可靠 —— 應該改成「透明文字」：
+        // 背景一個像素都不動，避免出現灰方塊或雙重文字。
+        let mut block = Block::new(BlockKind::Text, BBox::new(100, 100, 300, 140));
+        block.text = "測試文字".into();
+        block.lines = vec![n2p_layout::Line {
+            spans: vec![n2p_layout::Span {
+                text: Some(block.text.clone()),
+                image_path: None,
+            }],
+            bbox: Some(block.bbox),
+        }];
+        let layout = LayoutPage {
+            size_pt: (400.0, 200.0),
+            blocks: vec![block],
+        };
+
+        // 高頻雜訊背景（模擬木紋），文字用「只比背景亮一點」的顏色 ——
+        // 這正是 CH7 第 3 頁白字壓在淺色木地板的情況：對比太低，
+        // 顏色距離無法分離筆畫。
+        let mut image = RgbImage::new(400, 200);
+        let mut seed = 12345u32;
+        for y in 0..200 {
+            for x in 0..400 {
+                seed = seed.wrapping_mul(1103515245).wrapping_add(12345);
+                let v = ((seed >> 16) as u8) / 3 + 60; // 60..145
+                image.set_pixel(x, y, [v, v, v]);
+            }
+        }
+        draw_glyph_stripes(&mut image, BBox::new(100, 100, 300, 140), [70, 70, 70]);
+        let before = image.clone();
+
+        let options = BuildOptions {
+            background_resolution: BackgroundResolution::FullImage,
+            text_mode: TextMode::Erase,
+            ..Default::default()
+        };
+        let (deck, _) = build_deck(
+            &[PageInput {
+                layout: &layout,
+                image: &image,
+            }],
+            &options,
+        )
+        .unwrap();
+
+        let media = deck
+            .package()
+            .part_names()
+            .find(|p| p.starts_with("ppt/media/"))
+            .unwrap()
+            .to_owned();
+        let background = RgbImage::from_png_bytes(deck.package().part(&media).unwrap()).unwrap();
+        if background != before {
+            let differing = background
+                .data
+                .iter()
+                .zip(before.data.iter())
+                .filter(|(a, b)| a != b)
+                .count();
+            eprintln!(
+                "media={media} 尺寸 {:?} vs {:?}，不同位元組 {}",
+                (background.width, background.height),
+                (before.width, before.height),
+                differing
+            );
+        }
+        assert_eq!(background, before, "紋理背景不該被改動");
+
+        // 文字框必須存在，但文字是全透明的
+        let doc = deck.slide(0).unwrap();
+        let x = n2p_ooxml::xml::to_bytes(&doc).unwrap();
+        let xml = String::from_utf8_lossy(&x);
+        assert!(xml.contains("<a:alpha val=\"0\"/>"), "文字應設為全透明");
     }
 
     #[test]
