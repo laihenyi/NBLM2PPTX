@@ -18,8 +18,7 @@ use n2p_ooxml::{Align, AutoFit, Deck, Rect, SlideSize, TextBox};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
-    let base =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/probe-pptx");
+    let base = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/probe-pptx");
 
     let template = args
         .get(1)

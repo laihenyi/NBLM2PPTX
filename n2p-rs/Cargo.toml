@@ -12,6 +12,7 @@ members = [
     "xtask",
     "crates/n2p-vision",
     "crates/n2p-cli",
+    "crates/n2p-gui",
 ]
 
 [workspace.package]

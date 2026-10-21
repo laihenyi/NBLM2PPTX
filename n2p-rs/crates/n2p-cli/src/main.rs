@@ -141,7 +141,8 @@ struct ConvertArgs {
     #[arg(long)]
     autofit: bool,
 
-    /// 把平坦底色背景上的獨立物件切成可移動的圖片（實驗性；攝影背景不支援）
+    /// 把背景上的獨立物件切成可移動的圖片（實驗性）。平坦底色免模型；
+    /// 攝影或漸層背景需先 `n2p models fetch` 取得 SAM 模型
     #[arg(long)]
     extract_objects: bool,
 
@@ -208,58 +209,47 @@ fn run(cli: Cli) -> anyhow::Result<()> {
 }
 
 fn models(args: ModelsArgs) -> anyhow::Result<()> {
-    use n2p_image::lama;
-    let path = lama::default_model_path()
-        .ok_or_else(|| anyhow::anyhow!("無法判斷快取目錄（請設定 N2P_LAMA_MODEL）"))?;
+    use n2p_image::models::ModelState;
+    let entries = n2p_image::models::manifest().map_err(|e| anyhow::anyhow!(e))?;
     match args.action {
         ModelsAction::Status => {
-            if path.exists() {
-                let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
-                if size >= lama::MODEL_SIZE {
-                    println!("LaMa 模型：已就緒");
-                } else {
-                    println!(
-                        "LaMa 模型：不完整（{} / {} 位元組），請重新執行 `n2p models fetch`",
-                        size,
-                        lama::MODEL_SIZE
-                    );
+            for model in &entries {
+                let name = model.name;
+                match model.state() {
+                    ModelState::Missing => println!("{name}：未下載（執行 `n2p models fetch`）"),
+                    ModelState::Ready => println!("{name}：已就緒"),
+                    ModelState::Partial { size } => println!(
+                        "{name}：不完整（{size} / {} 位元組），請重新執行 `n2p models fetch`",
+                        model.expected_size
+                    ),
                 }
-            } else {
-                println!("LaMa 模型：未下載（執行 `n2p models fetch`）");
+                println!("  路徑：{}", model.path.display());
+                println!("  來源：{}", model.url);
+                if model.purpose == n2p_image::models::Purpose::Erase && cfg!(target_os = "macos") {
+                    let gpu = n2p_image::gpu::converted_path(&model.path);
+                    if gpu.exists() {
+                        println!("  GPU 版：已就緒（{}）", gpu.display());
+                    } else {
+                        println!("  GPU 版：尚未產生（第一次使用時自動轉換，約 1 秒）");
+                    }
+                }
             }
-            println!("路徑：{}", path.display());
-            println!("來源：{}", lama::MODEL_URL);
             Ok(())
         }
         ModelsAction::Fetch => {
-            if path.exists()
-                && std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0) >= lama::MODEL_SIZE
-            {
-                println!("已存在，無需下載：{}", path.display());
-                return Ok(());
+            for model in &entries {
+                if model.state() == ModelState::Ready {
+                    println!("已存在，無需下載：{}", model.path.display());
+                    continue;
+                }
+                println!("下載 {} → {}", model.name, model.path.display());
+                model.fetch(true).map_err(|e| anyhow::anyhow!(e))?;
+                println!("完成：{}", model.path.display());
             }
-            if let Some(parent) = path.parent() {
-                std::fs::create_dir_all(parent)?;
+            // 轉換失敗不算下載失敗：第一次載入時會再試，不行就用 CPU
+            if let Err(error) = n2p_image::models::prepare_gpu(&entries) {
+                eprintln!("警告：GPU 版 LaMa 轉換失敗（{error}），仍可用 CPU");
             }
-            println!("下載 LaMa 模型（約 199 MiB）→ {}", path.display());
-            // 用系統 curl：可續傳、有進度、不必為此引入 HTTP 依賴。
-            let status = std::process::Command::new("curl")
-                .args(["-L", "--fail", "--progress-bar", "-C", "-", "-o"])
-                .arg(&path)
-                .arg(lama::MODEL_URL)
-                .status()?;
-            if !status.success() {
-                anyhow::bail!("下載失敗（curl 結束碼 {:?}）", status.code());
-            }
-            let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
-            if size < lama::MODEL_SIZE {
-                anyhow::bail!(
-                    "下載不完整（{} / {} 位元組），請重試",
-                    size,
-                    lama::MODEL_SIZE
-                );
-            }
-            println!("完成：{}", path.display());
             Ok(())
         }
     }
@@ -328,7 +318,11 @@ fn convert(args: ConvertArgs) -> anyhow::Result<()> {
             },
             ..Default::default()
         },
-        pages: args.pages.as_deref().map(parse_page_range).transpose()?,
+        pages: args
+            .pages
+            .as_deref()
+            .map(n2p_pipeline::parse_page_range)
+            .transpose()?,
         work_dir: args.work_dir.clone(),
     };
 
@@ -439,57 +433,4 @@ fn vision_config(langs: &str) -> anyhow::Result<VisionConfig> {
         languages,
         ..Default::default()
     })
-}
-
-/// 解析 `1-3,5` 這種頁碼範圍（1 起算）。
-fn parse_page_range(text: &str) -> anyhow::Result<Vec<usize>> {
-    let mut pages = Vec::new();
-    for part in text.split(',') {
-        let part = part.trim();
-        if part.is_empty() {
-            continue;
-        }
-        match part.split_once('-') {
-            Some((start, end)) => {
-                let start: usize = start.trim().parse()?;
-                let end: usize = end.trim().parse()?;
-                if start == 0 || end < start {
-                    return Err(anyhow::anyhow!("頁碼範圍不合法：{part}"));
-                }
-                pages.extend(start..=end);
-            }
-            None => {
-                let page: usize = part.parse()?;
-                if page == 0 {
-                    return Err(anyhow::anyhow!("頁碼從 1 開始：{part}"));
-                }
-                pages.push(page);
-            }
-        }
-    }
-    if pages.is_empty() {
-        return Err(anyhow::anyhow!("頁碼範圍是空的"));
-    }
-    Ok(pages)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::parse_page_range;
-
-    #[test]
-    fn parses_ranges_and_singles() {
-        assert_eq!(parse_page_range("1-3,5").unwrap(), vec![1, 2, 3, 5]);
-        assert_eq!(parse_page_range(" 2 ").unwrap(), vec![2]);
-        assert_eq!(parse_page_range("4-4").unwrap(), vec![4]);
-    }
-
-    #[test]
-    fn rejects_malformed_ranges() {
-        assert!(parse_page_range("0-2").is_err());
-        assert!(parse_page_range("3-1").is_err());
-        assert!(parse_page_range("abc").is_err());
-        assert!(parse_page_range("").is_err());
-        assert!(parse_page_range("0").is_err());
-    }
 }

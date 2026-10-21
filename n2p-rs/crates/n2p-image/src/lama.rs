@@ -13,12 +13,20 @@
 //! - 輸出 `output`：`[1, 3, 512, 512] f32`，值域 0–255
 //! - 空間維度**固定 512**，所以大區域必須切成 512 見方的圖塊
 //!
-//! 推論完全在本機（ONNX Runtime CPU），不連網；模型只在第一次使用前抓一次。
+//! 推論完全在本機，不連網；模型只在第一次使用前抓一次。
+//!
+//! ## 裝置
+//!
+//! macOS 上預設用 GPU（CoreML）：第一次載入時把模型改寫成 CoreML 能整張接手的版本
+//! （見 [`crate::gpu`]），存在原模型旁。GPU 不可用時退回純 CPU。
+//! `N2P_LAMA_DEVICE=gpu|cpu|auto` 可強制指定（預設 `auto`）。
 
 use std::path::{Path, PathBuf};
 
 use n2p_core::{BBox, RgbImage};
+use ort::ep::coreml::{ComputeUnits, ModelFormat};
 use ort::session::Session;
+use ort::session::builder::{AutoDevicePolicy, SessionBuilder};
 use ort::value::Tensor;
 
 use crate::mask::Mask;
@@ -80,20 +88,87 @@ pub fn default_model_path() -> Option<PathBuf> {
     Some(base.join("n2p").join(MODEL_FILE))
 }
 
+/// LaMa 實際推論的裝置。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Device {
+    /// CoreML（Metal GPU）。
+    Gpu,
+    Cpu,
+}
+
+/// 使用者要求的裝置（`N2P_LAMA_DEVICE`）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DeviceRequest {
+    /// 能用 GPU 就用，否則 CPU。
+    Auto,
+    Gpu,
+    Cpu,
+}
+
+impl DeviceRequest {
+    pub fn from_env() -> Self {
+        match std::env::var("N2P_LAMA_DEVICE").as_deref() {
+            Ok("gpu") => Self::Gpu,
+            Ok("cpu") => Self::Cpu,
+            _ => Self::Auto,
+        }
+    }
+}
+
 /// 已載入的 LaMa 引擎。
 pub struct Lama {
     session: Session,
+    device: Device,
 }
 
 impl std::fmt::Debug for Lama {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Lama").finish_non_exhaustive()
+        f.debug_struct("Lama")
+            .field("device", &self.device)
+            .finish_non_exhaustive()
     }
 }
 
+/// 不讓 ort 自動掛執行提供者：它在 macOS 預設會掛上 NeuralNetwork 格式的 CoreML，
+/// 把圖切成 CPU／CoreML 交錯的碎片——實測比純 CPU 慢約 2.5 倍、載入多 11 秒，
+/// 精度也只剩 fp16。
+fn session_builder() -> Result<SessionBuilder, LamaError> {
+    let environment = crate::runtime::environment().map_err(LamaError::Runtime)?;
+    Session::builder(environment)?
+        .with_auto_device(AutoDevicePolicy::PreferCPU)
+        .map_err(|e| LamaError::Runtime(e.to_string()))
+}
+
+/// 在 GPU 上載入轉換後的模型（必要時先轉換）。
+fn load_gpu(original: &Path) -> Result<Session, LamaError> {
+    if !cfg!(target_os = "macos") {
+        return Err(LamaError::Runtime("GPU 推論只支援 macOS".into()));
+    }
+    let converted = crate::gpu::ensure_converted(original).map_err(LamaError::Runtime)?;
+    let cache = crate::gpu::compile_cache_dir(original);
+    let mut coreml = ort::ep::CoreML::default()
+        .with_model_format(ModelFormat::MLProgram)
+        .with_static_input_shapes(true)
+        // 實測 Neural Engine（fp32 模型）比 GPU 慢 5 倍
+        .with_compute_units(ComputeUnits::CPUAndGPU);
+    if std::fs::create_dir_all(&cache).is_ok() {
+        coreml = coreml.with_model_cache_dir(cache.to_string_lossy());
+    }
+    let session = session_builder()?
+        .with_execution_providers([coreml.build().error_on_failure()])
+        .map_err(|e| LamaError::Runtime(e.to_string()))?
+        .commit_from_file(&converted)?;
+    Ok(session)
+}
+
 impl Lama {
-    /// 從指定路徑載入模型。
+    /// 從指定路徑載入模型，裝置依 `N2P_LAMA_DEVICE`（預設能用 GPU 就用）。
     pub fn load(path: &Path) -> Result<Self, LamaError> {
+        Self::load_on(path, DeviceRequest::from_env())
+    }
+
+    /// 從指定路徑載入模型到指定裝置。`Auto` 在 GPU 失敗時退回 CPU。
+    pub fn load_on(path: &Path, request: DeviceRequest) -> Result<Self, LamaError> {
         if !path.exists() {
             return Err(LamaError::Missing(path.to_path_buf()));
         }
@@ -105,9 +180,34 @@ impl Lama {
                 expected: MODEL_SIZE,
             });
         }
-        let environment = ort::init().with_name("n2p").build()?;
-        let session = Session::builder(&environment)?.commit_from_file(path)?;
-        Ok(Self { session })
+        // 非 macOS 的 `Auto` 直接用 CPU，不必每次印一行退回警告
+        let try_gpu = match request {
+            DeviceRequest::Cpu => false,
+            DeviceRequest::Gpu => true,
+            DeviceRequest::Auto => cfg!(target_os = "macos"),
+        };
+        if try_gpu {
+            match load_gpu(path) {
+                Ok(session) => {
+                    return Ok(Self {
+                        session,
+                        device: Device::Gpu,
+                    });
+                }
+                Err(error) if request == DeviceRequest::Gpu => return Err(error),
+                Err(error) => eprintln!("  ! LaMa 無法使用 GPU（{error}），改用 CPU"),
+            }
+        }
+        let session = session_builder()?.commit_from_file(path)?;
+        Ok(Self {
+            session,
+            device: Device::Cpu,
+        })
+    }
+
+    /// 實際推論的裝置。
+    pub fn device(&self) -> Device {
+        self.device
     }
 
     /// 用預設快取路徑載入。
@@ -290,9 +390,16 @@ impl Lama {
 /// 實測 11 頁的簡報會有 2 頁建立失敗（CH3 實測），而且每頁都要多花幾秒。
 static SHARED: std::sync::OnceLock<std::sync::Mutex<Option<Lama>>> = std::sync::OnceLock::new();
 
-/// 取得共用引擎（第一次呼叫時載入；載入失敗則永久為 `None`）。
+/// 取得共用引擎（第一次呼叫時載入；載入失敗或釋放後為 `None`，由使用端重新載入）。
 pub fn shared() -> &'static std::sync::Mutex<Option<Lama>> {
     SHARED.get_or_init(|| std::sync::Mutex::new(Lama::load_default().ok()))
+}
+
+/// 釋放共用引擎與它的推論暫存（數 GB）。長駐的行程（GUI）在工作之間呼叫。
+pub fn release_shared() {
+    if let Some(engine) = SHARED.get() {
+        *engine.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    }
 }
 
 /// 圖塊左上角的起點序列，確保覆蓋 `[from, to)`。
@@ -359,6 +466,62 @@ mod tests {
         assert!(feather_weight(0, 100) > 0.0);
         assert!(feather_weight(0, 100) < feather_weight(16, 100));
         assert_eq!(feather_weight(100, 100), 1.0);
+    }
+
+    /// 真實模型存在時才跑：GPU 與 CPU 修補同一張圖，結果幾乎相同。
+    #[test]
+    fn gpu_and_cpu_agree_on_the_real_model() {
+        let Some(path) = default_model_path().filter(|p| p.exists()) else {
+            eprintln!("略過：沒有 LaMa 模型");
+            return;
+        };
+        if !cfg!(target_os = "macos") {
+            return;
+        }
+        let mut image = RgbImage::new(600, 400);
+        for y in 0..400 {
+            for x in 0..600 {
+                image.set_pixel(
+                    x,
+                    y,
+                    [(x % 256) as u8, (y % 256) as u8, ((x + y) % 256) as u8],
+                );
+            }
+        }
+        let mut mask = Mask::new(600, 400);
+        for y in 170..230 {
+            for x in 200..400 {
+                mask.set(x, y, true);
+            }
+        }
+        let mut results = Vec::new();
+        for request in [DeviceRequest::Gpu, DeviceRequest::Cpu] {
+            let mut lama = Lama::load_on(&path, request).expect("載入失敗");
+            let expected = if request == DeviceRequest::Gpu {
+                Device::Gpu
+            } else {
+                Device::Cpu
+            };
+            assert_eq!(lama.device(), expected);
+            let mut copy = image.clone();
+            lama.inpaint_mask(&mut copy, &mask).unwrap();
+            results.push(copy);
+        }
+        let mut worst = 0;
+        for y in 0..400 {
+            for x in 0..600 {
+                let (a, b) = (results[0].pixel(x, y), results[1].pixel(x, y));
+                for c in 0..3 {
+                    worst = worst.max(a[c].abs_diff(b[c]));
+                }
+            }
+        }
+        assert!(worst <= 1, "GPU 與 CPU 最大差 {worst}");
+        let converted = crate::gpu::converted_path(&path);
+        let ops = crate::gpu::op_histogram_of(&converted).unwrap();
+        for gone in ["Einsum", "Neg", "Gather"] {
+            assert!(!ops.contains_key(gone), "轉換檔仍有 {gone}");
+        }
     }
 
     #[test]

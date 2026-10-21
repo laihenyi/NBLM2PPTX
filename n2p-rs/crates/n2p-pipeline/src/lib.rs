@@ -44,6 +44,9 @@ pub enum Error {
 
     #[error("設定錯誤：{0}")]
     Config(String),
+
+    #[error("已取消")]
+    Cancelled,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -104,11 +107,35 @@ pub struct ConvertReport {
     pub output_bytes: u64,
 }
 
+/// 轉換進度。頁序皆為 0 起算的「第幾個處理中的頁面」，`total` 是本次處理的頁數。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Progress {
+    /// 點陣化與去水印。
+    Render { page: usize, total: usize },
+    /// 版面辨識（一次處理全部頁面）。
+    Layout,
+    /// 產生投影片（擦字、切物件）。
+    Build { page: usize, total: usize },
+    /// 寫出 PPTX。
+    Save,
+}
+
 /// 把 PDF 轉成 PPTX。
 pub fn convert(
     pdf_path: &Path,
     out_path: &Path,
     options: &ConvertOptions,
+) -> Result<ConvertReport> {
+    convert_with_progress(pdf_path, out_path, options, &mut |_| true)
+}
+
+/// 同 [`convert`]，並在每個階段回報進度。回呼回傳 `false` 時盡快中止，
+/// 回傳 [`Error::Cancelled`]，不會寫出輸出檔。
+pub fn convert_with_progress(
+    pdf_path: &Path,
+    out_path: &Path,
+    options: &ConvertOptions,
+    progress: &mut dyn FnMut(Progress) -> bool,
 ) -> Result<ConvertReport> {
     if options.dpi <= 0.0 {
         return Err(Error::Config(format!(
@@ -148,7 +175,13 @@ pub fn convert(
     let mut page_sizes_pt: Vec<(f64, f64)> = Vec::with_capacity(selected.len());
     let mut watermarks_removed = 0usize;
 
-    for page_num in &selected {
+    for (slot, page_num) in selected.iter().enumerate() {
+        if !progress(Progress::Render {
+            page: slot,
+            total: selected.len(),
+        }) {
+            return Err(Error::Cancelled);
+        }
         let index = page_num - 1;
         let mut image = doc.render_rgb(index, options.dpi)?;
         let size_pt = doc.page_size_pt(index)?;
@@ -180,6 +213,9 @@ pub fn convert(
     }
 
     // ── 2. 版面 ───────────────────────────────────────────────────────────
+    if !progress(Progress::Layout) {
+        return Err(Error::Cancelled);
+    }
     let (layout_name, layouts) =
         resolve_layout(options, &images, &page_sizes_pt, &selected, total)?;
 
@@ -190,7 +226,21 @@ pub fn convert(
         .map(|(layout, image)| PageInput { layout, image })
         .collect();
 
-    let (deck, report) = n2p_build::build_deck(&inputs, &options.build)?;
+    let total_pages = inputs.len();
+    let (deck, report) =
+        n2p_build::build_deck_with_progress(&inputs, &options.build, &mut |page| {
+            progress(Progress::Build {
+                page,
+                total: total_pages,
+            })
+        })
+        .map_err(|e| match e {
+            n2p_build::Error::Cancelled => Error::Cancelled,
+            other => Error::Build(other),
+        })?;
+    if !progress(Progress::Save) {
+        return Err(Error::Cancelled);
+    }
     deck.save(out_path)?;
 
     Ok(ConvertReport {
@@ -202,6 +252,48 @@ pub fn convert(
         watermarks_removed,
         output_bytes: std::fs::metadata(out_path).map(|m| m.len()).unwrap_or(0),
     })
+}
+
+/// 釋放 LaMa 與 SAM 的共用引擎。
+///
+/// 引擎與推論暫存會一直留在行程裡（轉換後 RSS 仍有 5–7 GB）。命令列每次都是新行程，
+/// 不受影響；長駐的 GUI 應在每個工作結束後呼叫。下一次轉換會自動重新載入。
+pub fn release_models() {
+    n2p_image::lama::release_shared();
+    n2p_image::sam::release_shared();
+}
+
+/// 解析 `1-3,5` 這種頁碼範圍（1 起算）。
+pub fn parse_page_range(text: &str) -> Result<Vec<usize>> {
+    let bad = |part: &str| Error::Config(format!("頁碼範圍不合法：{part}"));
+    let mut pages = Vec::new();
+    for part in text.split(',') {
+        let part = part.trim();
+        if part.is_empty() {
+            continue;
+        }
+        match part.split_once('-') {
+            Some((start, end)) => {
+                let start: usize = start.trim().parse().map_err(|_| bad(part))?;
+                let end: usize = end.trim().parse().map_err(|_| bad(part))?;
+                if start == 0 || end < start {
+                    return Err(bad(part));
+                }
+                pages.extend(start..=end);
+            }
+            None => {
+                let page: usize = part.parse().map_err(|_| bad(part))?;
+                if page == 0 {
+                    return Err(Error::Config(format!("頁碼從 1 開始：{part}")));
+                }
+                pages.push(page);
+            }
+        }
+    }
+    if pages.is_empty() {
+        return Err(Error::Config("頁碼範圍是空的".into()));
+    }
+    Ok(pages)
 }
 
 /// 把頁面在**圖片層**補成 16:9，並同步更新頁面尺寸（點）。
@@ -335,6 +427,70 @@ mod tests {
         let (widened, size_pt) = widen_to_16x9(image.clone(), (800.0, 450.0));
         assert_eq!(widened, image);
         assert_eq!(size_pt, (800.0, 450.0));
+    }
+
+    #[test]
+    fn page_ranges_are_parsed() {
+        assert_eq!(parse_page_range("1-3,5").unwrap(), vec![1, 2, 3, 5]);
+        assert_eq!(parse_page_range(" 2 ").unwrap(), vec![2]);
+        assert_eq!(parse_page_range("4-4").unwrap(), vec![4]);
+        for bad in ["0-2", "3-1", "abc", "", "0"] {
+            assert!(parse_page_range(bad).is_err(), "{bad:?} 應該被拒絕");
+        }
+    }
+
+    #[test]
+    fn progress_reports_every_stage_in_order() {
+        let options = ConvertOptions {
+            layout: LayoutSource::None,
+            inpaint: false,
+            ..Default::default()
+        };
+        let mut seen = Vec::new();
+        convert_with_progress(
+            &example_pdf(),
+            &temp_out("progress.pptx"),
+            &options,
+            &mut |p| {
+                seen.push(p);
+                true
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            seen,
+            vec![
+                Progress::Render { page: 0, total: 2 },
+                Progress::Render { page: 1, total: 2 },
+                Progress::Layout,
+                Progress::Build { page: 0, total: 2 },
+                Progress::Build { page: 1, total: 2 },
+                Progress::Save,
+            ]
+        );
+    }
+
+    #[test]
+    fn cancelling_stops_without_writing_output() {
+        let options = ConvertOptions {
+            layout: LayoutSource::None,
+            inpaint: false,
+            ..Default::default()
+        };
+        for stop_at in [
+            Progress::Render { page: 1, total: 2 },
+            Progress::Layout,
+            Progress::Build { page: 1, total: 2 },
+            Progress::Save,
+        ] {
+            let out = temp_out("cancelled.pptx");
+            let _ = std::fs::remove_file(&out);
+            let error =
+                convert_with_progress(&example_pdf(), &out, &options, &mut |p| p != stop_at)
+                    .unwrap_err();
+            assert!(matches!(error, Error::Cancelled), "{stop_at:?}：{error}");
+            assert!(!out.exists(), "{stop_at:?}：取消後不該寫出檔案");
+        }
     }
 
     #[test]

@@ -17,7 +17,7 @@ Windows 版靠「微軟電腦管家智慧圈選 + 模擬滑鼠截圖」取得可
 | 微軟電腦管家智慧圈選 OCR | `n2p-vision`（macOS 內建 Vision，裝置端、免上傳） |
 | Spire.Presentation 產生 PPTX | `n2p-ooxml`（自建 OPC + OOXML 寫入器） |
 | 逐頁截圖後合併單頁 PPTX | `n2p-build` 直接產生整份簡報，不需要合併 |
-| tkinter GUI | `n2p-cli`（clap） |
+| tkinter GUI | `n2p-gui`（egui）＋ `n2p-cli`（clap） |
 | PyInstaller 打包 | `cargo build --release` 單一執行檔 |
 
 ## 快速開始
@@ -28,6 +28,51 @@ cargo test                                    # 123 個測試
 cargo build --release -p n2p-cli
 ./target/release/n2p --help
 ```
+
+### 圖形介面
+
+```bash
+cargo run --release -p n2p-gui
+```
+
+1. 把 PDF 拖進視窗（可一次多份），或按「加入 PDF…」。
+2. 選輸出版本：
+   - **標準版（建議）**：文字變成文字框，圖片留在背景。輸出 `<檔名>_可編輯.pptx`。
+   - **物件版（實驗性）**：另把圖示、插圖切成可移動的圖片（見下方「物件切出」）。
+     輸出 `<檔名>_可編輯_物件.pptx`。
+   - **兩種都產生**。
+3. 選輸出位置（預設與 PDF 同資料夾），按「開始轉換」。
+
+與 `n2p convert` 走同一條 pipeline，輸出逐位元組相同，速度與記憶體需求也相同。
+GUI 的預設等於 `--high-res-background`（可在「進階設定」關閉）。
+
+- 一次只轉一份；多份會排隊。11 頁的簡報實測（GPU）：標準版 29–45 秒、峰值約 1.1–1.4 GB；
+  物件版 103–183 秒、峰值約 6 GB（SAM 仍是主要耗用）。
+- 已存在的輸出檔預設跳過；勾選「覆寫已存在的檔案」才會重做。
+  PowerPoint 正開著的檔案（同目錄有 `~$<檔名>` 鎖檔）一律跳過。
+- 先寫到 `.<檔名>.n2p-partial`，完成才改名：失敗或取消不會毀掉既有檔案。
+- 取消會在目前這頁做完後停止（每頁數秒到數十秒）。
+- 每份做完會釋放 LaMa／SAM，下一份再重新載入（GPU 版有編譯快取，重載約 0.2 秒）。
+- 「進階設定」可看模型狀態並下載缺少的模型。
+- 開發用的環境變數（預載檔案、自動開始、只截本視窗）見 `crates/n2p-gui/src/debug.rs`。
+
+### 打包成 macOS App
+
+```bash
+./scripts/package-macos-app.sh --zip                 # ad-hoc 簽章，只適合本機
+./scripts/package-macos-app.sh --developer-id        # Developer ID + Hardened Runtime
+./scripts/notarize-macos.sh                          # 公證、釘上票證，寫出 dist/NotebookLM2PPT-notarized.zip
+```
+
+- 產物：`dist/NotebookLM2PPT.app`（bundle id `com.yikai.notebooklm2ppt`），只含圖形介面，不含 `n2p` 命令列。
+- 執行檔 strip 後約 29 MB，zip 約 12 MB；ONNX Runtime 已靜態連結，只依賴 macOS 內建框架。
+- 模型（約 253 MB）不包進 app：第一次開啟時介面最上方會出現「首次使用：下載模型」，
+  下載到 `~/Library/Caches/n2p/`（與命令列共用）。系統清除快取後會再次提示下載。
+- 只支援 Apple Silicon。LaMa 的 GPU 路徑需要 macOS 12 以上（11 預期退回 CPU，未實測）。
+- 公證憑證只從環境變數讀（`APP_STORE_CONNECT_API_KEY_PATH`／`_KEY_ID`／`_ISSUER_ID`，
+  或 `NOTARYTOOL_PROFILE`）；`.p8` 不要放進 repo。
+- 轉換期間以 `NSActivityUserInitiated` 關閉 App Nap：視窗在背景時，沒有這個設定會慢約 3 倍
+  （CH1 第 8 頁實測 234 秒對 70 秒），並防止系統在轉換中閒置睡眠。
 
 ### 轉換一份 PDF
 
@@ -96,7 +141,8 @@ LibreOffice 版本與 DPI；環境不符時會先警告再比對。實測 LibreO
 | `n2p-ooxml` | OPC + `p:sp`/`p:pic`/`p:bg` + 合併 | 取代 Spire.Presentation |
 | `n2p-build` | 版面 + 頁面影像 → PPTX | 取代 `ppt_creater.py` |
 | `n2p-pipeline` | 串接整條流程 | 取代 `cli.py` |
-| `n2p-cli` | `n2p` 命令 | 取代 GUI |
+| `n2p-cli` | `n2p` 命令 | 取代 `cli.py` 的命令列 |
+| `n2p-gui` | `n2p-gui` 圖形介面 | 取代 tkinter GUI |
 
 ## 驗證方式
 
@@ -154,7 +200,7 @@ LibreOffice 版本與 DPI；環境不符時會先警告再比對。實測 LibreO
 | 引擎 | 適用 | 行為 |
 | :--- | :--- | :--- |
 | 插值（`BackgroundSmooth`） | 平坦背景（色塊、漸層） | 從外環取主色再向外擴散；遮罩擴到 `0.30 × 字高`，把柔邊光暈一起補掉 |
-| **LaMa**（`--erase lama`／有模型時的 `auto`） | 木紋、照片、複雜紋理 | ONNX Runtime 本機推論，512×512 圖塊 + 羽化加權混合；遮罩只擴 3–6 px |
+| **LaMa**（`--erase lama`／有模型時的 `auto`） | 木紋、照片、複雜紋理 | ONNX Runtime 本機推論（macOS 預設 GPU），512×512 圖塊 + 羽化加權混合；遮罩只擴 3–6 px |
 
 平坦／有紋理的判斷用文字外圍一圈的**亮度中位數絕對偏差**（MAD < 6 視為平坦）。
 用 MAD 而不是標準差，是因為環上常夾著裝飾（引號、標靶圖案），標準差會被那幾個
@@ -169,12 +215,73 @@ n2p models status    # 檢查是否就緒
 
 沒有模型時 `--erase auto` 會自動退回只擦筆畫的插值模式，不會失敗。
 
+### LaMa 推論裝置（GPU／CPU）
+
+macOS 上 LaMa 預設在 GPU（CoreML，Metal）推論。原始模型不能直接交給 CoreML：
+它的 FFT 用 `Einsum` 寫成，還有 5 維的 `Gather`、`Neg`、帶 `output_padding` 的
+`ConvTranspose`，大半節點會退回 CPU，反而比純 CPU 慢。所以第一次載入時
+（或 `n2p models fetch` 之後）會在原模型旁產生改寫版 `lama_fp32.coreml-v1.onnx`
+（約 1 秒、多佔 209 MB 磁碟），步驟見 `n2p_image::gpu`：
+
+1. batch 維度固定為 1，交給 ONNX Runtime 做常數摺疊（17,480 → 2,841 個節點）。
+2. `Einsum(ij,jk->ik)` → `MatMul`；`Neg` → `Mul(-1)`；純量 `Gather` → `Slice` + `Squeeze`；
+   `ConvTranspose` 改成不裁切的完整輸出再用 `Slice` 裁切。全部是數學等價改寫，有單元測試逐元素比對。
+
+改寫後 2,916 個節點全部落在 CoreML 的單一分區。CoreML 編譯快取放在
+`~/Library/Caches/n2p/coreml/v1/`（第二次載入由約 2 秒降到 0.2 秒）。
+
+| 實測（M 系列，`--high-res-background`） | 純 CPU | GPU |
+| :--- | ---: | ---: |
+| 每個 512 圖塊 | 1.1 秒 | 0.20 秒 |
+| CH1 第 8 頁（約 28 塊） | 37.9 秒 | 8.6 秒 |
+| CH4 第 1–3 頁 | 19.0 秒 | 8.4 秒 |
+
+GPU 與 CPU 的輸出每通道最多差 1（0–255），肉眼無法分辨。
+
+- `N2P_LAMA_DEVICE=gpu|cpu|auto`（預設 `auto`：GPU 載入失敗就退回 CPU；`gpu` 失敗直接報錯）。
+- 改寫版用的是 CoreML ML Program，需要 macOS 12 以上；macOS 11 上 GPU 載入應會失敗而退回 CPU（未在 macOS 11 實測）。
+- 所有 LaMa session 都關掉 `ort` 的自動裝置選擇（`AutoDevicePolicy::PreferCPU`）。
+  `ort` 在 macOS 預設會自動掛上 NeuralNetwork 格式的 CoreML，把原始模型切成
+  CPU／CoreML 交錯的碎片：比純 CPU 慢約 2.5 倍、載入多約 11 秒，精度也只剩 fp16。
+  2026-10-21 以前的輸出就是這條混合路徑產生的，和現在的 CPU 輸出有極小差異
+  （CH1 第 1 頁 0.01% 像素差超過 1%）。
+
+## 物件切出（`--extract-objects`，實驗性）
+
+擦完文字之後，把背景上的獨立物件（圖示、徽章、對話框、外框）切成帶透明度的 PNG，
+放在背景之上、文字之下，可以在 PowerPoint 裡移動與編輯。預設關閉。
+
+| 背景 | 偵測 | 從背景擦掉物件 |
+| :--- | :--- | :--- |
+| 平坦底色（底色像素 ≥ 35%） | 與底色差距 > 18 的連通區塊（`n2p_image::objects`），免模型、確定性 | 遮罩外擴 6 px，直接填底色 |
+| 照片、漸層 | MobileSAM 自動分割（`n2p_image::sam`），16×16 格點 | 遮罩外擴頁寬的 1.2%，交給 LaMa |
+
+SAM 的後處理：
+
+- IoU ≥ 0.88、穩定度 ≥ 0.92；面積 0.05%–25%；外接框不超過頁面 80%；貼頁緣的丟掉。
+- 每個遮罩只留最大連通塊（SAM 常夾帶相鄰物件的碎片）。
+- 有一半以上落在已擦字區域的丟掉（文字塗抹塊）。
+- 碎片合併：碎片彼此相接 → 以整體取代；碎片之間有底色縫隙 → 丟掉合併遮罩。
+  IoU 0.70 起的低信心候選只能用來把兩個以上的碎片合成整體（雪花）。
+
+SAM 模型（MIT，約 43 MiB）同樣由 `n2p models fetch` 下載。沒有模型時，非平坦背景的
+頁面不切物件。
+
+限制：
+
+- 物件上的文字是獨立文字框，移動物件時文字不會跟著動。
+- 物件移走後露出的是補出來的背景（平坦頁填底色；其他頁是 LaMa 生成，可能有暗塊）。
+- 與其他圖形相連的小物件可能切不出來（CH1 第 4 頁的徽章 3）。
+- SAM encoder 推論時暫存約 5.4 GB。CH1（11 頁）實測 782 秒，不開旗標約 330 秒，每頁約多 40 秒。
+- 除錯：`examples/sam_debug.rs` 輸出彩色疊圖；`N2P_OBJECT_GROW`、`N2P_EXCLUDE_GROW`
+  可覆寫兩個外擴量。
+
 ## 已知限制
 
 1. **Vision 不給語意標籤。** 所有文字都建成內文框，不會自動判定「這是標題」。需要 `paragraph_title`
    這類語意時請走 `--layout mineru`。
-2. **Vision 不做圖片區塊偵測。** 圖片留在背景圖上不被擦除；視覺結果與 Windows 版一致
-   （Windows 版也是「文字變文字框、其餘留背景」）。
+2. **Vision 不做圖片區塊偵測。** 預設圖片留在背景圖上不被擦除；視覺結果與 Windows 版一致
+   （Windows 版也是「文字變文字框、其餘留背景」）。需要可移動的物件時用 `--extract-objects`。
 3. **去水印只對 NotebookLM 的固定位置有效。** 這是刻意保留的耦合，改成自動偵測會讓位置跑掉。
 4. **非 macOS 平台可編譯但沒有 OCR。** `--layout auto` 會退回 `image`。
 

@@ -21,11 +21,16 @@
 //! 可用 [`InpaintMethod::is_bit_exact_with_python`] 查詢。
 
 pub mod diversity;
+pub mod gpu;
 pub mod inpaint;
 pub mod lama;
 pub mod mask;
 pub mod method;
+pub mod models;
 pub mod objects;
+mod onnx_pb;
+pub mod runtime;
+pub mod sam;
 pub mod textmask;
 pub mod transform;
 pub mod watermark;

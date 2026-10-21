@@ -1,0 +1,21 @@
+[package]
+name = "n2p-gui"
+description = "notebooklm2ppt 的 macOS 圖形介面"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "n2p-gui"
+path = "src/main.rs"
+
+[dependencies]
+eframe = { version = "0.32", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
+rfd = "0.15"
+objc2.workspace = true
+objc2-foundation = { workspace = true, features = ["NSProcessInfo", "NSString"] }
+n2p-build = { path = "../n2p-build" }
+n2p-core = { path = "../n2p-core" }
+n2p-image = { path = "../n2p-image" }
+n2p-pipeline = { path = "../n2p-pipeline" }

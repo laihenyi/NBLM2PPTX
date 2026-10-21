@@ -13,6 +13,23 @@ n2p-rs 本身採 MIT 授權（見 repo 根目錄 `LICENSE`）。以下內容來�
 - `fixtures/image-fixtures/`：用上游的 Python 實作算出的參考輸出（產生方式見
   `fixtures/make_image_fixtures.py`）。
 
+## 執行期下載的模型（不隨原始碼或 app 散布）
+
+| 模型 | 下載來源 | 授權 |
+| :--- | :--- | :--- |
+| LaMa（`lama_fp32.onnx`） | <https://huggingface.co/Carve/LaMa-ONNX> | Apache-2.0 |
+| MobileSAM encoder／decoder | <https://huggingface.co/Acly/MobileSAM> | ONNX 匯出為 MIT；原始 MobileSAM 為 Apache-2.0 |
+
+模型在第一次使用時下載到 `~/Library/Caches/n2p/`。LaMa 的 GPU 版
+（`lama_fp32.coreml-v1.onnx`）是在使用者機器上由原模型改寫而成，同樣不散布。
+
+## ONNX protobuf 定義
+
+- `crates/n2p-image/proto/onnx.proto`：ONNX 官方定義，Apache-2.0（檔頭有 SPDX 標示）。
+- `crates/n2p-image/src/onnx_pb/onnx.rs`：由上述檔案以 rust-protobuf 3.7.2 產生。
+
+## 附錄：NotebookLM2PPT 授權全文
+
 ```text
 MIT License
 
