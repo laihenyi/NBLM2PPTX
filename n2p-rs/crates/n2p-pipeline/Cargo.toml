@@ -1,0 +1,21 @@
+[package]
+name = "n2p-pipeline"
+description = "串接 PDF → PNG → 去水印 → 版面 → PPTX"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+n2p-build = { path = "../n2p-build" }
+n2p-core = { path = "../n2p-core" }
+n2p-image = { path = "../n2p-image" }
+n2p-layout = { path = "../n2p-layout" }
+n2p-mineru = { path = "../n2p-mineru" }
+n2p-ooxml = { path = "../n2p-ooxml" }
+n2p-pdf = { path = "../n2p-pdf" }
+n2p-vision = { path = "../n2p-vision" }
+
+[dev-dependencies]
+serde_json.workspace = true

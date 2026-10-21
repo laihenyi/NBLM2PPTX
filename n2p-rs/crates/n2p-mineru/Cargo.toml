@@ -1,0 +1,14 @@
+[package]
+name = "n2p-mineru"
+description = "MinerU / Paddle JSON → 版面模型"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+n2p-core = { path = "../n2p-core" }
+n2p-layout = { path = "../n2p-layout" }

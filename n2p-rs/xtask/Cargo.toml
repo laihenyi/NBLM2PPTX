@@ -1,0 +1,21 @@
+[package]
+name = "xtask"
+description = "開發用工具：與 Microsoft PowerPoint／LibreOffice 對照的相容性與視覺回歸"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[[bin]]
+name = "xtask"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+n2p-core = { path = "../crates/n2p-core" }
+n2p-pdf = { path = "../crates/n2p-pdf" }
+n2p-pipeline = { path = "../crates/n2p-pipeline" }

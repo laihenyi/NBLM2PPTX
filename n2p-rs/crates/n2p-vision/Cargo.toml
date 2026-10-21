@@ -1,0 +1,20 @@
+[package]
+name = "n2p-vision"
+description = "macOS Vision OCR → 版面模型"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2.workspace = true
+objc2-foundation = { workspace = true, features = ["NSArray", "NSData", "NSDictionary", "NSString", "NSError", "NSValue", "NSObject"] }
+objc2-core-foundation.workspace = true
+objc2-core-graphics.workspace = true
+objc2-vision = { workspace = true, features = ["VNRecognizeTextRequest", "VNRequestHandler", "VNObservation"] }
+block2.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+n2p-core = { path = "../n2p-core" }
+n2p-layout = { path = "../n2p-layout" }

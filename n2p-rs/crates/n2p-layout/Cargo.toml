@@ -1,0 +1,12 @@
+[package]
+name = "n2p-layout"
+description = "中立的版面模型：區塊、行、文字"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+serde.workspace = true
+n2p-core = { path = "../n2p-core" }

@@ -1,0 +1,15 @@
+[package]
+name = "n2p-build"
+description = "版面模型 + 頁面影像 → PPTX"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+n2p-core = { path = "../n2p-core" }
+n2p-image = { path = "../n2p-image" }
+n2p-layout = { path = "../n2p-layout" }
+n2p-ooxml = { path = "../n2p-ooxml" }
+image.workspace = true
