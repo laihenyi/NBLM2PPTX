@@ -75,6 +75,8 @@ const SCRIPT: &str = r#"on run argv
 	-- 逐形狀 try：Spire 評估水印的 a:spLocks noTextEdit="1" 會讓索引存取拋 -1728。
 	-- 成敗都要關閉自己開的那一份，否則會累積殭屍簡報與 ~$ 鎖檔。
 	set thePath to item 1 of argv
+	-- full name 可能是 POSIX 或 HFS 形式，兩種都比
+	set hfsPath to ((POSIX file thePath) as text)
 	set slideCount to 0
 	set frameWidth to 0
 	set kindText to ""
@@ -91,7 +93,8 @@ const SCRIPT: &str = r#"on run argv
 		set openCount to (count of presentations)
 		repeat with k from 1 to openCount
 			try
-				if (full name of presentation k as text) is thePath then set wasOpen to true
+				set openName to (full name of presentation k as text)
+				if openName is thePath or openName is hfsPath then set wasOpen to true
 			end try
 		end repeat
 		open thePath
@@ -104,7 +107,9 @@ const SCRIPT: &str = r#"on run argv
 				set candidate to active presentation
 				set candidateSlides to (count of slides of candidate)
 				set candidateWidth to (slide width of page setup of candidate)
-				if candidateWidth > 0 then
+				-- 只接受剛開的那一份：前景若是使用者自己的簡報，絕不能讀它、更不能關它
+				set candidateName to (full name of candidate as text)
+				if candidateWidth > 0 and (candidateName is thePath or candidateName is hfsPath) then
 					set pres to candidate
 					set slideCount to candidateSlides
 					set frameWidth to candidateWidth
