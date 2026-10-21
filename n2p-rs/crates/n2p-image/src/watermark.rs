@@ -132,6 +132,58 @@ pub fn inpaint_bbox_in_place(image: &mut RgbImage, bbox: BBox, method: InpaintMe
     }
 }
 
+/// 依遮罩就地修補（只動遮罩為真的像素）。
+///
+/// 與 [`inpaint_bbox_in_place`] 的差別：這裡的遮罩是**逐像素**的，不是整個矩形。
+/// 用途是「只移除文字筆畫」—— 同一區域裡的彩色圖示、外框光暈因為不符遮罩條件，
+/// 一個像素都不會被動到。
+pub fn inpaint_mask_in_place(
+    image: &mut RgbImage,
+    mask: &Mask,
+    method: InpaintMethod,
+    fill_hint: [u8; 3],
+) {
+    let Some(padded) = mask.padded_bbox(2) else {
+        return;
+    };
+    let crop = image.crop(padded);
+    let mut local = Mask::new(crop.width, crop.height);
+    for y in 0..crop.height {
+        for x in 0..crop.width {
+            if mask.get(padded.left as u32 + x, padded.top as u32 + y) {
+                local.set(x, y, true);
+            }
+        }
+    }
+    // 填充色由呼叫端給：遮罩貼齊筆畫，直接用「遮罩邊緣的主色」會取到文字本身。
+    let background = fill_hint;
+    let cleaned = match method {
+        InpaintMethod::Onion => inpaint::onion(&crop, &local),
+        InpaintMethod::Harmonic => inpaint::harmonic(&crop, &local, 500),
+        InpaintMethod::Idw => inpaint::idw(&crop, &local, 8, 2),
+        InpaintMethod::EdgeMeanSmooth => {
+            let average = edge_average_color(&crop, padded_bbox_of(&local));
+            inpaint::manual(&crop, &local, average, 100)
+        }
+        _ => inpaint::manual(&crop, &local, background, 100),
+    };
+    for y in 0..crop.height {
+        for x in 0..crop.width {
+            if local.get(x, y) {
+                image.set_pixel(
+                    padded.left as u32 + x,
+                    padded.top as u32 + y,
+                    cleaned.pixel(x, y),
+                );
+            }
+        }
+    }
+}
+
+fn padded_bbox_of(mask: &Mask) -> BBox {
+    mask.bbox().unwrap_or(BBox::new(0, 0, 0, 0))
+}
+
 /// 去除 NotebookLM 水印。
 pub fn inpaint_watermark(image: &RgbImage, method: InpaintMethod) -> Result<RgbImage, Error> {
     let bbox = watermark_box(image.width, image.height)?;

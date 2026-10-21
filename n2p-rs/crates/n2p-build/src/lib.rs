@@ -25,7 +25,7 @@ pub mod fonts;
 pub mod fontsize;
 
 use n2p_core::{BBox, RgbImage};
-use n2p_image::edge_diversity;
+use n2p_image::{Mask, edge_diversity};
 use n2p_layout::{Block, BlockKind, LayoutPage};
 use n2p_ooxml::merge;
 use n2p_ooxml::{Align, AutoFit, Deck, Package, Rect, SlideSize, TextBox};
@@ -128,9 +128,12 @@ pub enum TextMode {
 pub enum EraseMode {
     /// 填單一顏色。與 Python 版等價。
     Flat,
-    /// 從四周插值（預設）。
-    #[default]
+    /// 從四周插值。
     Inpaint,
+    /// 只修補文字筆畫（預設）。子彈點、光暈、圖示因為不是文字色，
+    /// 完全不會被動到 —— 不需要任何幾何啟發式。
+    #[default]
+    StrokeMask,
 }
 
 /// 背景圖的解析度策略。
@@ -298,7 +301,7 @@ fn build_page(
     // 同時記下「真的轉成文字框」的區塊與其擦除範圍。背景擦除只處理這些 ——
     // 沒轉成文字框的區塊（例如只有一個 `◎` 的子彈點）必須留在背景上，
     // 擦掉就等於把原稿的圖示刪了。
-    let mut erase_regions: Vec<(BBox, f64)> = Vec::new();
+    let mut erase_regions: Vec<EraseRegion> = Vec::new();
     for block in layout.text_blocks() {
         // 先用幾何判斷把左側的項目符號／小圖示從 bbox 排除，再拿「純文字 bbox」
         // 去算字級、置中與擦除。少了這一步，bbox 含子彈點會讓字級偏大、
@@ -340,7 +343,12 @@ fn build_page(
         let font_size_pt = text_box.font_size_pt;
 
         // 擦除範圍 = 同一塊「純文字」區域，因此字級、位置、擦除三者一致。
-        erase_regions.push((text_region, font_size_pt / scale.max(f64::EPSILON)));
+        erase_regions.push(EraseRegion {
+            region: text_region,
+            em_layout_pt: font_size_pt / scale.max(f64::EPSILON),
+            text_color,
+            trimmed_bbox: text_region,
+        });
     }
 
     // ── 2. 前景圖片（裁切後置底）───────────────────────────────────────────
@@ -501,6 +509,78 @@ fn text_box_for(
         text_box = text_box.autofit(AutoFit::Normal);
     }
     Some(text_box)
+}
+
+/// 建立「只含文字筆畫」的遮罩。
+///
+/// 這是整個去字流程的關鍵：**遮罩要對準筆畫，不是整個區塊矩形**。
+/// 用矩形當遮罩會把同一區域裡的彩色子彈點、外框光暈一起抹掉，於是必須靠
+/// 「墨跡投影找空隙」「島寬 ≤ 2.5em」之類的幾何啟發式去補救 —— 那條路沒有終點。
+///
+/// 改成逐像素判斷：只有「顏色接近取樣文字色」的像素才進遮罩。子彈點是黃色、
+/// 光暈是白色，都不符條件，因此一個像素都不會被動到，不需要任何規則。
+fn build_stroke_mask(
+    image: &RgbImage,
+    region: BBox,
+    image_scale: f64,
+    text_color: [u8; 3],
+    em_px: f64,
+) -> Mask {
+    let bbox = region
+        .scale(image_scale)
+        .clamp(image.width as i64, image.height as i64);
+    let mut mask = Mask::new(image.width, image.height);
+    if bbox.is_empty() {
+        return mask;
+    }
+    // 容差隨字級放大：大字的反鋸齒邊緣較寬
+    let tolerance = (26.0 + em_px * 0.35).clamp(26.0, 80.0) as u8;
+    for y in bbox.top..bbox.bottom {
+        for x in bbox.left..bbox.right {
+            let pixel = image.pixel(x as u32, y as u32);
+            let distance = pixel
+                .iter()
+                .zip(text_color.iter())
+                .map(|(a, b)| a.abs_diff(*b))
+                .max()
+                .unwrap_or(255);
+            if distance <= tolerance {
+                mask.set(x as u32, y as u32, true);
+            }
+        }
+    }
+
+    // 膨脹一兩圈，把反鋸齒邊緣一起吃掉。
+    // 少了這步，筆畫周圍會留一圈半透明像素 —— 既看得出殘影，
+    // 也讓背景 PNG 變成高頻雜訊（實測體積從 0.6 MB 漲到 1.6 MB/張）。
+    let radius = ((em_px * 0.06) as i64).clamp(1, 3);
+    let original = mask.clone();
+    for y in bbox.top..bbox.bottom {
+        for x in bbox.left..bbox.right {
+            if !original.get(x as u32, y as u32) {
+                continue;
+            }
+            for dy in -radius..=radius {
+                for dx in -radius..=radius {
+                    let nx = x + dx;
+                    let ny = y + dy;
+                    if nx >= 0 && ny >= 0 && nx < image.width as i64 && ny < image.height as i64 {
+                        mask.set(nx as u32, ny as u32, true);
+                    }
+                }
+            }
+        }
+    }
+    if std::env::var("N2P_DEBUG_MASK").is_ok() {
+        eprintln!(
+            "[mask] region={:?} color={:?} tol={} count={}",
+            bbox,
+            text_color,
+            tolerance,
+            mask.count()
+        );
+    }
+    mask
 }
 
 /// 判斷是否為「裝飾被誤讀成文字」的區塊。
@@ -762,26 +842,18 @@ fn sample_text_color(image: &RgbImage, bbox: BBox, image_scale: f64) -> [u8; 3] 
         }
     }
 
-    match best {
+    let chosen = match best {
         // 與背景差異太小代表這個區塊其實沒有明顯文字
         Some((distance, color)) if distance >= 60 => color,
         _ => [0, 0, 0],
+    };
+    if std::env::var("N2P_DEBUG_MASK").is_ok() {
+        eprintln!(
+            "[color] bbox={:?} bg={:?} max_count={} chosen={:?}",
+            bbox, background, max_count, chosen
+        );
     }
-}
-
-/// 找出區域內最常見的顏色（背景估計）。
-fn dominant_color(image: &RgbImage, bbox: BBox) -> [u8; 3] {
-    let mut counts: std::collections::HashMap<[u8; 3], usize> = std::collections::HashMap::new();
-    for y in bbox.top..bbox.bottom {
-        for x in bbox.left..bbox.right {
-            *counts.entry(image.pixel(x as u32, y as u32)).or_insert(0) += 1;
-        }
-    }
-    counts
-        .into_iter()
-        .max_by_key(|(_, n)| *n)
-        .map(|(c, _)| c)
-        .unwrap_or([255, 255, 255])
+    chosen
 }
 
 /// 估計文字區塊的背景色。
@@ -800,7 +872,23 @@ fn background_color(image: &RgbImage, bbox: BBox, pad: i64) -> [u8; 3] {
     if outer.is_empty() {
         return [255, 255, 255];
     }
-    dominant_color(image, outer)
+    // 只取「外框減去 bbox」的那一圈。直接用整個外擴矩形不行：文字密集的區塊
+    // 即使外擴了，框內仍是文字佔多數，主色會變成文字色。
+    let mut counts: std::collections::HashMap<[u8; 3], usize> = std::collections::HashMap::new();
+    for y in outer.top..outer.bottom {
+        for x in outer.left..outer.right {
+            let inside = x >= bbox.left && x < bbox.right && y >= bbox.top && y < bbox.bottom;
+            if inside {
+                continue;
+            }
+            *counts.entry(image.pixel(x as u32, y as u32)).or_insert(0) += 1;
+        }
+    }
+    counts
+        .into_iter()
+        .max_by_key(|(_, n)| *n)
+        .map(|(c, _)| c)
+        .unwrap_or([255, 255, 255])
 }
 
 /// 若區域左側是一個「孤立的窄圖形」（項目符號、小圖示），把它排除在擦除範圍外。
@@ -887,10 +975,20 @@ fn trim_leading_icon(image: &RgbImage, bbox: BBox, em_px: f64) -> BBox {
 /// 只擦 `erase_regions`（呼叫端算好的文字框範圍），不是整份版面的可擦除區塊。
 /// 差別在於：沒有轉成文字框的區塊（例如被判定為純符號的子彈點）會原樣留在
 /// 背景上，等於保留原稿的圖示。
+/// 一個要從背景移除的區域。
+#[derive(Debug, Clone, Copy)]
+struct EraseRegion {
+    region: BBox,
+    em_layout_pt: f64,
+    text_color: [u8; 3],
+    #[allow(dead_code)]
+    trimmed_bbox: BBox,
+}
+
 fn prepare_background(
     input: &PageInput<'_>,
     options: &BuildOptions,
-    erase_regions: &[(BBox, f64)],
+    erase_regions: &[EraseRegion],
 ) -> Result<Vec<u8>> {
     let _ = input.layout;
     let layout = input.layout;
@@ -905,7 +1003,13 @@ fn prepare_background(
 
     if options.erase_background_regions && options.text_mode == TextMode::Erase {
         let image_scale = image.width as f64 / layout.size_pt.0;
-        for (region, em_layout_pt) in erase_regions {
+        for EraseRegion {
+            region,
+            em_layout_pt,
+            text_color,
+            ..
+        } in erase_regions
+        {
             let bbox = expand_bbox(region.scale(image_scale), FOREGROUND_EXPAND_PX)
                 .clamp(image.width as i64, image.height as i64);
             // 讓開左側的項目符號／小圖示
@@ -937,6 +1041,25 @@ fn prepare_background(
                         &mut image,
                         bbox,
                         n2p_image::InpaintMethod::BackgroundSmooth,
+                    );
+                }
+                EraseMode::StrokeMask => {
+                    // 只修補文字筆畫：子彈點、光暈、圖示因為不是文字色，
+                    // 一個像素都不會被動到。
+                    let mask = build_stroke_mask(
+                        &image,
+                        *region,
+                        image_scale,
+                        *text_color,
+                        em_layout_pt * image_scale,
+                    );
+                    let em_px = em_layout_pt * image_scale;
+                    let fill = background_color(&image, bbox, (em_px * 1.5) as i64 + 4);
+                    n2p_image::inpaint_mask_in_place(
+                        &mut image,
+                        &mask,
+                        n2p_image::InpaintMethod::BackgroundSmooth,
+                        fill,
                     );
                 }
             }

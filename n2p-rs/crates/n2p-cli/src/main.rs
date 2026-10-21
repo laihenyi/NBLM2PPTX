@@ -45,9 +45,11 @@ enum TextModeArg {
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum EraseArg {
-    /// 從四周插值（預設）：漸層或雙色背景不會留下方塊
+    /// 只擦文字筆畫（預設）：子彈點、光暈、圖示不是文字色，完全不會被動到
+    Stroke,
+    /// 擦整個矩形並從四周插值：會連同區域內的圖示一起抹掉
     Inpaint,
-    /// 填單一顏色：與 Python 版等價，純色背景够用
+    /// 填單一顏色：與 Python 版等價
     Fill,
 }
 
@@ -120,8 +122,8 @@ struct ConvertArgs {
     #[arg(long)]
     high_res_background: bool,
 
-    /// 背景擦除方式：`inpaint` 從四周插值，`fill` 填單色（Python 版行為）
-    #[arg(long, value_enum, default_value = "inpaint")]
+    /// 背景擦除方式：`stroke` 只擦文字筆畫、`inpaint` 擦整個矩形、`fill` 填單色
+    #[arg(long, value_enum, default_value = "stroke")]
     erase: EraseArg,
 
     /// 文字合成方式：`cover` 不動背景、文字框自帶底色；`erase` 先擦背景再疊文字
@@ -215,6 +217,7 @@ fn convert(args: ConvertArgs) -> anyhow::Result<()> {
                 TextModeArg::Erase => n2p_build::TextMode::Erase,
             },
             erase_mode: match args.erase {
+                EraseArg::Stroke => n2p_build::EraseMode::StrokeMask,
                 EraseArg::Inpaint => n2p_build::EraseMode::Inpaint,
                 EraseArg::Fill => n2p_build::EraseMode::Flat,
             },
