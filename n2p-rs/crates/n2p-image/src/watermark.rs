@@ -160,20 +160,29 @@ pub fn inpaint_mask_in_place(image: &mut RgbImage, mask: &Mask, method: InpaintM
             }
         }
     }
-    // 填充色從「遮罩以外的像素」取主色。
+    // 填充色只從**遮罩外環**取樣。
     //
-    // 不能由呼叫端從 bbox 外圍取樣：文字帶白色光暈時，那一圈仍是光暈 → 填成白色，
-    // 於是在深色背景上留下一條白帶（CH7 第 5 頁實測）。
-    let background = dominant_unmasked_color(&crop, &local);
+    // 不能用「裁剪區內遮罩以外的像素」：文字帶大片光暈時，光暈會佔滿整個裁剪區，
+    // 取樣結果仍是白色 → 在深色背景上留下一條白帶（CH7 第 5 頁實測）。
+    let inner = BBox::new(
+        bbox.left - padded.left,
+        bbox.top - padded.top,
+        bbox.right - padded.left,
+        bbox.bottom - padded.top,
+    );
+    let background = ring_dominant_color(&crop, inner);
+    // 迭代次數要隨遮罩面積放大：固定 100 次只能擴散約 100 px，
+    // 大片光暈的中央仍會停留在我填充色上。
+    let iterations = ((bbox.width().max(bbox.height()) / 2).clamp(100, 400)) as usize;
     let cleaned = match method {
         InpaintMethod::Onion => inpaint::onion(&crop, &local),
         InpaintMethod::Harmonic => inpaint::harmonic(&crop, &local, 500),
         InpaintMethod::Idw => inpaint::idw(&crop, &local, 8, 2),
         InpaintMethod::EdgeMeanSmooth => {
             let average = edge_average_color(&crop, padded_bbox_of(&local));
-            inpaint::manual(&crop, &local, average, 100)
+            inpaint::manual(&crop, &local, average, iterations)
         }
-        _ => inpaint::manual(&crop, &local, background, 100),
+        _ => inpaint::manual(&crop, &local, background, iterations),
     };
     for y in 0..crop.height {
         for x in 0..crop.width {
@@ -192,13 +201,16 @@ fn padded_bbox_of(mask: &Mask) -> BBox {
     mask.bbox().unwrap_or(BBox::new(0, 0, 0, 0))
 }
 
-/// 遮罩以外像素的主色（量化到 16 階後取眾數再平均）。
-fn dominant_unmasked_color(image: &RgbImage, mask: &Mask) -> [u8; 3] {
+/// 只取「內框以外」那一圈的像素主色。
+fn ring_dominant_color(image: &RgbImage, inner: BBox) -> [u8; 3] {
     let mut buckets: std::collections::HashMap<[u8; 3], (usize, [u64; 3])> =
         std::collections::HashMap::new();
     for y in 0..image.height {
         for x in 0..image.width {
-            if mask.get(x, y) {
+            let (px, py) = (x as i64, y as i64);
+            let inside =
+                px >= inner.left && px < inner.right && py >= inner.top && py < inner.bottom;
+            if inside {
                 continue;
             }
             let pixel = image.pixel(x, y);

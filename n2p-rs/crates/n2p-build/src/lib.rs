@@ -576,25 +576,59 @@ fn build_stroke_mask(
         return None;
     }
 
-    // 容差隨字級放大：大字的反鋸齒邊緣較寬
-    let tolerance = (26.0 + em_px * 0.35).clamp(26.0, 80.0) as u8;
+    // 遮罩判準用**亮度極性**，而不是單純的「接近文字色」。
+    //
+    // 為什麼：文字常帶外框光暈，光暈與文字同色但明度是漸層的。只抓「接近文字色」
+    // 會漏掉光暈的邊緣，於是擦不乾淨；而填充色又會被光暈帶成白色，在深色背景上
+    // 留下一條白帶（CH7 第 5 頁）。
+    //
+    // 改成：文字比背景亮 → 抓「明顯比背景亮」的像素（含整片光暈）；
+    //       文字比背景暗 → 抓「明顯比背景暗」的像素（CH9 的深藍字，白色光暈因此保留）。
+    let luminance =
+        |c: [u8; 3]| -> f64 { 0.2126 * c[0] as f64 + 0.7152 * c[1] as f64 + 0.0722 * c[2] as f64 };
+    let background_luma = luminance(background);
+    let text_luma = luminance(text_color);
+    let threshold = (24.0 + em_px * 0.15).clamp(24.0, 60.0);
+    let polarity = if text_luma > background_luma + 15.0 {
+        1.0
+    } else if text_luma < background_luma - 15.0 {
+        -1.0
+    } else {
+        0.0
+    };
+
     let mut masked = 0usize;
     let total = (bbox.width() * bbox.height()).max(1) as usize;
     for y in bbox.top..bbox.bottom {
         for x in bbox.left..bbox.right {
             let pixel = image.pixel(x as u32, y as u32);
-            let distance = pixel
-                .iter()
-                .zip(text_color.iter())
-                .map(|(a, b)| a.abs_diff(*b))
-                .max()
-                .unwrap_or(255);
-            if distance <= tolerance {
+            let hit = if polarity == 0.0 {
+                // 極性不明（文字與背景亮度接近）→ 退回顏色距離
+                pixel
+                    .iter()
+                    .zip(text_color.iter())
+                    .map(|(a, b)| a.abs_diff(*b))
+                    .max()
+                    .unwrap_or(255)
+                    <= 60
+            } else {
+                // 亮度極性 + **彩度相近**兩個條件。
+                //
+                // 只用亮度會把背景裡「比背景亮的色塊」一起抓進來 ——
+                // CH7 第 1 頁的橘色光束就被誤判，擦掉後留下黑塊。
+                // 文字與其光暈通常是中性色（彩度低），光束是高彩度的橘色，
+                // 因此加上彩度條件就能分開。
+                let bright_enough = (luminance(pixel) - background_luma) * polarity > threshold;
+                let chroma_close = chroma_distance(pixel, text_color) <= 48.0;
+                bright_enough && chroma_close
+            };
+            if hit {
                 mask.set(x as u32, y as u32, true);
                 masked += 1;
             }
         }
     }
+    let _ = masked;
 
     // 膨脹 1–3 px 吃掉反鋸齒邊緣。少了這步會留殘影，且背景 PNG 因高頻雜訊
     // 從 0.6 MB 漲到 1.6 MB/張。
@@ -1016,6 +1050,22 @@ fn trim_leading_icon(image: &RgbImage, bbox: BBox, em_px: f64) -> BBox {
 /// 只擦 `erase_regions`（呼叫端算好的文字框範圍），不是整份版面的可擦除區塊。
 /// 差別在於：沒有轉成文字框的區塊（例如被判定為純符號的子彈點）會原樣留在
 /// 背景上，等於保留原稿的圖示。
+/// 彩度差：把 RGB 減去亮度後比較剩下的「色偏」。
+///
+/// 亮度相同但色相不同的兩個像素（例如中性白與橘色光束）在這個距離下差很多，
+/// 而文字與它自己的光暈差很少。
+fn chroma_distance(a: [u8; 3], b: [u8; 3]) -> f64 {
+    let luma = |c: [u8; 3]| 0.2126 * c[0] as f64 + 0.7152 * c[1] as f64 + 0.0722 * c[2] as f64;
+    let (la, lb) = (luma(a), luma(b));
+    let mut worst: f64 = 0.0;
+    for i in 0..3 {
+        let ca = a[i] as f64 - la;
+        let cb = b[i] as f64 - lb;
+        worst = worst.max((ca - cb).abs());
+    }
+    worst
+}
+
 /// 一個要從背景移除的區域。
 #[derive(Debug, Clone)]
 struct EraseRegion {
