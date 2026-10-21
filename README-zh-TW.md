@@ -28,8 +28,8 @@
 
 | 原稿（NotebookLM PDF） | 輸出（可編輯 PPTX，macOS App） |
 |:---:|:---:|
-| <img src="assets/demo-after.png" width="400"> | <img src="assets/demo-native-alpha6.jpg" width="400"> |
-| <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-native-kitchen.jpg" width="400"> |
+| <img src="assets/demo-after.png" width="400"> | <img src="assets/demo-native-v0.1.1-alpha6.jpg" width="400"> |
+| <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-native-v0.1.1-kitchen.jpg" width="400"> |
 
 > 文字變成可編輯的文字框；插圖留在背景，NotebookLM 浮水印已移除（輸出以 LibreOffice 渲染）。
 > 圖中可見的現有限制：螢光標記色不保留、粗體偶爾遺失、OCR 偶有錯字。

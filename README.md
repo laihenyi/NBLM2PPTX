@@ -28,8 +28,8 @@ Build, CLI usage and design notes: [`n2p-rs/README.md`](n2p-rs/README.md). Third
 
 | Original (NotebookLM PDF) | Output (editable PPTX, macOS app) |
 |:---:|:---:|
-| <img src="assets/demo-after.png" width="400"> | <img src="assets/demo-native-alpha6.jpg" width="400"> |
-| <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-native-kitchen.jpg" width="400"> |
+| <img src="assets/demo-after.png" width="400"> | <img src="assets/demo-native-v0.1.1-alpha6.jpg" width="400"> |
+| <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-native-v0.1.1-kitchen.jpg" width="400"> |
 
 > Text becomes editable text boxes; illustrations stay in the background and the NotebookLM watermark is removed (output rendered with LibreOffice).
 > Current limitations visible here: highlight colors are not kept, bold is sometimes lost, and OCR may misread a few characters.

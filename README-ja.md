@@ -28,8 +28,8 @@ NotebookLM からエクスポートした PDF を**背景画像とテキスト�
 
 | 元の PDF（NotebookLM） | 出力（編集可能な PPTX、macOS アプリ） |
 |:---:|:---:|
-| <img src="assets/demo-after.png" width="400"> | <img src="assets/demo-native-alpha6.jpg" width="400"> |
-| <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-native-kitchen.jpg" width="400"> |
+| <img src="assets/demo-after.png" width="400"> | <img src="assets/demo-native-v0.1.1-alpha6.jpg" width="400"> |
+| <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-native-v0.1.1-kitchen.jpg" width="400"> |
 
 > 文字は編集可能なテキストボックスになり、イラストは背景に残り、NotebookLM の透かしは除去されます（出力は LibreOffice で描画）。
 > 図で確認できる現在の制限：蛍光マーカーの色は保持されず、太字が失われることがあり、OCR がまれに誤認識します。

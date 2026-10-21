@@ -28,8 +28,8 @@ Compilación, uso por línea de comandos y notas de diseño: [`n2p-rs/README.md`
 
 | Original (PDF de NotebookLM) | Resultado (PPTX editable, app para macOS) |
 |:---:|:---:|
-| <img src="assets/demo-after.png" width="400"> | <img src="assets/demo-native-alpha6.jpg" width="400"> |
-| <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-native-kitchen.jpg" width="400"> |
+| <img src="assets/demo-after.png" width="400"> | <img src="assets/demo-native-v0.1.1-alpha6.jpg" width="400"> |
+| <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-native-v0.1.1-kitchen.jpg" width="400"> |
 
 > El texto se convierte en cuadros de texto editables; las ilustraciones quedan en el fondo y se elimina la marca de agua de NotebookLM (resultado renderizado con LibreOffice).
 > Limitaciones actuales visibles aquí: no se conservan los colores de resaltado, a veces se pierde la negrita y el OCR puede leer mal algunos caracteres.
