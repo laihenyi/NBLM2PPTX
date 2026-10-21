@@ -102,6 +102,19 @@
 - **更清晰的說明**：更新 API Key 設定指南以符合實際流程
 - **乾淨的重置介面**：重置時恢復初始上傳介面，而非載入動畫
 
+## macOS 原生版（離線，Rust）
+
+[`n2p-rs/`](n2p-rs/) 是在 Mac 本機執行的原生版本：不需要 API key，檔案不上傳。
+
+- **OCR**：macOS 內建 Vision（裝置端）
+- **去字**：只擦文字筆畫；有紋理的背景由 LaMa 在 GPU（CoreML）上重建
+- **物件切出（實驗性）**：圖示、插圖變成可移動的圖片（MobileSAM）
+- **App**：拖放式圖形介面，Developer ID 簽章並通過 Apple 公證；模型（約 253 MB）在第一次開啟時下載
+- **速度**（Apple Silicon，11 頁簡報）：標準版 29–45 秒，物件版 2–3 分鐘
+- 需求：Apple Silicon；GPU 推論需 macOS 12 以上
+
+建置、命令列用法與設計筆記見 [`n2p-rs/README.md`](n2p-rs/README.md)；第三方授權見 [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md)。
+
 ## 功能特色
 
 - **AI 智慧去字**：使用 Gemini 2.5 Flash 自動移除圖片中的文字並重建背景

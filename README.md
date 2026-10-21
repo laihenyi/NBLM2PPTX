@@ -110,6 +110,19 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 - **Clearer Instructions**: Updated API Key setup guide to match actual workflow
 - **Clean Reset UI**: Restored initial upload interface on reset instead of loading spinner
 
+## macOS Native App (offline, Rust)
+
+[`n2p-rs/`](n2p-rs/) is a native macOS version that runs entirely on your Mac — no API key, nothing uploaded.
+
+- **OCR**: macOS built-in Vision (on-device)
+- **Text removal**: erases only the text strokes; textured backgrounds are rebuilt by LaMa running on the GPU (CoreML)
+- **Object extraction (experimental)**: icons and illustrations become movable images (MobileSAM)
+- **App**: drag-and-drop GUI, signed with Developer ID and notarized by Apple; models (~253 MB) are downloaded on first launch
+- **Speed** (Apple Silicon, 11-page deck): standard version 29–45 s, object version 2–3 min
+- Requirements: Apple Silicon; macOS 12+ for GPU inference
+
+Build, CLI usage and design notes: [`n2p-rs/README.md`](n2p-rs/README.md). Third-party licenses: [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md).
+
 ## Features
 
 - **AI Text Removal**: Uses Gemini 2.5 Flash to automatically remove text from images and reconstruct backgrounds
