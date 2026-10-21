@@ -487,7 +487,10 @@ fn text_box_for(
     let (alignment, h_padding) = if is_title {
         (Align::Left, H_PADDING_TITLE_PT)
     } else {
-        (Align::Center, H_PADDING_BODY_PT)
+        (
+            body_alignment(block, font_size_pt / scale.max(f64::EPSILON)),
+            H_PADDING_BODY_PT,
+        )
     };
 
     let left = bx1 * scale;
@@ -529,9 +532,9 @@ fn text_box_for(
         0.0
     };
 
-    let rect = match alignment {
-        // 內文（Vision 的全部文字）：以原 bbox 中心為中心放大
-        Align::Center => {
+    let rect = match (alignment, is_title) {
+        // 置中的內文：以原 bbox 中心為中心放大
+        (Align::Center, _) => {
             let cx = (left + right) / 2.0;
             let cy = (top + bottom) / 2.0;
             let half_w = (needed_width_pt / 2.0) + h_padding;
@@ -540,6 +543,17 @@ fn text_box_for(
                 (cx - half_w).max(0.0),
                 (cy - half_h).max(0.0),
                 (cx + half_w).min(slide_width_pt),
+                (cy + half_h).min(slide_height_pt),
+            )
+        }
+        // 靠左的內文：左緣貼齊原稿，垂直仍以原 bbox 中心為中心
+        (_, false) => {
+            let cy = (top + bottom) / 2.0;
+            let half_h = (needed_height_pt / 2.0) + V_PADDING_PT;
+            Rect::ltrb(
+                left.max(0.0),
+                (cy - half_h).max(0.0),
+                (left + needed_width_pt + h_padding * 2.0).min(slide_width_pt),
                 (cy + half_h).min(slide_height_pt),
             )
         }
@@ -579,6 +593,34 @@ fn text_box_for(
         text_box = text_box.autofit(AutoFit::Normal);
     }
     Some(text_box)
+}
+
+/// 內文的對齊方式：各行左緣對齊、中心卻參差 → 靠左；其餘置中。
+///
+/// 條列與段落在原稿多半靠左，一律置中會讓長短不一的行往中間縮。單行或分不出來時
+/// 維持置中：以原框中心放大，字寬估錯也不會整段偏移。左緣容許差 2 em，因為子彈點
+/// 後的續行會內縮約 1–1.5 個字；`em` 與行框同單位。
+fn body_alignment(block: &Block, em: f64) -> Align {
+    let boxes: Vec<BBox> = block.lines.iter().filter_map(|line| line.bbox).collect();
+    if boxes.len() < 2 || em <= 0.0 {
+        return Align::Center;
+    }
+    let spread = |values: &[f64]| {
+        let max = values.iter().copied().fold(f64::MIN, f64::max);
+        let min = values.iter().copied().fold(f64::MAX, f64::min);
+        max - min
+    };
+    let lefts: Vec<f64> = boxes.iter().map(|b| b.left as f64).collect();
+    let centers: Vec<f64> = boxes
+        .iter()
+        .map(|b| (b.left + b.right) as f64 / 2.0)
+        .collect();
+    let (left_spread, center_spread) = (spread(&lefts), spread(&centers));
+    if left_spread <= 2.0 * em && center_spread - left_spread >= em {
+        Align::Left
+    } else {
+        Align::Center
+    }
 }
 
 /// 判斷是否為「裝飾被誤讀成文字」的區塊。
@@ -1424,6 +1466,47 @@ mod tests {
             .collect();
         let size = estimate_font_size(&block, 1.0);
         assert!((size - 50.0).abs() <= 2.0, "應約 50 pt，實際 {size}");
+    }
+
+    fn block_with_lines(boxes: &[(i64, i64)]) -> Block {
+        let mut block = Block::new(BlockKind::Text, BBox::new(0, 0, 600, 200));
+        block.lines = boxes
+            .iter()
+            .enumerate()
+            .map(|(i, &(left, right))| n2p_layout::Line {
+                spans: vec![n2p_layout::Span {
+                    text: Some("字".repeat(((right - left) / 20) as usize)),
+                    image_path: None,
+                }],
+                bbox: Some(BBox::new(left, i as i64 * 24, right, i as i64 * 24 + 20)),
+            })
+            .collect();
+        block
+    }
+
+    #[test]
+    fn ragged_right_paragraph_is_left_aligned() {
+        // 左緣齊、右緣參差（含子彈點後內縮 1 個字的續行）
+        let block = block_with_lines(&[(100, 180), (100, 500), (120, 360)]);
+        assert_eq!(body_alignment(&block, 20.0), Align::Left);
+    }
+
+    #[test]
+    fn centered_lines_stay_centered() {
+        // 中心對齊、左緣相差 6 個字
+        let block = block_with_lines(&[(100, 500), (220, 380), (160, 440)]);
+        assert_eq!(body_alignment(&block, 20.0), Align::Center);
+    }
+
+    #[test]
+    fn single_or_same_width_lines_stay_centered() {
+        assert_eq!(
+            body_alignment(&block_with_lines(&[(100, 400)]), 20.0),
+            Align::Center
+        );
+        // 等寬行：左緣與中心一樣齊，分不出來 → 維持原本的置中
+        let block = block_with_lines(&[(100, 400), (102, 401)]);
+        assert_eq!(body_alignment(&block, 20.0), Align::Center);
     }
 
     #[test]
