@@ -41,6 +41,12 @@ impl ModelFile {
         }
     }
 
+    /// LaMa 的 GPU 版是否已轉換好。其他模型或非 macOS 時為 `None`（不適用）。
+    pub fn gpu_converted(&self) -> Option<bool> {
+        (self.purpose == Purpose::Erase && cfg!(target_os = "macos"))
+            .then(|| crate::gpu::converted_path(&self.path).exists())
+    }
+
     /// 用系統 curl 下載（可續傳、不必為此引入 HTTP 依賴）。已就緒時直接回傳。
     /// `progress_bar` 為 `true` 時讓 curl 把進度條印到終端機。
     pub fn fetch(&self, progress_bar: bool) -> Result<(), String> {

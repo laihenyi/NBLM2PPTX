@@ -225,13 +225,13 @@ fn models(args: ModelsArgs) -> anyhow::Result<()> {
                 }
                 println!("  路徑：{}", model.path.display());
                 println!("  來源：{}", model.url);
-                if model.purpose == n2p_image::models::Purpose::Erase && cfg!(target_os = "macos") {
-                    let gpu = n2p_image::gpu::converted_path(&model.path);
-                    if gpu.exists() {
-                        println!("  GPU 版：已就緒（{}）", gpu.display());
-                    } else {
-                        println!("  GPU 版：尚未產生（第一次使用時自動轉換，約 1 秒）");
-                    }
+                match model.gpu_converted() {
+                    Some(true) => println!(
+                        "  GPU 版：已就緒（{}）",
+                        n2p_image::gpu::converted_path(&model.path).display()
+                    ),
+                    Some(false) => println!("  GPU 版：尚未產生（第一次使用時自動轉換，約 1 秒）"),
+                    None => {}
                 }
             }
             Ok(())

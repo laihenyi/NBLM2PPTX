@@ -36,6 +36,7 @@ pub struct App {
     mode: OutputMode,
     out_dir: Option<PathBuf>,
     overwrite: bool,
+    advanced_open: bool,
     settings: Settings,
     models: Vec<ModelFile>,
     models_error: Option<String>,
@@ -58,6 +59,7 @@ impl App {
             mode: OutputMode::Standard,
             out_dir: None,
             overwrite: false,
+            advanced_open: false,
             settings: Settings::default(),
             models: Vec::new(),
             models_error: None,
@@ -79,6 +81,7 @@ impl App {
         }
         app.out_dir = preset.out_dir;
         app.overwrite = preset.overwrite;
+        app.advanced_open = preset.advanced_open;
         app
     }
 
@@ -434,7 +437,7 @@ impl App {
 
     fn advanced(&mut self, ui: &mut egui::Ui) {
         egui::CollapsingHeader::new("進階設定")
-            .default_open(false)
+            .default_open(self.advanced_open)
             .show(ui, |ui| {
                 ui.add_enabled_ui(!self.running, |ui| {
                     ui.checkbox(
@@ -469,6 +472,16 @@ impl App {
                         ui.label(model.name);
                         ui.label(RichText::new(text).color(color));
                     });
+                    // 只在模型已下載時才有意義：沒下載就談不上 GPU 版
+                    if model.state() == ModelState::Ready {
+                        match model.gpu_converted() {
+                            Some(true) => note(ui, "GPU 版已就緒（去字在 GPU 上跑）"),
+                            Some(false) => {
+                                note(ui, "GPU 版尚未產生（第一次轉換時自動產生，約 1 秒）")
+                            }
+                            None => {}
+                        }
+                    }
                 }
                 let all_ready = self.ready(Purpose::Erase) && self.ready(Purpose::Objects);
                 if !all_ready {

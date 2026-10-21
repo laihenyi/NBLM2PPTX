@@ -8,6 +8,7 @@
 //! | `N2P_GUI_MODE` | `standard`、`objects` 或 `both` |
 //! | `N2P_GUI_PAGES` | 頁碼範圍 |
 //! | `N2P_GUI_OVERWRITE` | 設了就勾選覆寫 |
+//! | `N2P_GUI_ADVANCED` | 設了就展開「進階設定」（截圖檢查模型狀態用） |
 //! | `N2P_GUI_AUTOFETCH` | 設了就自動下載缺少的模型（在自動開始之前） |
 //! | `N2P_GUI_AUTOSTART` | 設了就自動開始，全部結束後再截一張並關閉視窗 |
 //! | `N2P_GUI_CANCEL_AFTER` | 開始後幾秒按取消 |
@@ -28,6 +29,7 @@ pub struct Preset {
     pub out_dir: Option<PathBuf>,
     pub pages: Option<String>,
     pub overwrite: bool,
+    pub advanced_open: bool,
 }
 
 #[derive(Default)]
@@ -65,6 +67,7 @@ impl DebugHooks {
             out_dir: var("N2P_GUI_OUT_DIR").map(PathBuf::from),
             pages: var("N2P_GUI_PAGES"),
             overwrite: var("N2P_GUI_OVERWRITE").is_some(),
+            advanced_open: var("N2P_GUI_ADVANCED").is_some(),
         };
         Self {
             preset: Some(preset),
