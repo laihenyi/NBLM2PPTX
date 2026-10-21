@@ -25,6 +25,7 @@ pub mod inpaint;
 pub mod lama;
 pub mod mask;
 pub mod method;
+pub mod objects;
 pub mod textmask;
 pub mod transform;
 pub mod watermark;
@@ -39,4 +40,7 @@ pub use watermark::{
 pub use lama::{Lama, LamaError};
 pub use mask::Mask;
 pub use n2p_core::{BBox, RgbImage};
+pub use objects::{
+    DetectedObject, ObjectOptions, find_flat_background_objects, flat_background_color,
+};
 pub use textmask::{TextAnalysis, analyze as analyze_text_region};

@@ -13,20 +13,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args().skip(1);
     let path = args
         .next()
-        .ok_or("用法：image x y w h out_prefix [glow_px]")?;
+        .ok_or("用法：image x y w h out_prefix [glow_px] [line_height_px]")?;
     let x: i64 = args.next().ok_or("缺少 x")?.parse()?;
     let y: i64 = args.next().ok_or("缺少 y")?.parse()?;
     let w: i64 = args.next().ok_or("缺少 w")?.parse()?;
     let h: i64 = args.next().ok_or("缺少 h")?.parse()?;
     let out = args.next().ok_or("缺少輸出前綴")?;
     let glow: u32 = args.next().unwrap_or_else(|| "0".into()).parse()?;
+    // 單行字高（像素）；預設 h/2，單行區塊請明確指定
+    let line_height: f64 = match args.next() {
+        Some(value) => value.parse()?,
+        None => h as f64 / 2.0,
+    };
 
     let bytes = std::fs::read(&path)?;
     let mut image = RgbImage::from_png_bytes(&bytes)?;
     println!("影像 {}x{}", image.width, image.height);
 
     let bbox = BBox::new(x, y, x + w, y + h);
-    let analysis = textmask::analyze_with_line_height(&image, bbox, h as f64 / 2.0);
+    let analysis = textmask::analyze_with_line_height(&image, bbox, line_height);
     println!(
         "密度 {:.3}  顏色 {:?}  粗體 {}",
         analysis.density, analysis.color, analysis.is_bold

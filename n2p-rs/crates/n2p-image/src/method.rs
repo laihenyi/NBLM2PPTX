@@ -21,6 +21,12 @@ pub enum InpaintMethod {
     Idw,
     /// 雙調和光影修補。Python 版用 `skimage.inpaint_biharmonic`，Rust 版以調和插值近似。
     Harmonic,
+    /// 最近鄰接填充：每個遮罩像素取「最近的未遮罩像素」顏色，再平滑。
+    ///
+    /// 與 [`Self::BackgroundSmooth`] 的差別在於種子不是單一主色，而是逐像素
+    /// 的局部背景色。文字壓在色帶交界（例如表格的黃色標題列）時，
+    /// 單一主色會留下比色帶淡的方塊。
+    NearestNeighbour,
 }
 
 impl InpaintMethod {
@@ -33,6 +39,7 @@ impl InpaintMethod {
             Self::Onion => "onion",
             Self::Idw => "griddata",
             Self::Harmonic => "skimage",
+            Self::NearestNeighbour => "nearest_neighbour",
         }
     }
 
@@ -45,6 +52,7 @@ impl InpaintMethod {
             Self::Onion => "逐層內縮修補",
             Self::Idw => "漸變過渡插值",
             Self::Harmonic => "雙調和光影修補",
+            Self::NearestNeighbour => "最近鄰接填充",
         }
     }
 
@@ -56,6 +64,7 @@ impl InpaintMethod {
             Self::Onion => "由外向內逐層修補，適合細長划痕或線條修復",
             Self::Idw => "以反距離加權近似曲面過渡，適合帶漸變的背景",
             Self::Harmonic => "以調和插值近似雙調和求解，較慢但光影較連續",
+            Self::NearestNeighbour => "逐像素取最近的未遮罩像素當種子再平滑，適合色帶交界的文字",
         }
     }
 

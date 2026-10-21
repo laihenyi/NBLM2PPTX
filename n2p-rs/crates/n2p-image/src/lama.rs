@@ -284,6 +284,17 @@ impl Lama {
     }
 }
 
+/// 整個行程共用的引擎。
+///
+/// 每頁各建一次 session 會出問題：208 MiB 的模型在一個行程裡反覆載入，
+/// 實測 11 頁的簡報會有 2 頁建立失敗（CH3 實測），而且每頁都要多花幾秒。
+static SHARED: std::sync::OnceLock<std::sync::Mutex<Option<Lama>>> = std::sync::OnceLock::new();
+
+/// 取得共用引擎（第一次呼叫時載入；載入失敗則永久為 `None`）。
+pub fn shared() -> &'static std::sync::Mutex<Option<Lama>> {
+    SHARED.get_or_init(|| std::sync::Mutex::new(Lama::load_default().ok()))
+}
+
 /// 圖塊左上角的起點序列，確保覆蓋 `[from, to)`。
 fn tile_positions(from: i64, to: i64) -> Vec<i64> {
     let length = (to - from).max(1);

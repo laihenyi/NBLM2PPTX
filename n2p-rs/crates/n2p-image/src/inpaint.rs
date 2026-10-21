@@ -47,6 +47,11 @@ impl Region {
         y * self.width + x
     }
 
+    #[inline]
+    fn coords(&self, index: usize) -> (usize, usize) {
+        (index % self.width, index / self.width)
+    }
+
     /// 寫回影像，並套用 `clip(0,255)` 後轉 `u8`（對應 `np.clip(...).astype(np.uint8)`）。
     fn write_back(&self, image: &mut RgbImage) {
         for y in 0..self.height {
@@ -63,6 +68,33 @@ impl Region {
                 );
             }
         }
+    }
+}
+
+/// 對遮罩內的像素做拉普拉斯（Jacobi）平滑。
+fn smooth_masked(region: &mut Region, region_mask: &[bool], max_iter: usize) {
+    if region.width < 3 || region.height < 3 {
+        return;
+    }
+    let mut scratch = region.data.clone();
+    for _ in 0..max_iter {
+        scratch.copy_from_slice(&region.data);
+        for y in 1..region.height - 1 {
+            for x in 1..region.width - 1 {
+                if !region_mask[region.index(x, y)] {
+                    continue;
+                }
+                let up = region.data[region.index(x, y - 1)];
+                let down = region.data[region.index(x, y + 1)];
+                let left = region.data[region.index(x - 1, y)];
+                let right = region.data[region.index(x + 1, y)];
+                for channel in 0..3 {
+                    scratch[region.index(x, y)][channel] =
+                        (up[channel] + down[channel] + left[channel] + right[channel]) / 4.0;
+                }
+            }
+        }
+        std::mem::swap(&mut region.data, &mut scratch);
     }
 }
 
@@ -383,6 +415,114 @@ pub fn harmonic(image: &RgbImage, mask: &Mask, max_iter: usize) -> RgbImage {
     }
 
     region.write_back(&mut out);
+    out
+}
+
+/// 最近鄰接填充：每個遮罩像素取「最近的未遮罩像素」顏色當種子，再平滑。
+///
+/// 用途是文字壓在**色帶交界**的情況（例如表格的黃色標題列與下方米色底）。
+/// 單一主色種子會留下與該色帶不同調的方塊；逐像素取最近背景色則會自然
+/// 沿著色帶邊界接續。
+///
+/// `max_iter` 為 0 時只做最近鄰接（會留下階梯狀邊緣），建議 20–40。
+///
+/// `fallback` 是「周邊背景主色」。離這個顏色太遠的鄰居不會被取樣 —— 文字框
+/// 旁邊若剛好有深色圖示（CH3 的銅鍋蓋鈕），那些像素會被當成背景而補出灰汙。
+pub fn nearest_neighbour(
+    image: &RgbImage,
+    mask: &Mask,
+    max_iter: usize,
+    fallback: [u8; 3],
+) -> RgbImage {
+    // 允許的色差：同一個色帶內的變化遠小於這個值，深色圖示則遠大於。
+    const FALLBACK_LIMIT: f32 = 80.0;
+    let fallback_f = [fallback[0] as f32, fallback[1] as f32, fallback[2] as f32];
+    let acceptable = |pixel: &[f32; 3]| -> bool {
+        let distance = ((pixel[0] - fallback_f[0]).powi(2)
+            + (pixel[1] - fallback_f[1]).powi(2)
+            + (pixel[2] - fallback_f[2]).powi(2))
+        .sqrt();
+        distance <= FALLBACK_LIMIT
+    };
+    let Some(bbox) = mask.padded_bbox(2) else {
+        return image.clone();
+    };
+    let mut out = image.clone();
+    let mut region = Region::extract(image, bbox);
+    let region_mask = mask_in_region(mask, bbox);
+
+    // 已知 = 尚未被填過的像素；從未遮罩像素往外一圈圈長
+    let mut known: Vec<bool> = region_mask.iter().map(|inside| !*inside).collect();
+    let mut pending: Vec<usize> = (0..region_mask.len())
+        .filter(|index| region_mask[*index])
+        .collect();
+    while !pending.is_empty() {
+        let mut next = Vec::new();
+        let mut filled = Vec::new();
+        for index in &pending {
+            let (x, y) = region.coords(*index);
+            let mut total = [0u32; 3];
+            let mut count = 0u32;
+            for (dx, dy) in [(-1i64, 0i64), (1, 0), (0, -1), (0, 1)] {
+                let (nx, ny) = (x as i64 + dx, y as i64 + dy);
+                if nx < 0 || ny < 0 || nx >= region.width as i64 || ny >= region.height as i64 {
+                    continue;
+                }
+                let neighbour = region.index(nx as usize, ny as usize);
+                if known[neighbour] && acceptable(&region.data[neighbour]) {
+                    let pixel = region.data[neighbour];
+                    total[0] += pixel[0] as u32;
+                    total[1] += pixel[1] as u32;
+                    total[2] += pixel[2] as u32;
+                    count += 1;
+                }
+            }
+            if let Some(1..) = count.checked_div(count) {
+                filled.push((
+                    *index,
+                    [
+                        (total[0] / count) as f32,
+                        (total[1] / count) as f32,
+                        (total[2] / count) as f32,
+                    ],
+                ));
+            } else {
+                next.push(*index);
+            }
+        }
+        if filled.is_empty() {
+            // 鄰居全被排除（例如整塊都貼著圖示）：用周邊背景主色收尾
+            for index in &pending {
+                region.data[*index] = fallback_f;
+                known[*index] = true;
+            }
+            break;
+        }
+        for (index, pixel) in filled {
+            region.data[index] = pixel;
+            known[index] = true;
+        }
+        pending = next;
+    }
+
+    if max_iter > 0 && region.width >= 3 && region.height >= 3 {
+        smooth_masked(&mut region, &region_mask, max_iter);
+    }
+
+    for (index, inside) in region_mask.iter().enumerate() {
+        if *inside {
+            let (x, y) = region.coords(index);
+            out.set_pixel(
+                bbox.left as u32 + x as u32,
+                bbox.top as u32 + y as u32,
+                [
+                    region.data[index][0].round().clamp(0.0, 255.0) as u8,
+                    region.data[index][1].round().clamp(0.0, 255.0) as u8,
+                    region.data[index][2].round().clamp(0.0, 255.0) as u8,
+                ],
+            );
+        }
+    }
     out
 }
 

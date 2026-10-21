@@ -141,6 +141,10 @@ struct ConvertArgs {
     #[arg(long)]
     autofit: bool,
 
+    /// 把平坦底色背景上的獨立物件切成可移動的圖片（實驗性；攝影背景不支援）
+    #[arg(long)]
+    extract_objects: bool,
+
     /// 背景保留完整點陣化解析度（檔案較大但較清晰）
     #[arg(long)]
     high_res_background: bool,
@@ -295,6 +299,7 @@ fn convert(args: ConvertArgs) -> anyhow::Result<()> {
             east_asian_font_name: args.ea_font.clone(),
             widescreen: args.widescreen,
             text_autofit: args.autofit,
+            extract_objects: args.extract_objects,
             text_mode: match args.text_mode {
                 TextModeArg::Erase => n2p_build::TextMode::Erase,
                 TextModeArg::Cover => n2p_build::TextMode::Cover,

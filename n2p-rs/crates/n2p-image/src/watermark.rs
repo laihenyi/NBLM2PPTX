@@ -99,6 +99,7 @@ pub fn inpaint_region(image: &RgbImage, bbox: BBox, method: InpaintMethod) -> Rg
         InpaintMethod::Onion => inpaint::onion(image, &mask),
         InpaintMethod::Idw => inpaint::idw(image, &mask, 8, 2),
         InpaintMethod::Harmonic => inpaint::harmonic(image, &mask, 500),
+        InpaintMethod::NearestNeighbour => inpaint::nearest_neighbour(image, &mask, 30, fill_color),
     }
 }
 
@@ -181,6 +182,9 @@ pub fn inpaint_mask_in_place(image: &mut RgbImage, mask: &Mask, method: InpaintM
         InpaintMethod::EdgeMeanSmooth => {
             let average = edge_average_color(&crop, padded_bbox_of(&local));
             inpaint::manual(&crop, &local, average, iterations)
+        }
+        InpaintMethod::NearestNeighbour => {
+            inpaint::nearest_neighbour(&crop, &local, iterations, background)
         }
         _ => inpaint::manual(&crop, &local, background, iterations),
     };

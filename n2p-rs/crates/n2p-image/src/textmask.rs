@@ -146,6 +146,14 @@ pub fn analyze_with_line_height(image: &RgbImage, bbox: BBox, line_height_px: f6
         .map(|(a, b)| *a || *b)
         .collect();
 
+    // 只留「像字」的連通元件 —— 必須在後面的對比擴張**之前**做，否則擴張會把
+    // 整個詞連成一條，全部超過上限而被誤刪（CH3 第 3 頁實測）。
+    //
+    // Vision 的文字框偶爾把旁邊的小圖示（銅鍋、愛心）一起框進來，遮罩就會連
+    // 圖示的深色像素一起吃，修補後留下一塊髒色。筆畫的連通元件不可能比一個字
+    // 大太多，用這個上限把圖示濾掉。
+    drop_oversized_components(&mut combined, w, h, line_height_px);
+
     // 形態學閉運算（先膨脹再侵蝕），核為近似圓形
     let kernel = ((line_height_px / CLOSE_KERNEL_DIVISOR as f64).round() as usize)
         .clamp(1, CLOSE_KERNEL_MAX);
@@ -211,6 +219,62 @@ pub fn analyze_with_line_height(image: &RgbImage, bbox: BBox, line_height_px: f6
         color,
         is_bold: count as f64 / area > BOLD_DENSITY,
         density: masked as f64 / area,
+    }
+}
+
+/// 移除尺寸超過「一個字」的連通元件（見 [`analyze_with_line_height`] 的說明）。
+fn drop_oversized_components(mask: &mut [bool], w: usize, h: usize, line_height_px: f64) {
+    // 一個全形字最寬約 1 em；連筆部件（氵、辶）可能稍寬，放寬到 2.5 em。
+    // 高度上限用 1.6 em：中日文的部件不會更高，圖示則遠遠超過。
+    let max_width = (line_height_px * 2.5).max(8.0);
+    let max_height = (line_height_px * 1.6).max(8.0);
+
+    let mut visited = vec![false; w * h];
+    let mut stack = Vec::new();
+    for start in 0..w * h {
+        if !mask[start] || visited[start] {
+            continue;
+        }
+        let mut component = Vec::new();
+        let (mut min_x, mut min_y) = (usize::MAX, usize::MAX);
+        let (mut max_x, mut max_y) = (0usize, 0usize);
+        stack.push(start);
+        visited[start] = true;
+        while let Some(index) = stack.pop() {
+            component.push(index);
+            let (x, y) = (index % w, index / w);
+            min_x = min_x.min(x);
+            min_y = min_y.min(y);
+            max_x = max_x.max(x);
+            max_y = max_y.max(y);
+            for (dx, dy) in [
+                (-1i64, 0i64),
+                (1, 0),
+                (0, -1),
+                (0, 1),
+                (-1, -1),
+                (1, -1),
+                (-1, 1),
+                (1, 1),
+            ] {
+                let (nx, ny) = (x as i64 + dx, y as i64 + dy);
+                if nx < 0 || ny < 0 || nx >= w as i64 || ny >= h as i64 {
+                    continue;
+                }
+                let neighbour = ny as usize * w + nx as usize;
+                if mask[neighbour] && !visited[neighbour] {
+                    visited[neighbour] = true;
+                    stack.push(neighbour);
+                }
+            }
+        }
+        let width = (max_x - min_x + 1) as f64;
+        let height = (max_y - min_y + 1) as f64;
+        if width > max_width || height > max_height {
+            for index in component {
+                mask[index] = false;
+            }
+        }
     }
 }
 

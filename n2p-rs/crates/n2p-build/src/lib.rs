@@ -174,6 +174,8 @@ pub struct BuildOptions {
     ///
     /// Python 版（經 Spire）不會寫，因此溢出時文字會超出框外；開啟可修好這件事。
     pub text_autofit: bool,
+    /// 把平坦底色背景上的獨立物件切成可移動的圖片（僅 `TextMode::Erase` 有效）。
+    pub extract_objects: bool,
 }
 
 impl Default for BuildOptions {
@@ -187,6 +189,7 @@ impl Default for BuildOptions {
             text_mode: TextMode::default(),
             background_resolution: BackgroundResolution::PageSize,
             text_autofit: false,
+            extract_objects: false,
         }
     }
 }
@@ -370,7 +373,12 @@ fn build_page(
             erase_regions.push(EraseRegion {
                 region: text_region,
                 mask,
-                expand_px: mask_expand_px(input.image, text_region.scale(image_scale), em_px),
+                expand_px: mask_expand_px(
+                    input.image,
+                    text_region.scale(image_scale),
+                    em_px,
+                    text_color,
+                ),
                 flat_background: is_flat_background(
                     input.image,
                     text_region.scale(image_scale),
@@ -396,9 +404,26 @@ fn build_page(
     }
 
     // ── 3. 背景 ────────────────────────────────────────────────────────────
-    let background = prepare_background(input, options, &erase_regions)?;
+    let (background, objects) = prepare_background(input, options, &erase_regions)?;
     deck.set_background_picture(index, background, "png")
         .map_err(Error::Ooxml)?;
+    // 物件置底（在文字之下、背景之上）。
+    for (number, object) in objects.into_iter().enumerate() {
+        deck.insert_picture_at_bottom(
+            index,
+            object.png,
+            "png",
+            Rect::ltrb(
+                object.layout_ltrb[0] * scale,
+                object.layout_ltrb[1] * scale,
+                object.layout_ltrb[2] * scale,
+                object.layout_ltrb[3] * scale,
+            ),
+            &format!("object-{}", number + 1),
+        )
+        .map_err(Error::Ooxml)?;
+        report.pictures += 1;
+    }
 
     let _ = image_scale;
     Ok(report)
@@ -850,6 +875,11 @@ fn trim_leading_icon(image: &RgbImage, bbox: BBox, em_px: f64) -> BBox {
     )
 }
 
+/// 字高超過此值視為大標題。
+const LARGE_TEXT_EM_PX: f64 = 46.0;
+/// 文字亮度超過此值視為亮字（可能帶暗色投影）。
+const LIGHT_TEXT_LUMA: f64 = 160.0;
+
 /// 一個要從背景移除的區域。
 /// LaMa 修補時遮罩要往外擴幾個像素。
 ///
@@ -863,7 +893,10 @@ fn trim_leading_icon(image: &RgbImage, bbox: BBox, em_px: f64) -> BBox {
 /// - **3–6 px**（本函式）→ 剛好蓋掉亮邊，光暈本身留著當新文字的自然外光。
 ///
 /// `N2P_GLOW` 可覆寫（除錯用）。
-fn mask_expand_px(image: &n2p_core::RgbImage, bbox: BBox, em_px: f64) -> u32 {
+fn mask_expand_px(image: &n2p_core::RgbImage, bbox: BBox, em_px: f64, text_color: [u8; 3]) -> u32 {
+    let text_luma = 0.2126 * text_color[0] as f64
+        + 0.7152 * text_color[1] as f64
+        + 0.0722 * text_color[2] as f64;
     if let Ok(value) = std::env::var("N2P_GLOW") {
         if let Ok(parsed) = value.parse::<f64>() {
             return parsed.round().clamp(0.0, 256.0) as u32;
@@ -874,7 +907,15 @@ fn mask_expand_px(image: &n2p_core::RgbImage, bbox: BBox, em_px: f64) -> u32 {
         ((em_px * 0.30).round() as u32).clamp(4, 40)
     } else {
         // 有紋理：只擦到抗鋸齒亮邊，光暈留著當新文字的外光。
-        ((em_px * 0.04).round() as u32).clamp(3, 6)
+        if em_px > LARGE_TEXT_EM_PX && text_luma > LIGHT_TEXT_LUMA {
+            // 大標題的「亮字 + 暗投影」：投影環隨字級變寬（CH1 第 1 頁 em≈180 px
+            // 約 13 px），6 px 蓋不住，修補後會留下字形暗斑。約 0.13 個字高
+            // 實測最乾淨；0.22 em 以上 LaMa 會補出灰白雲塊。只限亮字 —— 深色
+            // 或彩色字（CH3 第 6 頁銅牌上的紅字）放大後 LaMa 會補出紅斑。
+            ((em_px * 0.13).round() as u32).clamp(6, 24)
+        } else {
+            ((em_px * 0.04).round() as u32).clamp(3, 6)
+        }
     }
 }
 
@@ -900,7 +941,7 @@ fn prepare_background(
     input: &PageInput<'_>,
     options: &BuildOptions,
     erase_regions: &[EraseRegion],
-) -> Result<Vec<u8>> {
+) -> Result<(Vec<u8>, Vec<ExtractedObject>)> {
     let _ = input.layout;
     let layout = input.layout;
     let mut image = match options.background_resolution {
@@ -912,16 +953,23 @@ fn prepare_background(
         )?,
     };
 
-    let mut engine: Option<n2p_image::Lama> = None;
-    if options.erase_mode == EraseMode::Lama {
-        engine = n2p_image::Lama::load_default().ok();
-        if engine.is_none() {
-            eprintln!(
-                "  ! 找不到 LaMa 模型（{}），改用插值修補；可執行 `n2p models fetch` 下載",
-                n2p_image::lama::default_model_path()
-                    .map(|p| p.display().to_string())
-                    .unwrap_or_else(|| n2p_image::lama::MODEL_FILE.to_string())
-            );
+    // 整個行程共用同一個引擎（每頁重載 208 MiB 的模型會間歇性失敗）。
+    let mut engine_guard = if options.erase_mode == EraseMode::Lama {
+        Some(
+            n2p_image::lama::shared()
+                .lock()
+                .unwrap_or_else(|e| e.into_inner()),
+        )
+    } else {
+        None
+    };
+    if let Some(guard) = &engine_guard {
+        if guard.is_none() {
+            if let Err(error) = n2p_image::Lama::load_default() {
+                eprintln!(
+                    "  ! LaMa 不可用（{error}），改用插值修補；可執行 `n2p models fetch` 下載"
+                );
+            }
         }
     }
 
@@ -967,17 +1015,14 @@ fn prepare_background(
                     );
                 }
                 EraseMode::Lama => {
+                    let engine = engine_guard.as_mut().and_then(|guard| guard.as_mut());
                     let mut expanded = mask.clone();
                     // 光暈可以往文字框外擴，但不要波及旁邊的裝飾圖案。
                     let limit = expand_bbox(bbox, (*expand_px as i64).min(16) + 2);
                     expanded.dilate_within(*expand_px, limit);
                     // 平坦背景：插值填色比生成模型乾淨得多。LaMa 在「一大片
                     // 純色」上常補出偏暗的雲狀色塊（CH9 第 3 頁實測）。
-                    let engine = if *flat_background {
-                        None
-                    } else {
-                        engine.as_mut()
-                    };
+                    let engine = if *flat_background { None } else { engine };
                     match engine {
                         Some(engine) => {
                             if let Err(error) = engine.inpaint_mask(&mut image, &expanded) {
@@ -992,7 +1037,9 @@ fn prepare_background(
                         None => n2p_image::inpaint_mask_in_place(
                             &mut image,
                             &expanded,
-                            n2p_image::InpaintMethod::BackgroundSmooth,
+                            // 平坦背景用「逐像素最近背景色」當種子：文字壓在
+                            // 色帶交界時，單一主色會留下比色帶淡的方塊。
+                            n2p_image::InpaintMethod::NearestNeighbour,
                         ),
                     }
                 }
@@ -1000,7 +1047,116 @@ fn prepare_background(
         }
     }
 
-    image.to_png().map_err(|e| Error::Image(e.to_string()))
+    let objects = if options.extract_objects
+        && options.text_mode == TextMode::Erase
+        && options.erase_background_regions
+    {
+        extract_objects(&mut image, layout.size_pt.0)?
+    } else {
+        Vec::new()
+    };
+
+    let png = image.to_png().map_err(|e| Error::Image(e.to_string()))?;
+    Ok((png, objects))
+}
+
+/// 切出來的一個獨立物件：帶透明度的 PNG 與它在版面座標（pt）的位置。
+struct ExtractedObject {
+    png: Vec<u8>,
+    /// 版面座標（pt）的 left/top/right/bottom。
+    layout_ltrb: [f64; 4],
+}
+
+/// 在（已擦字的）背景上找獨立物件，切成透明 PNG，並把它們從背景擦掉。
+///
+/// 目前只支援平坦底色頁面；攝影背景會回傳空清單（見 `n2p_image::objects`）。
+fn extract_objects(image: &mut RgbImage, layout_width_pt: f64) -> Result<Vec<ExtractedObject>> {
+    let detected =
+        n2p_image::find_flat_background_objects(image, &n2p_image::ObjectOptions::default());
+    if detected.is_empty() {
+        return Ok(Vec::new());
+    }
+    let px_per_layout = image.width as f64 / layout_width_pt;
+    let mut extracted = Vec::with_capacity(detected.len());
+    let mut union = Mask::new(image.width, image.height);
+
+    for object in &detected {
+        // 往外留 2 px 邊，alpha 邊緣 1 px 半透明，避免鋸齒。
+        let pad = 2i64;
+        let crop_box = expand_bbox(object.bbox, pad).clamp(image.width as i64, image.height as i64);
+        let (cw, ch) = (crop_box.width() as u32, crop_box.height() as u32);
+        let mut rgba = image::RgbaImage::new(cw, ch);
+        for y in 0..ch {
+            for x in 0..cw {
+                let (sx, sy) = (crop_box.left as u32 + x, crop_box.top as u32 + y);
+                let alpha = if object.mask.get(sx, sy) {
+                    255
+                } else if touches(&object.mask, sx, sy) {
+                    128
+                } else {
+                    0
+                };
+                let [r, g, b] = image.pixel(sx, sy);
+                rgba.put_pixel(x, y, image::Rgba([r, g, b, alpha]));
+            }
+        }
+        let mut png = Vec::new();
+        image::DynamicImage::ImageRgba8(rgba)
+            .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
+            .map_err(|e| Error::Image(e.to_string()))?;
+
+        extracted.push(ExtractedObject {
+            png,
+            layout_ltrb: [
+                crop_box.left as f64 / px_per_layout,
+                crop_box.top as f64 / px_per_layout,
+                crop_box.right as f64 / px_per_layout,
+                crop_box.bottom as f64 / px_per_layout,
+            ],
+        });
+        for y in 0..image.height {
+            for x in 0..image.width {
+                if object.mask.get(x, y) {
+                    union.set(x, y, true);
+                }
+            }
+        }
+    }
+
+    // 從背景擦掉。物件的柔邊與投影比偵測門檻淡，只擦遮罩本身會留下淡淡的殘影，
+    // 所以多吃 6 px。平坦底色頁面直接填底色：插值填色在大面積上會起一團霧
+    //（CH3 第 9 頁羅盤實測）。
+    union.dilate(6);
+    if let Some(color) =
+        n2p_image::flat_background_color(image, &n2p_image::ObjectOptions::default())
+    {
+        for y in 0..image.height {
+            for x in 0..image.width {
+                if union.get(x, y) {
+                    image.set_pixel(x, y, color);
+                }
+            }
+        }
+    }
+    Ok(extracted)
+}
+
+/// 8 鄰域內有遮罩像素。
+fn touches(mask: &Mask, x: u32, y: u32) -> bool {
+    for dy in -1i64..=1 {
+        for dx in -1i64..=1 {
+            let (nx, ny) = (x as i64 + dx, y as i64 + dy);
+            if nx >= 0
+                && ny >= 0
+                && nx < mask.width as i64
+                && ny < mask.height as i64
+                && mask.get(nx as u32, ny as u32)
+            {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 /// 用 Lanczos3 縮放（對應 Pillow 的 `Image.LANCZOS`）。
@@ -1144,6 +1300,49 @@ mod tests {
         assert_eq!(deck.slide_count().unwrap(), 1);
         let names = n2p_ooxml::slide::shape_names(&deck.slide(0).unwrap()).unwrap();
         assert!(names.is_empty(), "範本不應含任何形狀，實際 {names:?}");
+    }
+
+    fn page_with_square() -> RgbImage {
+        let mut image = RgbImage::filled(1920, 1080, [250, 240, 210]);
+        for y in 600..800 {
+            for x in 1400..1600 {
+                image.set_pixel(x, y, [180, 90, 40]);
+            }
+        }
+        image
+    }
+
+    #[test]
+    fn extract_objects_turns_a_standalone_shape_into_a_picture_below_the_text() {
+        let layout = page();
+        let image = page_with_square();
+        let inputs = vec![PageInput {
+            layout: &layout,
+            image: &image,
+        }];
+        let options = BuildOptions {
+            extract_objects: true,
+            ..BuildOptions::default()
+        };
+        let (deck, report) = build_deck(&inputs, &options).unwrap();
+
+        assert_eq!(report.pages[0].pictures, 1);
+        // 物件在最底層（文字之下）
+        let doc = deck.slide(0).unwrap();
+        let kinds = n2p_ooxml::slide::shape_kinds(&doc).unwrap();
+        assert_eq!(kinds, vec!["p:pic", "p:sp", "p:sp"], "實際 {kinds:?}");
+    }
+
+    #[test]
+    fn objects_are_not_extracted_unless_requested() {
+        let layout = page();
+        let image = page_with_square();
+        let inputs = vec![PageInput {
+            layout: &layout,
+            image: &image,
+        }];
+        let (_, report) = build_deck(&inputs, &BuildOptions::default()).unwrap();
+        assert_eq!(report.pages[0].pictures, 0);
     }
 
     #[test]
