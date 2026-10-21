@@ -7,9 +7,34 @@
 
 Convert NotebookLM exported PDFs into PPTX presentations with **separated background images and editable text layers**.
 
-> ✨ **Updated (2026-01-21)**: v2.2.1 Release - Complete i18n Overhaul! All language versions now feature professional light theme design with improved UX and standardized documentation.
+> ✨ **Updated (2026-10-21)**: macOS native app (n2p-rs) v0.1.0 — offline PDF → editable PPTX on your Mac, no API key, notarized by Apple. See “macOS Native App” below.
 
 [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Español](README-es.md) | [Français](README-fr.md)
+
+## macOS Native App (offline, Rust)
+
+[`n2p-rs/`](n2p-rs/) is a native macOS version that runs entirely on your Mac — no API key, nothing uploaded.
+
+- **Download**: [release page](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.0) (`NotebookLM2PPT-notarized.zip`)
+- **OCR**: macOS built-in Vision (on-device)
+- **Text removal**: erases only the text strokes; textured backgrounds are rebuilt by LaMa running on the GPU (CoreML)
+- **Object extraction (experimental)**: icons and illustrations become movable images (MobileSAM)
+- **App**: drag-and-drop GUI, signed with Developer ID and notarized by Apple; models (~253 MB) are downloaded on first launch
+- **Requirements**: Apple Silicon; macOS 12+ for GPU inference
+
+Build, CLI usage and design notes: [`n2p-rs/README.md`](n2p-rs/README.md). Third-party licenses: [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md).
+
+### Unreleased (`main`, 2026-10-21)
+
+- **Object version about 2× faster, peak memory ~6 GB → ~1.9 GB**: SAM now runs on the CPU only (11-page deck: 47–86 s, was 103–183 s)
+- Faster mask dilation for object extraction
+- GUI: the model section shows whether the GPU version of LaMa is ready
+- Developer tooling: the PowerPoint compatibility check only reads and closes the presentation it opened itself
+
+### v0.1.0 (2026-10-21)
+
+- First release: drag-and-drop app, signed and notarized
+- Speed (Apple Silicon, 11-page deck): standard version 29–45 s (~1.1–1.4 GB), object version 103–183 s (~6 GB)
 
 ## Demo
 
@@ -109,20 +134,6 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 ### 📝 UI Improvements
 - **Clearer Instructions**: Updated API Key setup guide to match actual workflow
 - **Clean Reset UI**: Restored initial upload interface on reset instead of loading spinner
-
-## macOS Native App (offline, Rust)
-
-[`n2p-rs/`](n2p-rs/) is a native macOS version that runs entirely on your Mac — no API key, nothing uploaded.
-
-- **Download**: [release page](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.0) (`NotebookLM2PPT-notarized.zip`)
-- **OCR**: macOS built-in Vision (on-device)
-- **Text removal**: erases only the text strokes; textured backgrounds are rebuilt by LaMa running on the GPU (CoreML)
-- **Object extraction (experimental)**: icons and illustrations become movable images (MobileSAM)
-- **App**: drag-and-drop GUI, signed with Developer ID and notarized by Apple; models (~253 MB) are downloaded on first launch
-- **Speed** (Apple Silicon, 11-page deck): standard version 29–45 s, object version 47–86 s
-- Requirements: Apple Silicon; macOS 12+ for GPU inference
-
-Build, CLI usage and design notes: [`n2p-rs/README.md`](n2p-rs/README.md). Third-party licenses: [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md).
 
 ## Features
 

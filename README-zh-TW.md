@@ -7,9 +7,34 @@
 
 將 NotebookLM 產出的 PDF 轉換成**底圖與文字分離**的 PPTX 簡報檔案。
 
-> ✨ **更新 (2026-01-21)**: v2.2.1 版本發布 - 完整多語系改版！所有語言版本現採用專業淺色主題設計，改善使用者體驗並標準化文件。
+> ✨ **更新 (2026-10-21)**: macOS 原生版（n2p-rs）v0.1.0 發布——在 Mac 本機把 PDF 轉成可編輯 PPTX，不需要 API key，已通過 Apple 公證。詳見下方「macOS 原生版」。
 
 [English](README.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Español](README-es.md) | [Français](README-fr.md)
+
+## macOS 原生版（離線，Rust）
+
+[`n2p-rs/`](n2p-rs/) 是在 Mac 本機執行的原生版本：不需要 API key，檔案不上傳。
+
+- **下載**：[Releases 頁面](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.0)（`NotebookLM2PPT-notarized.zip`）
+- **OCR**：macOS 內建 Vision（裝置端）
+- **去字**：只擦文字筆畫；有紋理的背景由 LaMa 在 GPU（CoreML）上重建
+- **物件切出（實驗性）**：圖示、插圖變成可移動的圖片（MobileSAM）
+- **App**：拖放式圖形介面，Developer ID 簽章並通過 Apple 公證；模型（約 253 MB）在第一次開啟時下載
+- **需求**：Apple Silicon；GPU 推論需 macOS 12 以上
+
+建置、命令列用法與設計筆記見 [`n2p-rs/README.md`](n2p-rs/README.md)；第三方授權見 [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md)。
+
+### 尚未發布（`main`，2026-10-21）
+
+- **物件版快約一倍，記憶體峰值從約 6 GB 降到約 1.9 GB**：SAM 改在純 CPU 上跑（11 頁簡報 47–86 秒，原本 103–183 秒）
+- 物件切出的遮罩外擴加速
+- GUI：模型區塊顯示 LaMa 的 GPU 版是否就緒
+- 開發工具：PowerPoint 相容性檢查只讀取、只關閉自己開啟的簡報
+
+### v0.1.0（2026-10-21）
+
+- 首次發布：拖放式 App，已簽章並通過公證
+- 速度（Apple Silicon，11 頁簡報）：標準版 29–45 秒（約 1.1–1.4 GB），物件版 103–183 秒（約 6 GB）
 
 ## 演示
 
@@ -101,20 +126,6 @@
 ### 📝 UI 改進
 - **更清晰的說明**：更新 API Key 設定指南以符合實際流程
 - **乾淨的重置介面**：重置時恢復初始上傳介面，而非載入動畫
-
-## macOS 原生版（離線，Rust）
-
-[`n2p-rs/`](n2p-rs/) 是在 Mac 本機執行的原生版本：不需要 API key，檔案不上傳。
-
-- **下載**：[Releases 頁面](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.0)（`NotebookLM2PPT-notarized.zip`）
-- **OCR**：macOS 內建 Vision（裝置端）
-- **去字**：只擦文字筆畫；有紋理的背景由 LaMa 在 GPU（CoreML）上重建
-- **物件切出（實驗性）**：圖示、插圖變成可移動的圖片（MobileSAM）
-- **App**：拖放式圖形介面，Developer ID 簽章並通過 Apple 公證；模型（約 253 MB）在第一次開啟時下載
-- **速度**（Apple Silicon，11 頁簡報）：標準版 29–45 秒，物件版 47–86 秒
-- 需求：Apple Silicon；GPU 推論需 macOS 12 以上
-
-建置、命令列用法與設計筆記見 [`n2p-rs/README.md`](n2p-rs/README.md)；第三方授權見 [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md)。
 
 ## 功能特色
 

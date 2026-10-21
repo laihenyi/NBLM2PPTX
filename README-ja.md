@@ -7,9 +7,34 @@
 
 NotebookLM からエクスポートした PDF を**背景画像とテキストが分離された** PPTX プレゼンテーションに変換します。
 
-> ✨ **更新 (2026-01-21)**: v2.2.1 リリース - 完全な多言語リニューアル！全言語版がプロフェッショナルなライトテーマデザインになり、UX と標準化されたドキュメントが改善されました。
+> ✨ **更新 (2026-10-21)**: macOS ネイティブ版（n2p-rs）v0.1.0 をリリース。Mac 上だけで PDF を編集可能な PPTX に変換。API キー不要、Apple の公証済み。詳しくは下の「macOS ネイティブ版」を参照してください。
 
 [English](README.md) | [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [Español](README-es.md) | [Français](README-fr.md)
+
+## macOS ネイティブ版（オフライン、Rust）
+
+[`n2p-rs/`](n2p-rs/) は Mac 上だけで動くネイティブ版です。API キーは不要で、ファイルはアップロードされません。
+
+- **ダウンロード**：[Releases ページ](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.0)（`NotebookLM2PPT-notarized.zip`）
+- **OCR**：macOS 内蔵の Vision（デバイス上で処理）
+- **文字消去**：文字のストロークだけを消し、テクスチャのある背景は GPU（CoreML）上の LaMa で復元
+- **オブジェクト切り出し（実験的）**：アイコンやイラストを移動可能な画像に（MobileSAM）
+- **アプリ**：ドラッグ＆ドロップの GUI。Developer ID で署名し、Apple の公証済み。モデル（約 253 MB）は初回起動時にダウンロード
+- **動作要件**：Apple Silicon。GPU 推論には macOS 12 以降
+
+ビルド方法、コマンドラインの使い方、設計メモは [`n2p-rs/README.md`](n2p-rs/README.md)、サードパーティのライセンスは [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md) を参照してください。
+
+### 未リリース（`main`、2026-10-21）
+
+- **オブジェクト版が約 2 倍速く、ピークメモリは約 6 GB → 約 1.9 GB**：SAM を CPU のみで実行（11 ページのスライドで 47–86 秒、以前は 103–183 秒）
+- オブジェクト切り出しのマスク膨張を高速化
+- GUI：モデル欄に LaMa の GPU 版が準備済みかを表示
+- 開発ツール：PowerPoint 互換性チェックは自分で開いたプレゼンテーションだけを読み取り、閉じる
+
+### v0.1.0（2026-10-21）
+
+- 初回リリース：ドラッグ＆ドロップのアプリ、署名・公証済み
+- 速度（Apple Silicon、11 ページのスライド）：標準版 29–45 秒（約 1.1–1.4 GB）、オブジェクト版 103–183 秒（約 6 GB）
 
 ## デモ
 
@@ -101,20 +126,6 @@ NotebookLM からエクスポートした PDF を**背景画像とテキスト�
 ### 📝 UI 改善
 - **より明確な説明**：実際のワークフローに合わせて API Key セットアップガイドを更新
 - **クリーンなリセット UI**：リセット時にローディングスピナーではなく初期アップロード画面を復元
-
-## macOS ネイティブ版（オフライン、Rust）
-
-[`n2p-rs/`](n2p-rs/) は Mac 上だけで動くネイティブ版です。API キーは不要で、ファイルはアップロードされません。
-
-- **ダウンロード**：[Releases ページ](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.0)（`NotebookLM2PPT-notarized.zip`）
-- **OCR**：macOS 内蔵の Vision（デバイス上で処理）
-- **文字消去**：文字のストロークだけを消し、テクスチャのある背景は GPU（CoreML）上の LaMa で復元
-- **オブジェクト切り出し（実験的）**：アイコンやイラストを移動可能な画像に（MobileSAM）
-- **アプリ**：ドラッグ＆ドロップの GUI。Developer ID で署名し、Apple の公証済み。モデル（約 253 MB）は初回起動時にダウンロード
-- **速度**（Apple Silicon、11 ページのスライド）：標準版 29–45 秒、オブジェクト版 47–86 秒
-- 動作要件：Apple Silicon。GPU 推論には macOS 12 以降
-
-ビルド方法、コマンドラインの使い方、設計メモは [`n2p-rs/README.md`](n2p-rs/README.md)、サードパーティのライセンスは [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md) を参照してください。
 
 ## 機能
 

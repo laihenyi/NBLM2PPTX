@@ -7,9 +7,34 @@
 
 Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **images d'arrière-plan et couches de texte éditables séparées**.
 
-> ✨ **Mise à jour (2026-01-21)**: Version v2.2.1 - Refonte complète de l'i18n ! Toutes les versions linguistiques présentent désormais un design professionnel en thème clair avec une UX améliorée et une documentation standardisée.
+> ✨ **Mise à jour (2026-10-21)** : application native macOS (n2p-rs) v0.1.0 — conversion de PDF en PPTX modifiable sur votre Mac, sans clé d’API, notarisée par Apple. Voir « Application native macOS » ci-dessous.
 
 [English](README.md) | [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Español](README-es.md)
+
+## Application native macOS (hors ligne, Rust)
+
+[`n2p-rs/`](n2p-rs/) est une version native qui s’exécute entièrement sur votre Mac : aucune clé d’API, aucun fichier envoyé.
+
+- **Téléchargement** : [page de la version](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.0) (`NotebookLM2PPT-notarized.zip`)
+- **OCR** : Vision intégré à macOS (sur l’appareil)
+- **Suppression du texte** : seuls les traits du texte sont effacés ; les arrière-plans texturés sont reconstruits par LaMa sur le GPU (CoreML)
+- **Extraction d’objets (expérimental)** : les icônes et illustrations deviennent des images déplaçables (MobileSAM)
+- **Application** : interface glisser-déposer, signée avec un Developer ID et notarisée par Apple ; les modèles (~253 Mo) sont téléchargés au premier lancement
+- **Configuration requise** : Apple Silicon ; macOS 12 ou ultérieur pour l’inférence sur GPU
+
+Compilation, utilisation en ligne de commande et notes de conception : [`n2p-rs/README.md`](n2p-rs/README.md). Licences tierces : [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md).
+
+### Non publié (`main`, 2026-10-21)
+
+- **Version avec objets environ 2 fois plus rapide, pic mémoire de ~6 Go à ~1,9 Go** : SAM s’exécute désormais uniquement sur le CPU (présentation de 11 pages : 47–86 s, contre 103–183 s)
+- Dilatation des masques plus rapide pour l’extraction d’objets
+- Interface : la section des modèles indique si la version GPU de LaMa est prête
+- Outils de développement : la vérification de compatibilité PowerPoint ne lit et ne ferme que la présentation qu’elle a elle-même ouverte
+
+### v0.1.0 (2026-10-21)
+
+- Première version : application glisser-déposer, signée et notarisée
+- Vitesse (Apple Silicon, présentation de 11 pages) : version standard 29–45 s (~1,1–1,4 Go), version avec objets 103–183 s (~6 Go)
 
 ## Démonstration
 
@@ -101,20 +126,6 @@ Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **image
 ### 📝 Améliorations de l'UI
 - **Instructions Plus Claires**: Guide de configuration de clé API mis à jour pour correspondre au flux réel
 - **UI de Réinitialisation Propre**: Interface de téléchargement initial restaurée lors de la réinitialisation au lieu du spinner de chargement
-
-## Application native macOS (hors ligne, Rust)
-
-[`n2p-rs/`](n2p-rs/) est une version native qui s’exécute entièrement sur votre Mac : aucune clé d’API, aucun fichier envoyé.
-
-- **Téléchargement** : [page de la version](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.0) (`NotebookLM2PPT-notarized.zip`)
-- **OCR** : Vision intégré à macOS (sur l’appareil)
-- **Suppression du texte** : seuls les traits du texte sont effacés ; les arrière-plans texturés sont reconstruits par LaMa sur le GPU (CoreML)
-- **Extraction d’objets (expérimental)** : les icônes et illustrations deviennent des images déplaçables (MobileSAM)
-- **Application** : interface glisser-déposer, signée avec un Developer ID et notarisée par Apple ; les modèles (~253 Mo) sont téléchargés au premier lancement
-- **Vitesse** (Apple Silicon, présentation de 11 pages) : version standard 29–45 s, version avec objets 47–86 s
-- Configuration requise : Apple Silicon ; macOS 12 ou ultérieur pour l’inférence sur GPU
-
-Compilation, utilisation en ligne de commande et notes de conception : [`n2p-rs/README.md`](n2p-rs/README.md). Licences tierces : [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md).
 
 ## Fonctionnalités
 
