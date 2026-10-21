@@ -116,10 +116,10 @@ end repeat
 ### 6. 相對路徑會讓 PowerPoint 彈出 modal，然後全部卡死
 
 ```applescript
-open "../rust-rewrite/assets/probe-pptx/1_text.pptx"
+open "fixtures/probe-pptx/1_text.pptx"
 ```
 
-AppleScript 會把它解析成 `/../rust-rewrite/...`（把 `/` 接在前面），PowerPoint 讀不到就跳出
+AppleScript 會把它解析成 `/../fixtures/...`（把 `/` 接在前面），PowerPoint 讀不到就跳出
 「很抱歉，PowerPoint 無法讀取…」的 modal。**那個 modal 一掛上去，之後每一個 AppleScript
 呼叫都會失敗**（`-1728`、`-1712`、`-9074`），而且必須人工點掉。
 
@@ -176,10 +176,10 @@ $ cargo run -p xtask -- compat
 [vision]   ✓ PowerPoint 開啟成功（寬 960 pt、1 形狀、1 文字框）
 全部通過
 
-$ cargo run -p xtask -- compat --record --dir ../rust-rewrite/assets/probe-pptx
+$ cargo run -p xtask -- compat --record --dir fixtures/probe-pptx
 已寫入 17 筆
 
-$ cargo run -p xtask -- compat --dir ../rust-rewrite/assets/probe-pptx
+$ cargo run -p xtask -- compat --dir fixtures/probe-pptx
 17 項全部 ✓
 ```
 
@@ -188,10 +188,10 @@ $ cargo run -p xtask -- compat --dir ../rust-rewrite/assets/probe-pptx
 ### 視覺回歸（LibreOffice 26.8.1.1）
 
 ```
-$ cargo run -p xtask -- visual-diff --dir ../rust-rewrite/assets/probe-pptx --record
+$ cargo run -p xtask -- visual-diff --dir fixtures/probe-pptx --record
 已記錄 17 個檔案、25 頁
 
-$ cargo run -p xtask -- visual-diff --dir ../rust-rewrite/assets/probe-pptx
+$ cargo run -p xtask -- visual-diff --dir fixtures/probe-pptx
 sz_4x3   第 1 頁 ✓ 平均差 0.00、顯著差異 0.00%
 …
 全部通過

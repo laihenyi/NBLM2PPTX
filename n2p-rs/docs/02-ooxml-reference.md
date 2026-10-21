@@ -316,14 +316,14 @@ ppt/media/*                        (若有圖)
 
 | 檔案 | 內容 | 對應操作 |
 | :--- | :--- | :--- |
-| `assets/probe-pptx/1_text.pptx` | 單頁 + 文字框 | §2 |
-| `assets/probe-pptx/2_background.pptx` | 單頁 + 圖片背景 | §3 |
-| `assets/probe-pptx/3_picture.pptx` | 單頁 + 置底插圖 | §4 |
-| `assets/probe-pptx/4_merged.pptx` | 3 份合併（master 各自獨立） | §6 |
-| `assets/probe-pptx/5_cleaned.pptx` | 合併後刪水印 | §5 |
-| `assets/probe-pptx/sz_4x3.pptx` | 4:3 畫布 | §1 |
-| `assets/probe-pptx/sz_16x10.pptx` | 16:10 畫布 | §1 |
-| `assets/probe-pptx/sz_16x9.pptx` | 16:9 畫布 | §1 |
+| `../fixtures/probe-pptx/1_text.pptx` | 單頁 + 文字框 | §2 |
+| `../fixtures/probe-pptx/2_background.pptx` | 單頁 + 圖片背景 | §3 |
+| `../fixtures/probe-pptx/3_picture.pptx` | 單頁 + 置底插圖 | §4 |
+| `../fixtures/probe-pptx/4_merged.pptx` | 3 份合併（master 各自獨立） | §6 |
+| `../fixtures/probe-pptx/5_cleaned.pptx` | 合併後刪水印 | §5 |
+| `../fixtures/probe-pptx/sz_4x3.pptx` | 4:3 畫布 | §1 |
+| `../fixtures/probe-pptx/sz_16x10.pptx` | 16:10 畫布 | §1 |
+| `../fixtures/probe-pptx/sz_16x9.pptx` | 16:9 畫布 | §1 |
 
 每份都可以 `unzip -o <file>.pptx -d out/` 後直接讀 XML。
 
@@ -344,7 +344,7 @@ line two</a:t>
 </a:p>
 ```
 
-樣本：`assets/probe-pptx/6_newline.pptx`。
+樣本：`../fixtures/probe-pptx/6_newline.pptx`。
 
 這是 PowerPoint 與 LibreOffice 都容忍、但 DrawingML 規格上不算正規的寫法 ——
 換行的正式表示法是 `<a:br/>`。

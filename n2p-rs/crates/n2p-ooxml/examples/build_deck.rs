@@ -4,7 +4,7 @@
 //! cargo run --example build_deck -- <template.pptx> <image.png> <out.pptx>
 //! ```
 //!
-//! 預設會拿 `rust-rewrite/assets/probe-pptx/src_a.pptx` 當範本，
+//! 預設會拿 `fixtures/probe-pptx/src_a.pptx` 當範本，
 //! 輸出 `/tmp/n2p-example.pptx`。產出可用 `python-pptx` 獨立驗證：
 //!
 //! ```bash
@@ -19,7 +19,7 @@ use n2p_ooxml::{Align, AutoFit, Deck, Rect, SlideSize, TextBox};
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
     let base =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../rust-rewrite/assets/probe-pptx");
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/probe-pptx");
 
     let template = args
         .get(1)

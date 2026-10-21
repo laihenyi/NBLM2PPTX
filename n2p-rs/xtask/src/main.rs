@@ -49,7 +49,7 @@ struct CompatArgs {
     #[arg(long)]
     dir: Option<PathBuf>,
 
-    /// 基準清單（預設 `rust-rewrite/assets/compat/manifest.json`）。
+    /// 基準清單（預設 `fixtures/compat/manifest.json`）。
     #[arg(long)]
     manifest: Option<PathBuf>,
 
@@ -68,7 +68,7 @@ struct VisualDiffArgs {
     #[arg(long)]
     dir: Option<PathBuf>,
 
-    /// 參考圖目錄（預設 `rust-rewrite/assets/visual`）。
+    /// 參考圖目錄（預設 `fixtures/visual`）。
     #[arg(long)]
     reference: Option<PathBuf>,
 
@@ -227,7 +227,7 @@ fn compat(args: CompatArgs) -> Result<usize> {
 
 /// 即時產生簡報並檢查 PowerPoint 讀回的結構是否符合預期。
 fn compat_invariants() -> Result<usize> {
-    let pdf = repo_root().join("examples/floyd.pdf");
+    let pdf = repo_root().join("fixtures/floyd.pdf");
     println!("即時產生簡報：{}（Vision OCR）", pdf.display());
 
     let mut failures = 0usize;
@@ -451,15 +451,15 @@ fn reference_mismatch(reference_dir: &Path, dpi: f64, current_version: &str) -> 
 // ── 輔助 ────────────────────────────────────────────────────────────────────
 
 fn repo_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..")
 }
 
 fn default_compat_manifest() -> PathBuf {
-    repo_root().join("rust-rewrite/assets/compat/manifest.json")
+    repo_root().join("fixtures/compat/manifest.json")
 }
 
 fn default_visual_dir() -> PathBuf {
-    repo_root().join("rust-rewrite/assets/visual")
+    repo_root().join("fixtures/visual")
 }
 
 fn entry_name(file: &Path) -> String {

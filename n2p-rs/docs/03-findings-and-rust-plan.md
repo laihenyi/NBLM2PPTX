@@ -133,7 +133,7 @@ python3 -m venv /tmp/spire_venv
 | 工作項 | 估計 | 驗證方式 |
 | :--- | ---: | :--- |
 | OPC 封裝（zip + `[Content_Types]` + `_rels` 讀寫） | 2–3 天 | 往返讀寫 Spire 產出的基準檔，XML 位元相同 |
-| `presentation.xml` / `sldSz` / `sldIdLst` 維護 | 1 天 | 對照 `assets/probe-pptx/sz_*.pptx` |
+| `presentation.xml` / `sldSz` / `sldIdLst` 維護 | 1 天 | 對照 `../fixtures/probe-pptx/sz_*.pptx` |
 | 文字框（`p:sp` + `a:txBody`） | 2 天 | 對照 `1_text.pptx`、`dump/1_text/ppt/slides/slide1.xml` |
 | 背景圖片（`p:bg` + media + rels） | 1.5 天 | 對照 `2_background.pptx` |
 | 插圖置底（`p:pic` + ZOrder） | 1.5 天 | 對照 `3_picture.pptx` |
@@ -161,7 +161,7 @@ python3 -m venv /tmp/spire_venv
 line two</a:t></a:r>
 ```
 
-樣本：`assets/probe-pptx/6_newline.pptx`。
+樣本：`../fixtures/probe-pptx/6_newline.pptx`。
 
 **對 Rust 改寫的影響：** 這是規格上不正確但實務上可用的寫法。`n2p-ooxml` 預設改用
 `<a:br/>`（規格正確、視覺相同），並保留 `NewlineMode::Literal` 供回歸比對。
@@ -184,7 +184,7 @@ line two</a:t></a:r>
 這個修正讓整體風險顯著下降：原本最脆弱、最無法在 macOS 驗證的部分（視窗行為耦合）
 直接消失，取而代之的是一段確定的 API 呼叫。
 
-Vision OCR 實測（`examples/floyd.pdf` 第 1 頁）：
+Vision OCR 實測（`fixtures/floyd.pdf` 第 1 頁）：
 
 ```
 辨識 3 筆：

@@ -7,6 +7,7 @@ scipy 在本機裝不起來，因此以 stub 載入 `inpaint_methods.py`，
 
 import importlib.util
 import json
+import os
 import sys
 import types
 from pathlib import Path
@@ -14,8 +15,9 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-REPO = Path(__file__).resolve().parents[2]
-OUT = REPO / "rust-rewrite" / "assets" / "image-fixtures"
+# 需要上游 Python 版（elliottzheng/NotebookLM2PPT）的原始碼當參考實作
+REPO = Path(os.environ.get("NOTEBOOKLM2PPT_REPO", "../NotebookLM2PPT")).resolve()
+OUT = Path(__file__).resolve().parent / "image-fixtures"
 OUT.mkdir(parents=True, exist_ok=True)
 
 

@@ -2,6 +2,11 @@
 
 NotebookLM2PPT 的 Rust 改寫，**目標平台是 macOS**。
 
+> 來源：本目錄原本開發於上游 [elliottzheng/NotebookLM2PPT](https://github.com/elliottzheng/NotebookLM2PPT)
+> （MIT）的 clone 中，2026-10-21 連同 commit 歷史移入 NBLM2PPTX。移植自上游的模組、
+> 測試資料與模型授權見 [`THIRD-PARTY.md`](THIRD-PARTY.md)。設計筆記在 [`docs/`](docs/)，
+> 測試資料在 [`fixtures/`](fixtures/)。
+
 Windows 版靠「微軟電腦管家智慧圈選 + 模擬滑鼠截圖」取得可編輯文字；macOS 上沒有這些東西，
 因此這裡把那一整層換掉：
 
@@ -61,22 +66,22 @@ cargo run -p xtask -- doctor        # 檢查 PowerPoint / LibreOffice 是否可�
 cargo run -p xtask -- compat
 
 # 對既有檔案做基準回歸
-cargo run -p xtask -- compat --record --dir ../rust-rewrite/assets/probe-pptx
-cargo run -p xtask -- compat --dir ../rust-rewrite/assets/probe-pptx
+cargo run -p xtask -- compat --record --dir fixtures/probe-pptx
+cargo run -p xtask -- compat --dir fixtures/probe-pptx
 
 # 像素級視覺回歸（需要 LibreOffice）
-cargo run -p xtask -- visual-diff --dir ../rust-rewrite/assets/probe-pptx --record
-cargo run -p xtask -- visual-diff --dir ../rust-rewrite/assets/probe-pptx
+cargo run -p xtask -- visual-diff --dir fixtures/probe-pptx --record
+cargo run -p xtask -- visual-diff --dir fixtures/probe-pptx
 ```
 
-`visual-diff` 的基準圖在 `rust-rewrite/assets/visual/`，旁邊的 `meta.json` 記著產生它的
+`visual-diff` 的基準圖在 `fixtures/visual/`，旁邊的 `meta.json` 記著產生它的
 LibreOffice 版本與 DPI；環境不符時會先警告再比對。實測 LibreOffice 的渲染逐位元可重現
 （25 頁平均差全部 0.00），所以任何非零差異都是真的改到了東西。
 
 `compat` 只會關閉自己開啟的文件，永不碰使用者在 PowerPoint 裡的其他簡報，
 也不會呼叫 `quit`。macOS 上 PowerPoint 的 AppleScript 有若干陷阱
 （拿不到畫布高度、無匯出 PDF 命令、集合迭代會卡死、相對路徑會彈 modal），
-全部記錄在 [`../rust-rewrite/04-powerpoint-automation.md`](../rust-rewrite/04-powerpoint-automation.md)。
+全部記錄在 [`docs/04-powerpoint-automation.md`](docs/04-powerpoint-automation.md)。
 
 ## 模組
 
@@ -189,4 +194,4 @@ crates/
 └── n2p-cli/        n2p 命令
 ```
 
-規格文件在 [`../rust-rewrite/`](../rust-rewrite/)。
+規格文件在 [`docs/`](docs/)。

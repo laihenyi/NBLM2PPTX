@@ -297,7 +297,7 @@ mod tests {
     use std::path::PathBuf;
 
     fn example_pdf() -> PathBuf {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../examples/floyd.pdf")
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/floyd.pdf")
     }
 
     fn temp_out(name: &str) -> PathBuf {

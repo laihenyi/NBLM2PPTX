@@ -1,7 +1,7 @@
 //! 對照 PyMuPDF 的參考測試。
 //!
 //! 關鍵驗證點是**幾何**：`image_inpainter.py` 的水印座標以 `2867 x 1600` 為基準
-//! （`examples/floyd.pdf` 的 1376 x 768 pt @ 150 dpi）。若點陣化尺寸差一個像素，
+//! （`fixtures/floyd.pdf` 的 1376 x 768 pt @ 150 dpi）。若點陣化尺寸差一個像素，
 //! 去水印位置就會位移，因此這裡把它鎖成測試。
 
 use std::path::PathBuf;
@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use n2p_pdf::PdfDoc;
 
 fn pdf_path() -> PathBuf {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../examples/floyd.pdf");
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/floyd.pdf");
     assert!(path.exists(), "缺少 {path:?}");
     path
 }

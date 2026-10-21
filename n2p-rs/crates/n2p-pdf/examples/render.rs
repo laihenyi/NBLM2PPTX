@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input = args
         .get(1)
         .map(String::as_str)
-        .unwrap_or("../../../examples/floyd.pdf");
+        .unwrap_or("../../fixtures/floyd.pdf");
     let out = args
         .get(2)
         .map(String::as_str)

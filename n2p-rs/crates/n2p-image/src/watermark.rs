@@ -19,7 +19,7 @@ use crate::inpaint;
 use crate::mask::Mask;
 use crate::method::InpaintMethod;
 
-/// 基準影像寬度（`examples/floyd.pdf` 的 1376 pt × 150 dpi）。
+/// 基準影像寬度（`fixtures/floyd.pdf` 的 1376 pt × 150 dpi）。
 pub const BASE_WIDTH: f64 = 2867.0;
 /// 基準影像高度。
 pub const BASE_HEIGHT: f64 = 1600.0;

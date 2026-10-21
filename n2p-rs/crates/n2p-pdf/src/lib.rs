@@ -83,7 +83,7 @@ impl PdfDoc {
     ///
     /// **採向上取整，與 MuPDF（PyMuPDF）一致。** 這不是隨便選的：
     /// `image_inpainter.py` 裡的水印座標硬編碼以 `2867 x 1600` 為基準
-    /// （對應本專案 `examples/floyd.pdf` 的 1376 x 768 pt @ 150 dpi）。
+    /// （對應本專案 `fixtures/floyd.pdf` 的 1376 x 768 pt @ 150 dpi）。
     /// 若改用截斷會得到 2866，雖然比例斷言的 1% 容差仍會通過，但會差一個像素。
     pub fn pixel_size(&self, index: usize, dpi: f64) -> Result<(u32, u32)> {
         let (w_pt, h_pt) = self.page_size_pt(index)?;

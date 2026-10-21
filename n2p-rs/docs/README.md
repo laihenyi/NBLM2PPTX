@@ -17,13 +17,13 @@ unzip -q /tmp/spire_dl/spire_presentation-*.whl -d /tmp/spire_dl/x
 
 # 匯出符號表（3,927 筆）
 nm -gU "/tmp/spire_dl/x/spire/presentation/lib/Spire.Presentation.Base.dylib" \
-  | awk '{print $3}' | sed 's/^_//' > assets/spire-11.8.1-exports.txt
+  | awk '{print $3}' | sed 's/^_//' > research/spire-11.8.1-exports.txt
 
 # 產生參考 PPTX
 python3 -m venv /tmp/spire_venv
 /tmp/spire_venv/bin/pip install /tmp/spire_dl/spire_presentation-*.whl pillow
-/tmp/spire_venv/bin/python assets/probe.py  <任意 png>
-/tmp/spire_venv/bin/python assets/probe2.py
+/tmp/spire_venv/bin/python research/probe.py  <任意 png>
+/tmp/spire_venv/bin/python research/probe2.py
 ```
 
 ## 目標平台
@@ -34,7 +34,7 @@ python3 -m venv /tmp/spire_venv
 
 ## 實作
 
-這些規格已經落成程式碼：[`../n2p-rs/`](../n2p-rs/) —— 10 個 crate、123 個測試全綠。
+這些規格已經落成程式碼：[`n2p-rs/`](../) —— 10 個 crate、123 個測試全綠。
 
 ```bash
 cd n2p-rs
@@ -42,7 +42,7 @@ cargo test
 cargo run -p n2p-cli -- convert deck.pdf -o deck.pptx   # Vision OCR + 去水印 + 16:9
 ```
 
-## assets/
+## research/
 
 - `spire-11.8.1-exports.txt` — 完整匯出符號表（3,927 行）
 - `probe.py` — 複現 repo 的每一項 Spire 呼叫，輸出獨立 pptx

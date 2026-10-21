@@ -1,8 +1,8 @@
 //! Golden tests：以 `spire.presentation` 11.8.1 的實際輸出為基準，
 //! 驗證 `n2p-ooxml` 寫出的節點結構與它一致。
 //!
-//! 基準檔位於 `<repo>/rust-rewrite/assets/probe-pptx/`，產生方式見
-//! `rust-rewrite/README.md`。若基準檔不存在，測試會明確失敗而非靜默跳過——
+//! 基準檔位於 `n2p-rs/fixtures/probe-pptx/`，產生方式見
+//! `docs/README.md`。若基準檔不存在，測試會明確失敗而非靜默跳過——
 //! 這是刻意的：這批檔案就是規格，缺少它們代表驗證沒有發生。
 
 use std::path::PathBuf;
@@ -12,14 +12,14 @@ use n2p_ooxml::xml::{Element, Node};
 use n2p_ooxml::{Background, Deck, Picture, Rect, SlideSize, TextBox, xml};
 
 fn assets_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../rust-rewrite/assets/probe-pptx")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/probe-pptx")
 }
 
 fn probe(name: &str) -> PathBuf {
     let path = assets_dir().join(name);
     assert!(
         path.exists(),
-        "缺少基準檔 {path:?}；請依 rust-rewrite/README.md 重新產生 probe-pptx"
+        "缺少基準檔 {path:?}；請依 docs/README.md 重新產生 probe-pptx"
     );
     path
 }

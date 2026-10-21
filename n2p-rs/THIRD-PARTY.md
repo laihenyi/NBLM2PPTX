@@ -1,0 +1,38 @@
+# 第三方來源與授權
+
+n2p-rs 本身採 MIT 授權（見 repo 根目錄 `LICENSE`）。以下內容來自第三方。
+
+## NotebookLM2PPT（上游 Python 版）
+
+- 來源：<https://github.com/elliottzheng/NotebookLM2PPT>
+- 授權：MIT，Copyright (c) 2026 Elliott Zheng（全文附於下方）
+- n2p-rs 是它的 Rust 改寫。下列模組移植自上游的 Python 實作，原始檔名寫在各檔的模組註解：
+  `n2p-image`（`diversity`、`inpaint`、`transform`、`watermark`）、`n2p-pdf`、`n2p-mineru`、
+  `n2p-build` 的部分版面邏輯。
+- `fixtures/floyd.pdf`：上游 `examples/floyd.pdf`，用於點陣化幾何與管線測試。
+- `fixtures/image-fixtures/`：用上游的 Python 實作算出的參考輸出（產生方式見
+  `fixtures/make_image_fixtures.py`）。
+
+```text
+MIT License
+
+Copyright (c) 2026 Elliott Zheng
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```

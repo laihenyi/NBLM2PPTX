@@ -1,6 +1,6 @@
 //! 與 Python（numpy）參考實作的逐像素比對。
 //!
-//! 基準由 `rust-rewrite/assets/make_image_fixtures.py` 產生：
+//! 基準由 `fixtures/make_image_fixtures.py` 產生：
 //! 同一張合成影像、同一個矩形、同一組參數，跑 Python 版演算法。
 //!
 //! `background`、`background_smooth`、`edge_mean_smooth`、`onion` 四種應**完全相同**；
@@ -13,7 +13,7 @@ use n2p_image::{
 };
 
 fn fixtures() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../rust-rewrite/assets/image-fixtures")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/image-fixtures")
 }
 
 fn required(name: &str) -> PathBuf {

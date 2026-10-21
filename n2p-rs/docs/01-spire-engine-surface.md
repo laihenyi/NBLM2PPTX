@@ -53,7 +53,7 @@ NativeAOT 把每個 .NET 公開成員編譯成一個扁平 C 函式，命名規�
 nm -gU Spire.Presentation.Base.dylib | awk '{print $3}' | sed 's/^_//'
 ```
 
-完整清單保存在 [`assets/spire-11.8.1-exports.txt`](assets/spire-11.8.1-exports.txt)（3,927 行）。
+完整清單保存在 [`research/spire-11.8.1-exports.txt`](research/spire-11.8.1-exports.txt)（3,927 行）。
 
 ### 型別分佈（前 30）
 
@@ -143,7 +143,7 @@ def SetPageSize(self, w: float, h: float, IsRatio: bool):
 
 前兩層只描述「怎麼呼叫」，第三層才描述「寫出什麼」。做法是餵輸入、取輸出、拆 zip、讀 XML。
 
-複現腳本見 [`assets/probe.py`](assets/probe.py) 與 [`assets/probe2.py`](assets/probe2.py)，產出見 [`assets/probe-pptx/`](assets/probe-pptx/)。
+複現腳本見 [`research/probe.py`](research/probe.py) 與 [`research/probe2.py`](research/probe2.py)，產出見 [`../fixtures/probe-pptx/`](../fixtures/probe-pptx/)。
 
 結果整理在 [`02-ooxml-reference.md`](02-ooxml-reference.md)，發現見 [`03-findings-and-rust-plan.md`](03-findings-and-rust-plan.md)。
 

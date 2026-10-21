@@ -1,7 +1,7 @@
 //! 合併的 golden tests。
 //!
 //! 基準：`spire.presentation` 11.8.1 的 `Slides.AppendBySlide`（產出見
-//! `rust-rewrite/assets/probe-pptx/4_merged.pptx`）。我們不重現它的膨脹行為，
+//! `fixtures/probe-pptx/4_merged.pptx`）。我們不重現它的膨脹行為，
 //! 而是驗證「設計共用」這一條路徑正確，而且比它小。
 
 use std::path::PathBuf;
@@ -10,7 +10,7 @@ use n2p_ooxml::merge::{self, MergeOptions};
 use n2p_ooxml::{Deck, Package, xml};
 
 fn assets_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../rust-rewrite/assets/probe-pptx")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/probe-pptx")
 }
 
 fn probe(name: &str) -> PathBuf {
