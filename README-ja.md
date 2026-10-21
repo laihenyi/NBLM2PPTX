@@ -24,6 +24,16 @@ NotebookLM からエクスポートした PDF を**背景画像とテキスト�
 
 ビルド方法、コマンドラインの使い方、設計メモは [`n2p-rs/README.md`](n2p-rs/README.md)、サードパーティのライセンスは [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md) を参照してください。
 
+### 変換前後の比較（標準版）
+
+| 元の PDF（NotebookLM） | 出力（編集可能な PPTX、macOS アプリ） |
+|:---:|:---:|
+| <img src="assets/demo-after.png" width="400"> | <img src="assets/demo-native-alpha6.jpg" width="400"> |
+| <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-native-kitchen.jpg" width="400"> |
+
+> 文字は編集可能なテキストボックスになり、イラストは背景に残り、NotebookLM の透かしは除去されます（出力は LibreOffice で描画）。
+> 図で確認できる現在の制限：本文はすべて中央揃え、蛍光マーカーの色は保持されず、OCR がまれに誤認識します。
+
 ### 未リリース（`main`、2026-10-21）
 
 - **オブジェクト版が約 2 倍速く、ピークメモリは約 6 GB → 約 1.9 GB**：SAM を CPU のみで実行（11 ページのスライドで 47–86 秒、以前は 103–183 秒）
@@ -35,6 +45,10 @@ NotebookLM からエクスポートした PDF を**背景画像とテキスト�
 
 - 初回リリース：ドラッグ＆ドロップのアプリ、署名・公証済み
 - 速度（Apple Silicon、11 ページのスライド）：標準版 29–45 秒（約 1.1–1.4 GB）、オブジェクト版 103–183 秒（約 6 GB）
+
+## Gemini 支援 Web 版（更新終了）
+
+> ⚠️ 以下はすべて Gemini 支援の Web 版（`index.html`）の説明で、**今後は更新されません**。新機能の開発は上の macOS ネイティブ版で行っています。
 
 ## デモ
 

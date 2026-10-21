@@ -24,6 +24,16 @@ Convierte PDFs exportados de NotebookLM en presentaciones PPTX con **imágenes d
 
 Compilación, uso por línea de comandos y notas de diseño: [`n2p-rs/README.md`](n2p-rs/README.md). Licencias de terceros: [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md).
 
+### Antes y después (versión estándar)
+
+| Original (PDF de NotebookLM) | Resultado (PPTX editable, app para macOS) |
+|:---:|:---:|
+| <img src="assets/demo-after.png" width="400"> | <img src="assets/demo-native-alpha6.jpg" width="400"> |
+| <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-native-kitchen.jpg" width="400"> |
+
+> El texto se convierte en cuadros de texto editables; las ilustraciones quedan en el fondo y se elimina la marca de agua de NotebookLM (resultado renderizado con LibreOffice).
+> Limitaciones actuales visibles aquí: el texto del cuerpo queda centrado, no se conservan los colores de resaltado y el OCR puede leer mal algunos caracteres.
+
 ### Sin publicar (`main`, 2026-10-21)
 
 - **Versión con objetos unas 2 veces más rápida y pico de memoria de ~6 GB a ~1,9 GB**: SAM ahora se ejecuta solo en la CPU (presentación de 11 páginas: 47–86 s, antes 103–183 s)
@@ -35,6 +45,10 @@ Compilación, uso por línea de comandos y notas de diseño: [`n2p-rs/README.md`
 
 - Primera versión: app de arrastrar y soltar, firmada y notarizada
 - Velocidad (Apple Silicon, presentación de 11 páginas): versión estándar 29–45 s (~1,1–1,4 GB), versión con objetos 103–183 s (~6 GB)
+
+## Versión web asistida por Gemini (ya no se actualiza)
+
+> ⚠️ Todo lo que sigue describe la versión web asistida por Gemini (`index.html`). **Ya no se actualiza**; el desarrollo nuevo se hace en la app nativa para macOS de arriba.
 
 ## Demostración
 

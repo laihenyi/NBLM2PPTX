@@ -24,6 +24,16 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 
 Build, CLI usage and design notes: [`n2p-rs/README.md`](n2p-rs/README.md). Third-party licenses: [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md).
 
+### Before / After (standard version)
+
+| Original (NotebookLM PDF) | Output (editable PPTX, macOS app) |
+|:---:|:---:|
+| <img src="assets/demo-after.png" width="400"> | <img src="assets/demo-native-alpha6.jpg" width="400"> |
+| <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-native-kitchen.jpg" width="400"> |
+
+> Text becomes editable text boxes; illustrations stay in the background and the NotebookLM watermark is removed (output rendered with LibreOffice).
+> Current limitations visible here: body text is centered, highlight colors are not kept, and OCR may misread a few characters.
+
 ### Unreleased (`main`, 2026-10-21)
 
 - **Object version about 2× faster, peak memory ~6 GB → ~1.9 GB**: SAM now runs on the CPU only (11-page deck: 47–86 s, was 103–183 s)
@@ -35,6 +45,10 @@ Build, CLI usage and design notes: [`n2p-rs/README.md`](n2p-rs/README.md). Third
 
 - First release: drag-and-drop app, signed and notarized
 - Speed (Apple Silicon, 11-page deck): standard version 29–45 s (~1.1–1.4 GB), object version 103–183 s (~6 GB)
+
+## Gemini-Assisted Web Version (no longer updated)
+
+> ⚠️ Everything below describes the Gemini-assisted web version (`index.html`). It is **no longer updated**; new development happens in the macOS native app above.
 
 ## Demo
 

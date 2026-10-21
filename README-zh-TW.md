@@ -24,6 +24,16 @@
 
 建置、命令列用法與設計筆記見 [`n2p-rs/README.md`](n2p-rs/README.md)；第三方授權見 [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md)。
 
+### 前後比較（標準版）
+
+| 原稿（NotebookLM PDF） | 輸出（可編輯 PPTX，macOS App） |
+|:---:|:---:|
+| <img src="assets/demo-after.png" width="400"> | <img src="assets/demo-native-alpha6.jpg" width="400"> |
+| <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-native-kitchen.jpg" width="400"> |
+
+> 文字變成可編輯的文字框；插圖留在背景，NotebookLM 浮水印已移除（輸出以 LibreOffice 渲染）。
+> 圖中可見的現有限制：內文一律置中、螢光標記色不保留、OCR 偶有錯字。
+
 ### 尚未發布（`main`，2026-10-21）
 
 - **物件版快約一倍，記憶體峰值從約 6 GB 降到約 1.9 GB**：SAM 改在純 CPU 上跑（11 頁簡報 47–86 秒，原本 103–183 秒）
@@ -35,6 +45,10 @@
 
 - 首次發布：拖放式 App，已簽章並通過公證
 - 速度（Apple Silicon，11 頁簡報）：標準版 29–45 秒（約 1.1–1.4 GB），物件版 103–183 秒（約 6 GB）
+
+## Gemini 輔助網頁版（已停止更新）
+
+> ⚠️ 以下內容都是 Gemini 輔助的網頁版（`index.html`）說明，**已不再更新**；新功能只在上方的 macOS 原生版開發。
 
 ## 演示
 
