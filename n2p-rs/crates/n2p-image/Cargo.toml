@@ -10,6 +10,10 @@ rust-version.workspace = true
 thiserror.workspace = true
 n2p-core = { path = "../n2p-core" }
 serde.workspace = true
+# LaMa 推論用。`download-binaries` 會在編譯期抓官方預編譯的 ONNX Runtime
+# （各平台各一份，約 30–60 MB），執行期完全離線。
+ort = { version = "=2.0.0-rc.15", features = ["download-binaries"] }
 
 [dev-dependencies]
 serde_json.workspace = true
+n2p-core = { path = "../n2p-core" }

@@ -84,6 +84,71 @@ impl Mask {
     /// 把外接框往外擴 `pad` 像素並夾到影像範圍內。
     ///
     /// 對應 numpy 版的 `y1 = max(0, rows.min()-pad)`、`y2 = min(H, rows.max()+pad+1)`。
+    /// 以方形核膨脹 `radius` 像素。
+    ///
+    /// 用途：文字的光暈／外框本身也是「文字效果」，只擦筆畫會留下一圈亮邊；
+    /// 交給 LaMa 重建時把遮罩放大一點，讓它連光暈一起吃掉。
+    pub fn dilate(&mut self, radius: u32) {
+        if radius == 0 || self.is_empty() {
+            return;
+        }
+        let radius = radius as i64;
+        let mut out = vec![false; self.bits.len()];
+        for y in 0..self.height {
+            for x in 0..self.width {
+                if !self.get(x, y) {
+                    continue;
+                }
+                let (x, y) = (x as i64, y as i64);
+                let y0 = (y - radius).max(0);
+                let y1 = (y + radius).min(self.height as i64 - 1);
+                let x0 = (x - radius).max(0);
+                let x1 = (x + radius).min(self.width as i64 - 1);
+                for ny in y0..=y1 {
+                    for nx in x0..=x1 {
+                        out[ny as usize * self.width as usize + nx as usize] = true;
+                    }
+                }
+            }
+        }
+        self.bits = out;
+    }
+
+    /// 同 [`Mask::dilate`]，但只在 `limit` 範圍內生效。
+    ///
+    /// 用途：擦文字光暈時不要波及旁邊的裝飾（CH9 第 3 頁的引號就被方形膨脹
+    /// 吃掉一角）。
+    pub fn dilate_within(&mut self, radius: u32, limit: BBox) {
+        if radius == 0 || self.is_empty() {
+            return;
+        }
+        let radius = radius as i64;
+        let mut out = vec![false; self.bits.len()];
+        for y in 0..self.height {
+            for x in 0..self.width {
+                if !self.get(x, y) {
+                    continue;
+                }
+                let (x, y) = (x as i64, y as i64);
+                let y0 = (y - radius).max(limit.top).max(0);
+                let y1 = (y + radius)
+                    .min(limit.bottom - 1)
+                    .min(self.height as i64 - 1);
+                let x0 = (x - radius).max(limit.left).max(0);
+                let x1 = (x + radius).min(limit.right - 1).min(self.width as i64 - 1);
+                for ny in y0..=y1.max(y0 - 1) {
+                    for nx in x0..=x1.max(x0 - 1) {
+                        if nx < 0 || ny < 0 {
+                            continue;
+                        }
+                        out[ny as usize * self.width as usize + nx as usize] = true;
+                    }
+                }
+            }
+        }
+        self.bits = out;
+    }
+
     pub fn padded_bbox(&self, pad: i64) -> Option<BBox> {
         let bbox = self.bbox()?;
         Some(

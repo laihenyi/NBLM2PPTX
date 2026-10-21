@@ -33,6 +33,22 @@ enum Command {
     Ocr(OcrArgs),
     /// 列出候選東亞字型與其安裝狀態
     Fonts,
+    /// 管理可選的推論模型（LaMa 去字修補）
+    Models(ModelsArgs),
+}
+
+#[derive(Debug, Args)]
+struct ModelsArgs {
+    #[command(subcommand)]
+    action: ModelsAction,
+}
+
+#[derive(Debug, Subcommand)]
+enum ModelsAction {
+    /// 下載 LaMa 模型到快取目錄（約 199 MiB，只需一次）
+    Fetch,
+    /// 顯示模型狀態與路徑
+    Status,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -45,10 +61,15 @@ enum TextModeArg {
     Overlay,
 }
 
-#[derive(Debug, Clone, Copy, ValueEnum)]
+#[derive(Debug, Clone, Copy, Default, ValueEnum)]
 enum EraseArg {
-    /// 只擦文字筆畫（預設）：子彈點、光暈、圖示不是文字色，完全不會被動到
+    /// 有 LaMa 模型就用模型重建（品質最好），沒有就退回 `stroke`
+    #[default]
+    Auto,
+    /// 只擦文字筆畫：子彈點、光暈、圖示不是文字色，完全不會被動到
     Stroke,
+    /// 用 LaMa 模型重建筆畫與其光暈底下的紋理（需先 `n2p models fetch`）
+    Lama,
     /// 擦整個矩形並從四周插值：會連同區域內的圖示一起抹掉
     Inpaint,
     /// 填單一顏色：與 Python 版等價
@@ -124,8 +145,9 @@ struct ConvertArgs {
     #[arg(long)]
     high_res_background: bool,
 
-    /// 背景擦除方式：`stroke` 只擦文字筆畫、`inpaint` 擦整個矩形、`fill` 填單色
-    #[arg(long, value_enum, default_value = "stroke")]
+    /// 背景擦除方式：`auto`（預設）有 LaMa 模型就用、否則只擦筆畫；
+    /// `lama` 強制用模型；`stroke` 只擦筆畫；`inpaint` 擦整個矩形；`fill` 填單色
+    #[arg(long, value_enum, default_value = "auto")]
     erase: EraseArg,
 
     /// 文字合成方式：`cover` 不動背景、文字框自帶底色；`erase` 先擦背景再疊文字
@@ -177,6 +199,65 @@ fn run(cli: Cli) -> anyhow::Result<()> {
             fonts();
             Ok(())
         }
+        Command::Models(args) => models(args),
+    }
+}
+
+fn models(args: ModelsArgs) -> anyhow::Result<()> {
+    use n2p_image::lama;
+    let path = lama::default_model_path()
+        .ok_or_else(|| anyhow::anyhow!("無法判斷快取目錄（請設定 N2P_LAMA_MODEL）"))?;
+    match args.action {
+        ModelsAction::Status => {
+            if path.exists() {
+                let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+                if size >= lama::MODEL_SIZE {
+                    println!("LaMa 模型：已就緒");
+                } else {
+                    println!(
+                        "LaMa 模型：不完整（{} / {} 位元組），請重新執行 `n2p models fetch`",
+                        size,
+                        lama::MODEL_SIZE
+                    );
+                }
+            } else {
+                println!("LaMa 模型：未下載（執行 `n2p models fetch`）");
+            }
+            println!("路徑：{}", path.display());
+            println!("來源：{}", lama::MODEL_URL);
+            Ok(())
+        }
+        ModelsAction::Fetch => {
+            if path.exists()
+                && std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0) >= lama::MODEL_SIZE
+            {
+                println!("已存在，無需下載：{}", path.display());
+                return Ok(());
+            }
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            println!("下載 LaMa 模型（約 199 MiB）→ {}", path.display());
+            // 用系統 curl：可續傳、有進度、不必為此引入 HTTP 依賴。
+            let status = std::process::Command::new("curl")
+                .args(["-L", "--fail", "--progress-bar", "-C", "-", "-o"])
+                .arg(&path)
+                .arg(lama::MODEL_URL)
+                .status()?;
+            if !status.success() {
+                anyhow::bail!("下載失敗（curl 結束碼 {:?}）", status.code());
+            }
+            let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+            if size < lama::MODEL_SIZE {
+                anyhow::bail!(
+                    "下載不完整（{} / {} 位元組），請重試",
+                    size,
+                    lama::MODEL_SIZE
+                );
+            }
+            println!("完成：{}", path.display());
+            Ok(())
+        }
     }
 }
 
@@ -220,6 +301,17 @@ fn convert(args: ConvertArgs) -> anyhow::Result<()> {
                 TextModeArg::Overlay => n2p_build::TextMode::Overlay,
             },
             erase_mode: match args.erase {
+                EraseArg::Auto => {
+                    if n2p_image::lama::default_model_path()
+                        .map(|p| p.exists())
+                        .unwrap_or(false)
+                    {
+                        n2p_build::EraseMode::Lama
+                    } else {
+                        n2p_build::EraseMode::StrokeMask
+                    }
+                }
+                EraseArg::Lama => n2p_build::EraseMode::Lama,
                 EraseArg::Stroke => n2p_build::EraseMode::StrokeMask,
                 EraseArg::Inpaint => n2p_build::EraseMode::Inpaint,
                 EraseArg::Fill => n2p_build::EraseMode::Flat,

@@ -22,8 +22,10 @@
 
 pub mod diversity;
 pub mod inpaint;
+pub mod lama;
 pub mod mask;
 pub mod method;
+pub mod textmask;
 pub mod transform;
 pub mod watermark;
 
@@ -34,5 +36,7 @@ pub use watermark::{
     inpaint_bbox_in_place, inpaint_mask_in_place, inpaint_region, inpaint_watermark, watermark_box,
 };
 
+pub use lama::{Lama, LamaError};
 pub use mask::Mask;
 pub use n2p_core::{BBox, RgbImage};
+pub use textmask::{TextAnalysis, analyze as analyze_text_region};

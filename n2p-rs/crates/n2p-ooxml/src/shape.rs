@@ -128,6 +128,8 @@ pub struct TextBox {
     pub fill: Option<[u8; 3]>,
     /// 文字透明度（0 = 完全透明，即 OCR overlay 做法）。
     pub text_alpha: Option<u8>,
+    /// 是否粗體。
+    pub bold: bool,
 }
 
 impl Default for TextBox {
@@ -150,6 +152,7 @@ impl Default for TextBox {
             wrap: Wrap::default(),
             fill: None,
             text_alpha: None,
+            bold: false,
         }
     }
 }
@@ -210,6 +213,11 @@ impl TextBox {
     /// 設定文字透明度。`0` 表示文字看不見但仍可選取、編輯（OCR overlay）。
     pub fn text_alpha(mut self, alpha: u8) -> Self {
         self.text_alpha = Some(alpha);
+        self
+    }
+
+    pub fn bold(mut self, bold: bool) -> Self {
+        self.bold = bold;
         self
     }
 
@@ -321,10 +329,14 @@ impl TextBox {
     }
 
     fn build_run(&self, text: &str) -> Element {
-        let r_pr = Element::new("a:rPr")
+        let mut r_pr = Element::new("a:rPr")
             .attr("lang", self.lang.as_str())
             .attr("sz", centipoint_from_pt(self.font_size_pt).to_string())
-            .attr("dirty", "1")
+            .attr("dirty", "1");
+        if self.bold {
+            r_pr.set_attr("b", "1");
+        }
+        let r_pr = r_pr
             .child(Element::new("a:solidFill").child({
                 let color = Element::new("a:srgbClr").attr(
                     "val",
