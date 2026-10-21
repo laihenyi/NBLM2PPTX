@@ -7,7 +7,7 @@
 
 Convierte PDFs exportados de NotebookLM en presentaciones PPTX con **imágenes de fondo y capas de texto editables separadas**.
 
-> ✨ **Actualización (2026-10-21)**: App nativa para macOS (n2p-rs) v0.1.0: convierte PDF en PPTX editable en tu Mac, sin clave de API y notarizada por Apple. Consulta «App nativa para macOS» más abajo.
+> ✨ **Actualización (2026-10-21)**: App nativa para macOS (n2p-rs) v0.1.1: convierte PDF en PPTX editable en tu Mac, sin clave de API y notarizada por Apple. Consulta «App nativa para macOS» más abajo.
 
 [English](README.md) | [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Français](README-fr.md)
 
@@ -15,7 +15,7 @@ Convierte PDFs exportados de NotebookLM en presentaciones PPTX con **imágenes d
 
 [`n2p-rs/`](n2p-rs/) es una versión nativa que se ejecuta por completo en tu Mac: sin clave de API y sin subir ningún archivo.
 
-- **Descarga**: [página de la versión](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.0) (`NotebookLM2PPT-notarized.zip`)
+- **Descarga**: [página de la versión](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.1) (`NotebookLM2PPT-notarized.zip`)
 - **OCR**: Vision integrado en macOS (en el dispositivo)
 - **Eliminación de texto**: borra solo los trazos del texto; los fondos con textura se reconstruyen con LaMa en la GPU (CoreML)
 - **Extracción de objetos (experimental)**: iconos e ilustraciones pasan a ser imágenes movibles (MobileSAM)
@@ -34,7 +34,7 @@ Compilación, uso por línea de comandos y notas de diseño: [`n2p-rs/README.md`
 > El texto se convierte en cuadros de texto editables; las ilustraciones quedan en el fondo y se elimina la marca de agua de NotebookLM (resultado renderizado con LibreOffice).
 > Limitaciones actuales visibles aquí: no se conservan los colores de resaltado, a veces se pierde la negrita y el OCR puede leer mal algunos caracteres.
 
-### Sin publicar (`main`, 2026-10-21)
+### v0.1.1 (2026-10-21)
 
 - **Versión con objetos unas 2 veces más rápida y pico de memoria de ~6 GB a ~1,9 GB**: SAM ahora se ejecuta solo en la CPU (presentación de 11 páginas: 47–86 s, antes 103–183 s)
 - El texto de varias líneas se alinea a la izquierda cuando así está en el original (antes siempre se centraba)

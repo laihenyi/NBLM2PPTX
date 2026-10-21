@@ -7,7 +7,7 @@
 
 Convert NotebookLM exported PDFs into PPTX presentations with **separated background images and editable text layers**.
 
-> ✨ **Updated (2026-10-21)**: macOS native app (n2p-rs) v0.1.0 — offline PDF → editable PPTX on your Mac, no API key, notarized by Apple. See “macOS Native App” below.
+> ✨ **Updated (2026-10-21)**: macOS native app (n2p-rs) v0.1.1 — offline PDF → editable PPTX on your Mac, no API key, notarized by Apple. See “macOS Native App” below.
 
 [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Español](README-es.md) | [Français](README-fr.md)
 
@@ -15,7 +15,7 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 
 [`n2p-rs/`](n2p-rs/) is a native macOS version that runs entirely on your Mac — no API key, nothing uploaded.
 
-- **Download**: [release page](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.0) (`NotebookLM2PPT-notarized.zip`)
+- **Download**: [release page](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.1) (`NotebookLM2PPT-notarized.zip`)
 - **OCR**: macOS built-in Vision (on-device)
 - **Text removal**: erases only the text strokes; textured backgrounds are rebuilt by LaMa running on the GPU (CoreML)
 - **Object extraction (experimental)**: icons and illustrations become movable images (MobileSAM)
@@ -34,7 +34,7 @@ Build, CLI usage and design notes: [`n2p-rs/README.md`](n2p-rs/README.md). Third
 > Text becomes editable text boxes; illustrations stay in the background and the NotebookLM watermark is removed (output rendered with LibreOffice).
 > Current limitations visible here: highlight colors are not kept, bold is sometimes lost, and OCR may misread a few characters.
 
-### Unreleased (`main`, 2026-10-21)
+### v0.1.1 (2026-10-21)
 
 - **Object version about 2× faster, peak memory ~6 GB → ~1.9 GB**: SAM now runs on the CPU only (11-page deck: 47–86 s, was 103–183 s)
 - Multi-line body text is left-aligned when the original is (it used to be always centered)

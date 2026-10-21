@@ -2210,7 +2210,7 @@ dependencies = [
 
 [[package]]
 name = "n2p-build"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "image",
  "n2p-core",
@@ -2222,7 +2222,7 @@ dependencies = [
 
 [[package]]
 name = "n2p-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -2240,7 +2240,7 @@ dependencies = [
 
 [[package]]
 name = "n2p-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "png",
  "thiserror 2.0.21",
@@ -2248,7 +2248,7 @@ dependencies = [
 
 [[package]]
 name = "n2p-gui"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "eframe",
  "n2p-build",
@@ -2262,7 +2262,7 @@ dependencies = [
 
 [[package]]
 name = "n2p-image"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "n2p-core",
  "ort",
@@ -2274,7 +2274,7 @@ dependencies = [
 
 [[package]]
 name = "n2p-layout"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "n2p-core",
  "serde",
@@ -2283,7 +2283,7 @@ dependencies = [
 
 [[package]]
 name = "n2p-mineru"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "n2p-core",
  "n2p-layout",
@@ -2294,7 +2294,7 @@ dependencies = [
 
 [[package]]
 name = "n2p-ooxml"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "quick-xml 0.42.0",
  "thiserror 2.0.21",
@@ -2303,7 +2303,7 @@ dependencies = [
 
 [[package]]
 name = "n2p-pdf"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "hayro",
  "image",
@@ -2315,7 +2315,7 @@ dependencies = [
 
 [[package]]
 name = "n2p-pipeline"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "n2p-build",
  "n2p-core",
@@ -2331,7 +2331,7 @@ dependencies = [
 
 [[package]]
 name = "n2p-vision"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "block2 0.6.2",
  "n2p-core",
@@ -5122,7 +5122,7 @@ checksum = "e450f9b2ed1dff33c94c12589a87338689467b9c4f5d8a5710bd09a847d2c8a7"
 
 [[package]]
 name = "xtask"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "clap",

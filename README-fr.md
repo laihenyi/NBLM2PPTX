@@ -7,7 +7,7 @@
 
 Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **images d'arrière-plan et couches de texte éditables séparées**.
 
-> ✨ **Mise à jour (2026-10-21)** : application native macOS (n2p-rs) v0.1.0 — conversion de PDF en PPTX modifiable sur votre Mac, sans clé d’API, notarisée par Apple. Voir « Application native macOS » ci-dessous.
+> ✨ **Mise à jour (2026-10-21)** : application native macOS (n2p-rs) v0.1.1 — conversion de PDF en PPTX modifiable sur votre Mac, sans clé d’API, notarisée par Apple. Voir « Application native macOS » ci-dessous.
 
 [English](README.md) | [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Español](README-es.md)
 
@@ -15,7 +15,7 @@ Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **image
 
 [`n2p-rs/`](n2p-rs/) est une version native qui s’exécute entièrement sur votre Mac : aucune clé d’API, aucun fichier envoyé.
 
-- **Téléchargement** : [page de la version](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.0) (`NotebookLM2PPT-notarized.zip`)
+- **Téléchargement** : [page de la version](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.1) (`NotebookLM2PPT-notarized.zip`)
 - **OCR** : Vision intégré à macOS (sur l’appareil)
 - **Suppression du texte** : seuls les traits du texte sont effacés ; les arrière-plans texturés sont reconstruits par LaMa sur le GPU (CoreML)
 - **Extraction d’objets (expérimental)** : les icônes et illustrations deviennent des images déplaçables (MobileSAM)
@@ -34,7 +34,7 @@ Compilation, utilisation en ligne de commande et notes de conception : [`n2p-rs/
 > Le texte devient des zones de texte modifiables ; les illustrations restent en arrière-plan et le filigrane NotebookLM est supprimé (rendu avec LibreOffice).
 > Limites actuelles visibles ici : les couleurs de surlignage ne sont pas conservées, le gras est parfois perdu et l’OCR peut mal lire quelques caractères.
 
-### Non publié (`main`, 2026-10-21)
+### v0.1.1 (2026-10-21)
 
 - **Version avec objets environ 2 fois plus rapide, pic mémoire de ~6 Go à ~1,9 Go** : SAM s’exécute désormais uniquement sur le CPU (présentation de 11 pages : 47–86 s, contre 103–183 s)
 - Le texte sur plusieurs lignes est aligné à gauche lorsque l’original l’est (il était toujours centré)

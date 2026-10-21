@@ -7,7 +7,7 @@
 
 將 NotebookLM 產出的 PDF 轉換成**底圖與文字分離**的 PPTX 簡報檔案。
 
-> ✨ **更新 (2026-10-21)**: macOS 原生版（n2p-rs）v0.1.0 發布——在 Mac 本機把 PDF 轉成可編輯 PPTX，不需要 API key，已通過 Apple 公證。詳見下方「macOS 原生版」。
+> ✨ **更新 (2026-10-21)**: macOS 原生版（n2p-rs）v0.1.1 發布——在 Mac 本機把 PDF 轉成可編輯 PPTX，不需要 API key，已通過 Apple 公證。詳見下方「macOS 原生版」。
 
 [English](README.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Español](README-es.md) | [Français](README-fr.md)
 
@@ -15,7 +15,7 @@
 
 [`n2p-rs/`](n2p-rs/) 是在 Mac 本機執行的原生版本：不需要 API key，檔案不上傳。
 
-- **下載**：[Releases 頁面](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.0)（`NotebookLM2PPT-notarized.zip`）
+- **下載**：[Releases 頁面](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.1)（`NotebookLM2PPT-notarized.zip`）
 - **OCR**：macOS 內建 Vision（裝置端）
 - **去字**：只擦文字筆畫；有紋理的背景由 LaMa 在 GPU（CoreML）上重建
 - **物件切出（實驗性）**：圖示、插圖變成可移動的圖片（MobileSAM）
@@ -34,7 +34,7 @@
 > 文字變成可編輯的文字框；插圖留在背景，NotebookLM 浮水印已移除（輸出以 LibreOffice 渲染）。
 > 圖中可見的現有限制：螢光標記色不保留、粗體偶爾遺失、OCR 偶有錯字。
 
-### 尚未發布（`main`，2026-10-21）
+### v0.1.1（2026-10-21）
 
 - **物件版快約一倍，記憶體峰值從約 6 GB 降到約 1.9 GB**：SAM 改在純 CPU 上跑（11 頁簡報 47–86 秒，原本 103–183 秒）
 - 多行內文依原稿靠左（原本一律置中）

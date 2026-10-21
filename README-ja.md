@@ -7,7 +7,7 @@
 
 NotebookLM からエクスポートした PDF を**背景画像とテキストが分離された** PPTX プレゼンテーションに変換します。
 
-> ✨ **更新 (2026-10-21)**: macOS ネイティブ版（n2p-rs）v0.1.0 をリリース。Mac 上だけで PDF を編集可能な PPTX に変換。API キー不要、Apple の公証済み。詳しくは下の「macOS ネイティブ版」を参照してください。
+> ✨ **更新 (2026-10-21)**: macOS ネイティブ版（n2p-rs）v0.1.1 をリリース。Mac 上だけで PDF を編集可能な PPTX に変換。API キー不要、Apple の公証済み。詳しくは下の「macOS ネイティブ版」を参照してください。
 
 [English](README.md) | [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [Español](README-es.md) | [Français](README-fr.md)
 
@@ -15,7 +15,7 @@ NotebookLM からエクスポートした PDF を**背景画像とテキスト�
 
 [`n2p-rs/`](n2p-rs/) は Mac 上だけで動くネイティブ版です。API キーは不要で、ファイルはアップロードされません。
 
-- **ダウンロード**：[Releases ページ](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.0)（`NotebookLM2PPT-notarized.zip`）
+- **ダウンロード**：[Releases ページ](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.1)（`NotebookLM2PPT-notarized.zip`）
 - **OCR**：macOS 内蔵の Vision（デバイス上で処理）
 - **文字消去**：文字のストロークだけを消し、テクスチャのある背景は GPU（CoreML）上の LaMa で復元
 - **オブジェクト切り出し（実験的）**：アイコンやイラストを移動可能な画像に（MobileSAM）
@@ -34,7 +34,7 @@ NotebookLM からエクスポートした PDF を**背景画像とテキスト�
 > 文字は編集可能なテキストボックスになり、イラストは背景に残り、NotebookLM の透かしは除去されます（出力は LibreOffice で描画）。
 > 図で確認できる現在の制限：蛍光マーカーの色は保持されず、太字が失われることがあり、OCR がまれに誤認識します。
 
-### 未リリース（`main`、2026-10-21）
+### v0.1.1（2026-10-21）
 
 - **オブジェクト版が約 2 倍速く、ピークメモリは約 6 GB → 約 1.9 GB**：SAM を CPU のみで実行（11 ページのスライドで 47–86 秒、以前は 103–183 秒）
 - 複数行の本文は元のスライドどおり左揃えに（以前は常に中央揃え）
