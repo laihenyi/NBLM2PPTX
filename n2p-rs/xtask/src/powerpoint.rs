@@ -75,8 +75,10 @@ const SCRIPT: &str = r#"on run argv
 	-- 逐形狀 try：Spire 評估水印的 a:spLocks noTextEdit="1" 會讓索引存取拋 -1728。
 	-- 成敗都要關閉自己開的那一份，否則會累積殭屍簡報與 ~$ 鎖檔。
 	set thePath to item 1 of argv
-	-- full name 可能是 POSIX 或 HFS 形式，兩種都比
-	set hfsPath to ((POSIX file thePath) as text)
+	-- 同一個檔案的幾種寫法都算：full name 可能是 POSIX 或 HFS 形式；Rust 端正規化後
+	-- 是 /private/var/…，PowerPoint 回報的卻是 /var/…（/var 是 /private/var 的符號連結）
+	set ownNames to {thePath, ((POSIX file thePath) as text)}
+	if thePath starts with "/private/" then set end of ownNames to (text 9 thru -1 of thePath)
 	set slideCount to 0
 	set frameWidth to 0
 	set kindText to ""
@@ -93,8 +95,7 @@ const SCRIPT: &str = r#"on run argv
 		set openCount to (count of presentations)
 		repeat with k from 1 to openCount
 			try
-				set openName to (full name of presentation k as text)
-				if openName is thePath or openName is hfsPath then set wasOpen to true
+				if ownNames contains (full name of presentation k as text) then set wasOpen to true
 			end try
 		end repeat
 		open thePath
@@ -108,8 +109,7 @@ const SCRIPT: &str = r#"on run argv
 				set candidateSlides to (count of slides of candidate)
 				set candidateWidth to (slide width of page setup of candidate)
 				-- 只接受剛開的那一份：前景若是使用者自己的簡報，絕不能讀它、更不能關它
-				set candidateName to (full name of candidate as text)
-				if candidateWidth > 0 and (candidateName is thePath or candidateName is hfsPath) then
+				if candidateWidth > 0 and (ownNames contains (full name of candidate as text)) then
 					set pres to candidate
 					set slideCount to candidateSlides
 					set frameWidth to candidateWidth
@@ -124,6 +124,14 @@ const SCRIPT: &str = r#"on run argv
 
 		if ready is false then
 			set failureMessage to "簡報在 20 秒內未就緒"
+			-- 逾時也要收拾：照路徑找出自己開的那一份（從後往前，關閉不影響索引）
+			if wasOpen is false then
+				repeat with k from (count of presentations) to 1 by -1
+					try
+						if ownNames contains (full name of presentation k as text) then close presentation k saving no
+					end try
+				end repeat
+			end if
 		else
 			try
 				set kindText to ((slide size of page setup of pres) as text)

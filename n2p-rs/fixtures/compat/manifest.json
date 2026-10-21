@@ -1,0 +1,311 @@
+{
+  "backend": "",
+  "entries": [
+    {
+      "name": "1_text",
+      "slides": 1,
+      "width_pt": 960.0,
+      "pages": [
+        {
+          "shape_names": [
+            "Block_text",
+            "<inaccessible>"
+          ],
+          "texts": [
+            "Hello MinerU"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2_background",
+      "slides": 1,
+      "width_pt": 960.0,
+      "pages": [
+        {
+          "shape_names": [
+            "<inaccessible>"
+          ],
+          "texts": []
+        }
+      ]
+    },
+    {
+      "name": "3_picture",
+      "slides": 1,
+      "width_pt": 960.0,
+      "pages": [
+        {
+          "shape_names": [
+            "New picture",
+            "<inaccessible>"
+          ],
+          "texts": []
+        }
+      ]
+    },
+    {
+      "name": "4_merged",
+      "slides": 3,
+      "width_pt": 960.0,
+      "pages": [
+        {
+          "shape_names": [
+            "New shape",
+            "<inaccessible>"
+          ],
+          "texts": [
+            "Page A body"
+          ]
+        },
+        {
+          "shape_names": [
+            "New shape",
+            "<inaccessible>"
+          ],
+          "texts": [
+            "Page B body"
+          ]
+        },
+        {
+          "shape_names": [
+            "New shape",
+            "<inaccessible>"
+          ],
+          "texts": [
+            "Page C body"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5_cleaned",
+      "slides": 3,
+      "width_pt": 960.0,
+      "pages": [
+        {
+          "shape_names": [],
+          "texts": []
+        },
+        {
+          "shape_names": [],
+          "texts": []
+        },
+        {
+          "shape_names": [],
+          "texts": []
+        }
+      ]
+    },
+    {
+      "name": "6_newline",
+      "slides": 1,
+      "width_pt": 960.0,
+      "pages": [
+        {
+          "shape_names": [
+            "Block_text",
+            "<inaccessible>"
+          ],
+          "texts": [
+            "line oneline two"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "fix_a",
+      "slides": 1,
+      "width_pt": 960.0,
+      "pages": [
+        {
+          "shape_names": [
+            "Block_text",
+            "<inaccessible>"
+          ],
+          "texts": [
+            "Page A body"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "fix_b",
+      "slides": 1,
+      "width_pt": 960.0,
+      "pages": [
+        {
+          "shape_names": [
+            "Block_text",
+            "<inaccessible>"
+          ],
+          "texts": [
+            "Page B body"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "fix_c",
+      "slides": 1,
+      "width_pt": 960.0,
+      "pages": [
+        {
+          "shape_names": [
+            "Block_text",
+            "<inaccessible>"
+          ],
+          "texts": [
+            "Page C body"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "fix_cleaned",
+      "slides": 3,
+      "width_pt": 960.0,
+      "pages": [
+        {
+          "shape_names": [
+            "Block_text"
+          ],
+          "texts": [
+            "Page A body"
+          ]
+        },
+        {
+          "shape_names": [
+            "Block_text"
+          ],
+          "texts": [
+            "Page B body"
+          ]
+        },
+        {
+          "shape_names": [
+            "Block_text"
+          ],
+          "texts": [
+            "Page C body"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "fix_merged",
+      "slides": 3,
+      "width_pt": 960.0,
+      "pages": [
+        {
+          "shape_names": [
+            "Block_text",
+            "<inaccessible>"
+          ],
+          "texts": [
+            "Page A body"
+          ]
+        },
+        {
+          "shape_names": [
+            "Block_text",
+            "<inaccessible>"
+          ],
+          "texts": [
+            "Page B body"
+          ]
+        },
+        {
+          "shape_names": [
+            "Block_text",
+            "<inaccessible>"
+          ],
+          "texts": [
+            "Page C body"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "src_a",
+      "slides": 1,
+      "width_pt": 960.0,
+      "pages": [
+        {
+          "shape_names": [
+            "New shape",
+            "<inaccessible>"
+          ],
+          "texts": [
+            "Page A body"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "src_b",
+      "slides": 1,
+      "width_pt": 960.0,
+      "pages": [
+        {
+          "shape_names": [
+            "New shape",
+            "<inaccessible>"
+          ],
+          "texts": [
+            "Page B body"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "src_c",
+      "slides": 1,
+      "width_pt": 960.0,
+      "pages": [
+        {
+          "shape_names": [
+            "New shape",
+            "<inaccessible>"
+          ],
+          "texts": [
+            "Page C body"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "sz_16x10",
+      "slides": 1,
+      "width_pt": 720.0,
+      "pages": [
+        {
+          "shape_names": [],
+          "texts": []
+        }
+      ]
+    },
+    {
+      "name": "sz_16x9",
+      "slides": 1,
+      "width_pt": 960.0,
+      "pages": [
+        {
+          "shape_names": [],
+          "texts": []
+        }
+      ]
+    },
+    {
+      "name": "sz_4x3",
+      "slides": 1,
+      "width_pt": 720.0,
+      "pages": [
+        {
+          "shape_names": [],
+          "texts": []
+        }
+      ]
+    }
+  ]
+}

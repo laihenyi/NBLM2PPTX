@@ -104,7 +104,7 @@ repeat while ready is false and attempts < 100
         set candidate to active presentation
         set candidateSlides to (count of slides of candidate)
         set candidateWidth to (slide width of page setup of candidate)
-        if candidateWidth > 0 then set ready to true
+        if candidateWidth > 0 and (ownNames contains (full name of candidate as text)) then set ready to true
     end try
     if ready is false then
         delay 0.2
@@ -112,6 +112,15 @@ repeat while ready is false and attempts < 100
     end if
 end repeat
 ```
+
+`active presentation` 不一定是剛開的那份：開檔慢或失敗時，前景可能是使用者自己的簡報。
+所以還要比對 `full name`，只接受路徑相符的那一份（見下方「安全規則」）。比對時要把同一個
+檔案的幾種寫法都列進 `ownNames`：
+
+- `full name` 可能是 POSIX 或 HFS 形式。
+- Rust 端 `canonicalize()` 後暫存檔是 `/private/var/folders/…`，PowerPoint 回報的卻是
+  `/var/folders/…`（`/var` 是 `/private/var` 的符號連結）。少了這一條，即時產生簡報的
+  不變量檢查會逾時，而且逾時那份不會被關掉。
 
 ### 6. 相對路徑會讓 PowerPoint 彈出 modal，然後全部卡死
 
@@ -144,8 +153,10 @@ end repeat
 **這會丟掉使用者未儲存的工作。** 現在的做法：
 
 1. 執行前先記下已開著的簡報（用 `full name` 比對）。
-2. 只關閉「本來沒開、由這次 `open` 帶進來的」那一份。
-3. 永不呼叫 `quit`。
+2. 只讀取、只關閉「本來沒開、由這次 `open` 帶進來的」那一份（`full name` 與目標路徑相符）。
+   不能直接拿 `active presentation`：前景可能是使用者的簡報。
+3. 逾時沒等到就緒時，照路徑找出自己開的那份再關。
+4. 永不呼叫 `quit`。
 
 驗證工具沒有資格碰使用者的文件。
 

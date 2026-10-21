@@ -110,8 +110,8 @@ cargo run -p xtask -- doctor        # 檢查 PowerPoint / LibreOffice 是否可�
 # PowerPoint 讀得懂我們產生的 OOXML 嗎？（即時產生簡報再開檔驗證）
 cargo run -p xtask -- compat
 
-# 對既有檔案做基準回歸
-cargo run -p xtask -- compat --record --dir fixtures/probe-pptx
+# 對既有檔案做基準回歸（基準在 fixtures/compat/manifest.json，PowerPoint 16.101 錄製；
+# 升版後內容不同時，確認無誤再加 --record 重錄）
 cargo run -p xtask -- compat --dir fixtures/probe-pptx
 
 # 像素級視覺回歸（需要 LibreOffice）
