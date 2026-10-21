@@ -32,11 +32,12 @@
 | <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-native-kitchen.jpg" width="400"> |
 
 > 文字變成可編輯的文字框；插圖留在背景，NotebookLM 浮水印已移除（輸出以 LibreOffice 渲染）。
-> 圖中可見的現有限制：內文一律置中、螢光標記色不保留、OCR 偶有錯字。
+> 圖中可見的現有限制：螢光標記色不保留、粗體偶爾遺失、OCR 偶有錯字。
 
 ### 尚未發布（`main`，2026-10-21）
 
 - **物件版快約一倍，記憶體峰值從約 6 GB 降到約 1.9 GB**：SAM 改在純 CPU 上跑（11 頁簡報 47–86 秒，原本 103–183 秒）
+- 多行內文依原稿靠左（原本一律置中）
 - 物件切出的遮罩外擴加速
 - GUI：模型區塊顯示 LaMa 的 GPU 版是否就緒
 - 開發工具：PowerPoint 相容性檢查只讀取、只關閉自己開啟的簡報

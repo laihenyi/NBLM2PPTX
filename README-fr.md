@@ -32,11 +32,12 @@ Compilation, utilisation en ligne de commande et notes de conception : [`n2p-rs/
 | <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-native-kitchen.jpg" width="400"> |
 
 > Le texte devient des zones de texte modifiables ; les illustrations restent en arrière-plan et le filigrane NotebookLM est supprimé (rendu avec LibreOffice).
-> Limites actuelles visibles ici : le corps de texte est centré, les couleurs de surlignage ne sont pas conservées et l’OCR peut mal lire quelques caractères.
+> Limites actuelles visibles ici : les couleurs de surlignage ne sont pas conservées, le gras est parfois perdu et l’OCR peut mal lire quelques caractères.
 
 ### Non publié (`main`, 2026-10-21)
 
 - **Version avec objets environ 2 fois plus rapide, pic mémoire de ~6 Go à ~1,9 Go** : SAM s’exécute désormais uniquement sur le CPU (présentation de 11 pages : 47–86 s, contre 103–183 s)
+- Le texte sur plusieurs lignes est aligné à gauche lorsque l’original l’est (il était toujours centré)
 - Dilatation des masques plus rapide pour l’extraction d’objets
 - Interface : la section des modèles indique si la version GPU de LaMa est prête
 - Outils de développement : la vérification de compatibilité PowerPoint ne lit et ne ferme que la présentation qu’elle a elle-même ouverte

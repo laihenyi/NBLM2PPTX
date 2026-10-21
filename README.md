@@ -32,11 +32,12 @@ Build, CLI usage and design notes: [`n2p-rs/README.md`](n2p-rs/README.md). Third
 | <img src="assets/demo-v1.1-original.jpg" width="400"> | <img src="assets/demo-native-kitchen.jpg" width="400"> |
 
 > Text becomes editable text boxes; illustrations stay in the background and the NotebookLM watermark is removed (output rendered with LibreOffice).
-> Current limitations visible here: body text is centered, highlight colors are not kept, and OCR may misread a few characters.
+> Current limitations visible here: highlight colors are not kept, bold is sometimes lost, and OCR may misread a few characters.
 
 ### Unreleased (`main`, 2026-10-21)
 
 - **Object version about 2× faster, peak memory ~6 GB → ~1.9 GB**: SAM now runs on the CPU only (11-page deck: 47–86 s, was 103–183 s)
+- Multi-line body text is left-aligned when the original is (it used to be always centered)
 - Faster mask dilation for object extraction
 - GUI: the model section shows whether the GPU version of LaMa is ready
 - Developer tooling: the PowerPoint compatibility check only reads and closes the presentation it opened itself
