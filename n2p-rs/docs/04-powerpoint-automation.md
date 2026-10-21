@@ -99,6 +99,7 @@ slide width of page setup of pres -- 拋 -1728
 必須輪詢到「頁數與畫布寬度都讀得到」為止：
 
 ```applescript
+set ownNames to {thePath, ((POSIX file thePath) as text)}   -- 同一檔案的幾種寫法，見下文
 repeat while ready is false and attempts < 100
     try
         set candidate to active presentation
