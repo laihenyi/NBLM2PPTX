@@ -71,6 +71,14 @@ pub fn to_pdf(binary: &Path, pptx: &Path, out_dir: &Path) -> Result<PathBuf> {
     let profile = out_dir.join(".lo-profile");
     std::fs::create_dir_all(&profile)?;
 
+    // 先複製成安全的 ASCII 檔名再轉。
+    // 真實檔名常含空格與中文（例如「CH9_用 2.0 版的愛…_可編輯.pptx」），
+    // soffice 對這種路徑會靜默不產生輸出 —— 但它仍回傳 exit 0。
+    let safe_name = format!("input-{}.pptx", short_hash(pptx));
+    let safe_input = out_dir.join(&safe_name);
+    std::fs::copy(pptx, &safe_input)
+        .with_context(|| format!("無法複製 {}", pptx.display()))?;
+
     let output = Command::new(binary)
         .arg("--headless")
         .arg("--norestore")
@@ -82,7 +90,7 @@ pub fn to_pdf(binary: &Path, pptx: &Path, out_dir: &Path) -> Result<PathBuf> {
         .arg("pdf")
         .arg("--outdir")
         .arg(out_dir)
-        .arg(pptx)
+        .arg(&safe_input)
         .output()
         .context("執行 soffice 轉檔失敗")?;
 
@@ -94,14 +102,24 @@ pub fn to_pdf(binary: &Path, pptx: &Path, out_dir: &Path) -> Result<PathBuf> {
         ));
     }
 
-    let stem = pptx
-        .file_stem()
-        .ok_or_else(|| anyhow!("檔名沒有主檔名：{}", pptx.display()))?;
-    let pdf = out_dir.join(stem).with_extension("pdf");
+    let pdf = out_dir.join(&safe_name).with_extension("pdf");
     if !pdf.exists() {
-        return Err(anyhow!("soffice 沒有產出 {}", pdf.display()));
+        return Err(anyhow!(
+            "soffice 沒有產出 {}（來源：{}）",
+            pdf.display(),
+            pptx.display()
+        ));
     }
+    let _ = std::fs::remove_file(&safe_input);
     Ok(pdf)
+}
+
+/// 取路徑的短雜湊，用來產生不衝突的安全檔名。
+fn short_hash(path: &Path) -> String {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    path.hash(&mut hasher);
+    format!("{:08x}", hasher.finish() as u32)
 }
 
 /// 把 PDF 每一頁點陣化成 RGB（用本專案自己的 `n2p-pdf`）。

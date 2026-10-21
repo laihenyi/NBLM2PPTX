@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 
 use n2p_build::{BuildOptions, PageInput};
 use n2p_core::RgbImage;
-use n2p_image::{InpaintMethod, to_widescreen};
+use n2p_image::InpaintMethod;
 use n2p_layout::{LayoutPage, LayoutProvider};
 use n2p_mineru::MineruDocument;
 use n2p_vision::{VisionConfig, VisionDocument};
@@ -164,9 +164,11 @@ pub fn convert(
             }
         }
 
-        if options.widescreen && !n2p_image::is_widescreen(&image) {
-            image = to_widescreen(&image);
-        }
+        let (image, size_pt) = if options.widescreen {
+            widen_to_16x9(image, size_pt)
+        } else {
+            (image, size_pt)
+        };
 
         if let Some(dir) = &options.work_dir {
             let path = dir.join(format!("page_{page_num:04}.png"));
@@ -200,6 +202,24 @@ pub fn convert(
         watermarks_removed,
         output_bytes: std::fs::metadata(out_path).map(|m| m.len()).unwrap_or(0),
     })
+}
+
+/// 把頁面在**圖片層**補成 16:9，並同步更新頁面尺寸（點）。
+///
+/// 與 Windows 原版的 `pdf2png.make_wide_screen` 一致：比例在產生 PPT 之前就處理好，
+/// 所以投影片不需要拉伸，圓形不會變橢圓。
+///
+/// **尺寸必須同步更新**，否則 `SlideSize::from_ratio` 會拿到舊的 4:3 比例，
+/// 於是 16:9 的圖片被塞進 4:3 畫布 —— 整體被水平拉伸。
+fn widen_to_16x9(image: RgbImage, size_pt: (f64, f64)) -> (RgbImage, (f64, f64)) {
+    if n2p_image::is_widescreen(&image) || size_pt.0 <= 0.0 {
+        return (image, size_pt);
+    }
+    // 先記下「每點幾個像素」，補白後用它換算出新的頁面寬度
+    let pixels_per_pt = image.width as f64 / size_pt.0;
+    let widened = n2p_image::to_widescreen(&image);
+    let new_width_pt = widened.width as f64 / pixels_per_pt;
+    (widened, (new_width_pt, size_pt.1))
 }
 
 fn resolve_layout(
@@ -284,6 +304,37 @@ mod tests {
         let dir = std::env::temp_dir().join("n2p-pipeline-tests");
         std::fs::create_dir_all(&dir).unwrap();
         dir.join(name)
+    }
+
+    #[test]
+    fn widescreen_updates_page_size_so_the_slide_aspect_follows_the_image() {
+        // 4:3 頁面（400x300 pt）→ 補成 16:9
+        let image = RgbImage::filled(800, 600, [200, 220, 240]); // 每點 2 px
+        let (widened, size_pt) = widen_to_16x9(image, (400.0, 300.0));
+
+        assert_eq!(widened.height, 600, "高度不該變");
+        assert_eq!(widened.width, 1067, "600 * 16/9 = 1066.67 → 1067 px");
+        // 每點 2 px → 新頁寬 1067/2 = 533.5 pt，533.5/300 = 1.778（16:9）
+        let _ = size_pt;
+        assert!(
+            (size_pt.0 / size_pt.1 - widened.width as f64 / widened.height as f64).abs() < 0.01,
+            "頁面比例應與補白後的圖片一致：{:?} vs {}x{}",
+            size_pt,
+            widened.width,
+            widened.height
+        );
+
+        // 補白處是白色、中央保留原內容
+        assert_eq!(widened.pixel(0, 0), [255, 255, 255]);
+        assert_eq!(widened.pixel(widened.width / 2, 300), [200, 220, 240]);
+    }
+
+    #[test]
+    fn already_widescreen_pages_are_left_alone() {
+        let image = RgbImage::filled(1600, 900, [10, 20, 30]);
+        let (widened, size_pt) = widen_to_16x9(image.clone(), (800.0, 450.0));
+        assert_eq!(widened, image);
+        assert_eq!(size_pt, (800.0, 450.0));
     }
 
     #[test]
