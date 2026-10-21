@@ -102,6 +102,20 @@
 - **更清晰的说明**：更新 API Key 设置指南以符合实际流程
 - **干净的重置界面**：重置时恢复初始上传界面，而非加载动画
 
+## macOS 原生版（离线，Rust）
+
+[`n2p-rs/`](n2p-rs/) 是在 Mac 本机运行的原生版本：不需要 API key，文件不上传。
+
+- **下载**：[Releases 页面](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.0)（`NotebookLM2PPT-notarized.zip`）
+- **OCR**：macOS 内置 Vision（设备端）
+- **去字**：只擦除文字笔画；有纹理的背景由 LaMa 在 GPU（CoreML）上重建
+- **对象提取（实验性）**：图标、插图变成可移动的图片（MobileSAM）
+- **App**：拖放式图形界面，Developer ID 签名并通过 Apple 公证；模型（约 253 MB）在首次打开时下载
+- **速度**（Apple Silicon，11 页演示文稿）：标准版 29–45 秒，对象版 47–86 秒
+- 需求：Apple Silicon；GPU 推理需 macOS 12 以上
+
+构建、命令行用法与设计笔记见 [`n2p-rs/README.md`](n2p-rs/README.md)；第三方许可见 [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md)。
+
 ## 功能特色
 
 - **AI 智能去字**：使用 Gemini 2.5 Flash 自动移除图片中的文字并重建背景

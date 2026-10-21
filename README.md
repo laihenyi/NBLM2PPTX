@@ -114,6 +114,7 @@ Convert NotebookLM exported PDFs into PPTX presentations with **separated backgr
 
 [`n2p-rs/`](n2p-rs/) is a native macOS version that runs entirely on your Mac — no API key, nothing uploaded.
 
+- **Download**: [release page](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.0) (`NotebookLM2PPT-notarized.zip`)
 - **OCR**: macOS built-in Vision (on-device)
 - **Text removal**: erases only the text strokes; textured backgrounds are rebuilt by LaMa running on the GPU (CoreML)
 - **Object extraction (experimental)**: icons and illustrations become movable images (MobileSAM)

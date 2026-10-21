@@ -102,6 +102,20 @@ Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **image
 - **Instructions Plus Claires**: Guide de configuration de clé API mis à jour pour correspondre au flux réel
 - **UI de Réinitialisation Propre**: Interface de téléchargement initial restaurée lors de la réinitialisation au lieu du spinner de chargement
 
+## Application native macOS (hors ligne, Rust)
+
+[`n2p-rs/`](n2p-rs/) est une version native qui s’exécute entièrement sur votre Mac : aucune clé d’API, aucun fichier envoyé.
+
+- **Téléchargement** : [page de la version](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.0) (`NotebookLM2PPT-notarized.zip`)
+- **OCR** : Vision intégré à macOS (sur l’appareil)
+- **Suppression du texte** : seuls les traits du texte sont effacés ; les arrière-plans texturés sont reconstruits par LaMa sur le GPU (CoreML)
+- **Extraction d’objets (expérimental)** : les icônes et illustrations deviennent des images déplaçables (MobileSAM)
+- **Application** : interface glisser-déposer, signée avec un Developer ID et notarisée par Apple ; les modèles (~253 Mo) sont téléchargés au premier lancement
+- **Vitesse** (Apple Silicon, présentation de 11 pages) : version standard 29–45 s, version avec objets 47–86 s
+- Configuration requise : Apple Silicon ; macOS 12 ou ultérieur pour l’inférence sur GPU
+
+Compilation, utilisation en ligne de commande et notes de conception : [`n2p-rs/README.md`](n2p-rs/README.md). Licences tierces : [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md).
+
 ## Fonctionnalités
 
 - **Suppression de Texte par IA** : Utilise Gemini 2.5 Flash pour supprimer automatiquement le texte des images et reconstruire les arrière-plans

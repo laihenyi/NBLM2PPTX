@@ -102,6 +102,20 @@ NotebookLM からエクスポートした PDF を**背景画像とテキスト�
 - **より明確な説明**：実際のワークフローに合わせて API Key セットアップガイドを更新
 - **クリーンなリセット UI**：リセット時にローディングスピナーではなく初期アップロード画面を復元
 
+## macOS ネイティブ版（オフライン、Rust）
+
+[`n2p-rs/`](n2p-rs/) は Mac 上だけで動くネイティブ版です。API キーは不要で、ファイルはアップロードされません。
+
+- **ダウンロード**：[Releases ページ](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.0)（`NotebookLM2PPT-notarized.zip`）
+- **OCR**：macOS 内蔵の Vision（デバイス上で処理）
+- **文字消去**：文字のストロークだけを消し、テクスチャのある背景は GPU（CoreML）上の LaMa で復元
+- **オブジェクト切り出し（実験的）**：アイコンやイラストを移動可能な画像に（MobileSAM）
+- **アプリ**：ドラッグ＆ドロップの GUI。Developer ID で署名し、Apple の公証済み。モデル（約 253 MB）は初回起動時にダウンロード
+- **速度**（Apple Silicon、11 ページのスライド）：標準版 29–45 秒、オブジェクト版 47–86 秒
+- 動作要件：Apple Silicon。GPU 推論には macOS 12 以降
+
+ビルド方法、コマンドラインの使い方、設計メモは [`n2p-rs/README.md`](n2p-rs/README.md)、サードパーティのライセンスは [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md) を参照してください。
+
 ## 機能
 
 - **AI テキスト削除**：Gemini 2.5 Flash を使用して画像からテキストを自動的に削除し、背景を再構築

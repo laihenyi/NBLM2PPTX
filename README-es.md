@@ -102,6 +102,20 @@ Convierte PDFs exportados de NotebookLM en presentaciones PPTX con **imágenes d
 - **Instrucciones Más Claras**: Guía de configuración de API Key actualizada para coincidir con el flujo real
 - **UI de Reinicio Limpia**: Interfaz de carga inicial restaurada en reinicio en lugar de spinner de carga
 
+## App nativa para macOS (sin conexión, Rust)
+
+[`n2p-rs/`](n2p-rs/) es una versión nativa que se ejecuta por completo en tu Mac: sin clave de API y sin subir ningún archivo.
+
+- **Descarga**: [página de la versión](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.0) (`NotebookLM2PPT-notarized.zip`)
+- **OCR**: Vision integrado en macOS (en el dispositivo)
+- **Eliminación de texto**: borra solo los trazos del texto; los fondos con textura se reconstruyen con LaMa en la GPU (CoreML)
+- **Extracción de objetos (experimental)**: iconos e ilustraciones pasan a ser imágenes movibles (MobileSAM)
+- **App**: interfaz de arrastrar y soltar, firmada con Developer ID y notarizada por Apple; los modelos (~253 MB) se descargan en el primer uso
+- **Velocidad** (Apple Silicon, presentación de 11 páginas): versión estándar 29–45 s, versión con objetos 47–86 s
+- Requisitos: Apple Silicon; macOS 12 o posterior para la inferencia en GPU
+
+Compilación, uso por línea de comandos y notas de diseño: [`n2p-rs/README.md`](n2p-rs/README.md). Licencias de terceros: [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md).
+
 ## Características
 
 - **Eliminación de Texto con IA**: Usa Gemini 2.5 Flash para eliminar automáticamente el texto de las imágenes y reconstruir los fondos
