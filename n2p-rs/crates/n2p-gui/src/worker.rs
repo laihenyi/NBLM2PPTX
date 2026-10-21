@@ -1,6 +1,6 @@
 //! 背景執行緒：依序執行工作，把進度送回介面。
 //!
-//! 一次只跑一個工作 —— 物件版峰值約 9 GB，平行執行會把記憶體吃光。
+//! 一次只跑一個工作 —— LaMa 與 SAM 都很吃記憶體，平行執行只會互搶。
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};

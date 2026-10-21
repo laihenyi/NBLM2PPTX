@@ -19,6 +19,7 @@ use std::path::{Path, PathBuf};
 
 use n2p_core::{BBox, RgbImage};
 use ort::session::Session;
+use ort::session::builder::{AutoDevicePolicy, SessionBuilder};
 use ort::value::Tensor;
 
 use crate::mask::Mask;
@@ -166,11 +167,8 @@ impl Sam {
         let decoder_path = dir.join(DECODER_FILE);
         check_model(&encoder_path, ENCODER_SIZE)?;
         check_model(&decoder_path, DECODER_SIZE)?;
-        let environment = crate::runtime::environment().map_err(SamError::Runtime)?;
-        // 註：encoder 推論時暫存用量約 5.4 GB（只載入模型約 0.2 GB）。關閉 CPU arena、
-        // 記憶體樣式預配置或降低圖最佳化等級都量不出差別，是這份匯出本身的特性。
-        let encoder = Session::builder(environment)?.commit_from_file(&encoder_path)?;
-        let decoder = Session::builder(environment)?.commit_from_file(&decoder_path)?;
+        let encoder = session_builder()?.commit_from_file(&encoder_path)?;
+        let decoder = session_builder()?.commit_from_file(&decoder_path)?;
         Ok(Self { encoder, decoder })
     }
 
@@ -298,6 +296,17 @@ impl Sam {
             iou: iou.to_vec(),
         })
     }
+}
+
+/// 與 LaMa 相同，不讓 ort 自動掛 CoreML（NeuralNetwork 格式）。實測 CH1 第 8 頁：
+/// 自動模式載入 4.0 秒、分割 13.0 秒、峰值 5.2 GB；純 CPU 載入 0.1 秒、分割 3.8 秒、
+/// 峰值 1.2 GB，物件相同（外接框最多差 1 px，fp16 與 fp32 的差別）。
+/// CoreML 的 MLProgram 格式則建不出執行計畫（error code -14），不提供 GPU 選項。
+fn session_builder() -> Result<SessionBuilder, SamError> {
+    let environment = crate::runtime::environment().map_err(SamError::Runtime)?;
+    Session::builder(environment)?
+        .with_auto_device(AutoDevicePolicy::PreferCPU)
+        .map_err(|e| SamError::Runtime(e.to_string()))
 }
 
 static SHARED: std::sync::OnceLock<std::sync::Mutex<Option<Sam>>> = std::sync::OnceLock::new();

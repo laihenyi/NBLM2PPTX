@@ -110,7 +110,7 @@
 - **去字**：只擦文字筆畫；有紋理的背景由 LaMa 在 GPU（CoreML）上重建
 - **物件切出（實驗性）**：圖示、插圖變成可移動的圖片（MobileSAM）
 - **App**：拖放式圖形介面，Developer ID 簽章並通過 Apple 公證；模型（約 253 MB）在第一次開啟時下載
-- **速度**（Apple Silicon，11 頁簡報）：標準版 29–45 秒，物件版 2–3 分鐘
+- **速度**（Apple Silicon，11 頁簡報）：標準版 29–45 秒，物件版 47–86 秒
 - 需求：Apple Silicon；GPU 推論需 macOS 12 以上
 
 建置、命令列用法與設計筆記見 [`n2p-rs/README.md`](n2p-rs/README.md)；第三方授權見 [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md)。
