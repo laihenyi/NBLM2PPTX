@@ -125,6 +125,8 @@ pub struct Block {
     /// 區塊文字（多行以 `\n` 連接）。
     pub text: String,
     pub lines: Vec<Line>,
+    /// 順時針旋轉角度（千分之一度，例如 `-28_200` 代表 `-28.2°`）。
+    pub rotation_mdeg: i32,
 }
 
 impl Block {
@@ -134,7 +136,13 @@ impl Block {
             bbox,
             text: String::new(),
             lines: Vec::new(),
+            rotation_mdeg: 0,
         }
+    }
+
+    /// 順時針旋轉角度（度）。
+    pub fn rotation_deg(&self) -> f64 {
+        self.rotation_mdeg as f64 / 1000.0
     }
 
     /// 若這個區塊含圖片 span，回傳第一個路徑。
@@ -186,6 +194,7 @@ impl LayoutPage {
                             bbox: l.bbox.map(|bb| bb.scale(factor)),
                         })
                         .collect(),
+                    rotation_mdeg: b.rotation_mdeg,
                 })
                 .collect(),
         }
@@ -220,6 +229,7 @@ impl LayoutPage {
                             bbox: l.bbox.map(shift),
                         })
                         .collect(),
+                    rotation_mdeg: b.rotation_mdeg,
                 })
                 .collect(),
         }

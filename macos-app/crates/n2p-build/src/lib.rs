@@ -333,8 +333,12 @@ fn build_page(
     for block in layout.text_blocks() {
         // 先用幾何判斷把左側的項目符號／小圖示從 bbox 排除，再拿「純文字 bbox」
         // 去算字級、置中與擦除。少了這一步，bbox 含子彈點會讓字級偏大、
-        // 文字置中後壓到子彈點上。
-        let text_region = trim_block_icon(input.image, block.bbox, image_scale, &block.text);
+        // 文字置中後壓到子彈點上。傾斜文字不走水平投影裁切。
+        let text_region = if block.rotation_mdeg.abs() >= 3_000 {
+            block.bbox
+        } else {
+            trim_block_icon(input.image, block.bbox, image_scale, &block.text)
+        };
 
         // 短小的非中文區塊若壓在圖形上，通常是 Vision 把裝飾讀成文字
         // （第 3 頁的引號裝飾被讀成 "99"）。這種區塊留給背景，不要重複畫一次。
@@ -483,8 +487,11 @@ fn text_box_for(
 
     let font_size_pt = estimate_font_size(block, scale);
 
+    let is_rotated = block.rotation_mdeg.abs() >= 3_000;
     let is_title = block.kind == BlockKind::ParagraphTitle;
-    let (alignment, h_padding) = if is_title {
+    let (alignment, h_padding) = if is_rotated {
+        (Align::Center, H_PADDING_BODY_PT)
+    } else if is_title {
         (Align::Left, H_PADDING_TITLE_PT)
     } else {
         (
@@ -498,8 +505,23 @@ fn text_box_for(
     let right = bx2 * scale;
     let bottom = by2 * scale + TEXT_DELTA_Y_PT;
 
-    let box_width_pt = right - left;
-    let box_height_pt = bottom - top;
+    let (box_width_pt, box_height_pt) = if is_rotated {
+        let unrot_w = block
+            .lines
+            .iter()
+            .filter_map(|l| l.bbox.map(|b| b.width() as f64 * scale))
+            .fold(0.0_f64, f64::max)
+            .max(1.0);
+        let unrot_h = block
+            .lines
+            .iter()
+            .filter_map(|l| l.bbox.map(|b| b.height() as f64 * scale))
+            .sum::<f64>()
+            .max(1.0);
+        (unrot_w, unrot_h)
+    } else {
+        (right - left, bottom - top)
+    };
     if box_width_pt <= 0.0 || box_height_pt <= 0.0 {
         return None;
     }
@@ -591,6 +613,9 @@ fn text_box_for(
     }
     if text_autofit {
         text_box = text_box.autofit(AutoFit::Normal);
+    }
+    if is_rotated {
+        text_box = text_box.rotation(block.rotation_deg());
     }
     Some(text_box)
 }
@@ -738,13 +763,31 @@ fn estimate_font_size(block: &Block, scale: f64) -> f64 {
         .as_ref()
         .and_then(|(text, width)| fontsize::from_width(text, *width));
 
-    // 墨跡高度
-    let ink_height = block.bbox.height().max(1) as f64 * scale / block.lines.len().max(1) as f64;
+    // 墨跡高度：傾斜文字的 block.bbox 高度含 `行寬 × sin(θ)`，改取各行反旋轉後的真實高度平均。
+    let line_heights: Vec<f64> = block
+        .lines
+        .iter()
+        .filter_map(|line| line.bbox.map(|b| b.height().max(1) as f64 * scale))
+        .collect();
+    let ink_height = if block.rotation_mdeg.abs() >= 3_000 && !line_heights.is_empty() {
+        line_heights.iter().sum::<f64>() / line_heights.len() as f64
+    } else {
+        block.bbox.height().max(1) as f64 * scale / block.lines.len().max(1) as f64
+    };
     let by_height = fontsize::from_ink_height(
         &block.text,
         ink_height,
         fontsize::ink_ratio_for(&block.text),
     );
+    // 當墨跡高度推算的字級異常大於字寬推算值（例如傾斜文字或邊界框垂直膨脹）時，
+    // 限制墨跡高度估值的上限，避免拉丁文字被拉大數倍。
+    let by_height = match (by_width, by_height) {
+        (Some(w), Some(mut h)) if h.em_pt > w.em_pt * 1.35 => {
+            h.em_pt = w.em_pt * 1.35;
+            Some(h)
+        }
+        (_, h) => h,
+    };
 
     let em = if fontsize::full_width_ratio(&block.text) >= 0.5 {
         // 中文簡報：字寬幾乎是精確的，不要讓不可靠的墨跡高度把它拉走。
@@ -1417,6 +1460,7 @@ mod tests {
                         }],
                         bbox: None,
                     }],
+                    rotation_mdeg: 0,
                 },
                 Block {
                     kind: BlockKind::Text,
@@ -1429,9 +1473,31 @@ mod tests {
                         }],
                         bbox: None,
                     }],
+                    rotation_mdeg: 0,
                 },
             ],
         }
+    }
+
+    #[test]
+    fn tilted_latin_block_does_not_inflate_font_size() {
+        // 等軸圖（約 -28°）上的英文標籤：軸對齊 bbox 高度達 55 pt，
+        // 但反旋轉後行寬 80 pt、行高 21 pt → 推算字級不應被拉大到標題級（> 18 pt）。
+        let mut block = Block::new(BlockKind::Text, BBox::new(660, 345, 740, 400));
+        block.text = "Diagram Label".into();
+        block.rotation_mdeg = -28_300;
+        block.lines = vec![Line {
+            spans: vec![Span {
+                text: Some("Diagram Label".into()),
+                image_path: None,
+            }],
+            bbox: Some(BBox::new(660, 362, 740, 383)),
+        }];
+        let em = estimate_font_size(&block, 720.0 / 1376.0);
+        assert!(
+            (8.0..=11.0).contains(&em),
+            "傾斜英文標籤字級應維持小字（8~11 pt），實際 {em}"
+        );
     }
 
     #[test]
