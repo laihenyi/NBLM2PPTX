@@ -9,17 +9,36 @@ mod model;
 mod worker;
 
 fn main() -> eframe::Result {
+    #[cfg(all(feature = "appstore", not(feature = "sandbox-test")))]
+    clear_developer_overrides();
     let options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
-            .with_title("NotebookLM 轉 PPT")
-            .with_inner_size([720.0, 680.0])
+            .with_title("NBLM2PPTX")
+            .with_inner_size(debug::window_size().unwrap_or([720.0, 680.0]))
             .with_min_inner_size([560.0, 480.0])
-            .with_drag_and_drop(true),
+            .with_drag_and_drop(true)
+            // 空圖示：eframe 預設會在啟動後把 Dock 圖示換成 egui 標誌，
+            // 給空的就不覆蓋，沿用 bundle 的 AppIcon.icns
+            .with_icon(eframe::egui::IconData::default()),
         ..Default::default()
     };
     eframe::run_native(
-        "NotebookLM 轉 PPT",
+        "NBLM2PPTX",
         options,
         Box::new(|cc| Ok(Box::new(app::App::new(cc, debug::DebugHooks::from_env())))),
     )
+}
+
+/// App Store 版不接受任何 `N2P_*` 環境變數：模型路徑、推論裝置、外擴量、除錯掛鉤
+/// 都是開發用的覆寫，審核規範 2.5.19 不允許未載明的功能，所以啟動時一律清掉。
+#[cfg(all(feature = "appstore", not(feature = "sandbox-test")))]
+fn clear_developer_overrides() {
+    let names: Vec<String> = std::env::vars_os()
+        .filter_map(|(name, _)| name.into_string().ok())
+        .filter(|name| name.starts_with("N2P_"))
+        .collect();
+    for name in names {
+        // SAFETY: 在 main 一開始執行，此時還沒有其他執行緒讀寫環境變數。
+        unsafe { std::env::remove_var(name) };
+    }
 }

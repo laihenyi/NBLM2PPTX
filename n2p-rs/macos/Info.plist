@@ -5,13 +5,13 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>zh_TW</string>
 	<key>CFBundleDisplayName</key>
-	<string>NotebookLM 轉 PPT</string>
+	<string>NBLM2PPTX</string>
 	<key>CFBundleName</key>
-	<string>NotebookLM2PPT</string>
+	<string>NBLM2PPTX</string>
 	<key>CFBundleExecutable</key>
-	<string>n2p-gui</string>
+	<string>NBLM2PPTX</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.yikai.notebooklm2ppt</string>
+	<string>com.yikai.nblm2pptx</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -21,7 +21,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>__VERSION__</string>
 	<key>CFBundleVersion</key>
-	<string>__VERSION__</string>
+	<string>__BUILD__</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
 	<key>LSMinimumSystemVersion</key>
@@ -29,6 +29,9 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
-	<string>MIT License</string>
+	<string>© 2026 Henyi Lai. MIT License.</string>
+	<!-- 只用系統 curl 走 HTTPS 下載模型，屬豁免的加密用途 -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

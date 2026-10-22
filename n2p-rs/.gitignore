@@ -1,2 +1,12 @@
 target/
 dist/
+# App Store：憑證與個人聯絡資料不進公開 repo（見 docs/APP_STORE.md）
+*.p8
+*.provisionprofile
+fastlane/report.xml
+fastlane/README.md
+fastlane/Preview.html
+fastlane/metadata/review_information/first_name.txt
+fastlane/metadata/review_information/last_name.txt
+fastlane/metadata/review_information/email_address.txt
+fastlane/metadata/review_information/phone_number.txt

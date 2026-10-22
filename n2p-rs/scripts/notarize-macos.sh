@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 公證已用 Developer ID 簽章的 dist/NotebookLM2PPT.app，釘上票證，寫出可發布的 zip。
+# 公證已用 Developer ID 簽章的 dist/NBLM2PPTX.app，釘上票證，寫出可發布的 zip。
 #
 #   ./scripts/package-macos-app.sh --developer-id
 #   ./scripts/notarize-macos.sh
@@ -13,8 +13,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-APP="${1:-$ROOT/dist/NotebookLM2PPT.app}"
-OUT_ZIP="$ROOT/dist/NotebookLM2PPT-notarized.zip"
+APP="${1:-$ROOT/dist/NBLM2PPTX.app}"
+OUT_ZIP="$ROOT/dist/NBLM2PPTX-notarized.zip"
 
 fail() { echo "error: $*" >&2; exit 1; }
 

@@ -13,6 +13,13 @@ n2p-rs 本身採 MIT 授權（見 repo 根目錄 `LICENSE`）。以下內容來�
 - `fixtures/image-fixtures/`：用上游的 Python 實作算出的參考輸出（產生方式見
   `fixtures/make_image_fixtures.py`）。
 
+## winit（vendored）
+
+- 來源：<https://github.com/rust-windowing/winit> 0.30.13，授權 Apache-2.0（`vendor/winit/LICENSE`）
+- `vendor/winit` 是它的修改版，經 `Cargo.toml` 的 `[patch.crates-io]` 取代 crates.io 版本。
+  唯一的修改：移除私有 API `CGSSetWindowBackgroundBlurRadius` 的宣告與呼叫（Mac App Store 審核會拒絕），
+  修改處以 `n2p:` 註解標示（`src/platform_impl/macos/ffi.rs`、`window_delegate.rs`）。
+
 ## 執行期下載的模型（不隨原始碼或 app 散布）
 
 | 模型 | 下載來源 | 授權 |

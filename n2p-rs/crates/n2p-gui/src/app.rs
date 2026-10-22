@@ -7,6 +7,8 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 
 use eframe::egui::{self, Color32, RichText};
 use n2p_image::models::{ModelFile, ModelState, Purpose};
+use objc2_app_kit::NSWorkspace;
+use objc2_foundation::{NSArray, NSURL};
 
 use crate::debug::DebugHooks;
 use crate::model::{self, Job, OutputMode, Plan, Settings};
@@ -57,7 +59,12 @@ impl App {
         let mut app = Self {
             pdfs: Vec::new(),
             mode: OutputMode::Standard,
-            out_dir: None,
+            // 沙盒下拖進來的 PDF 只開放那個檔案、寫不到它所在的資料夾，預設改存「下載項目」
+            out_dir: if cfg!(feature = "appstore") {
+                model::downloads_dir()
+            } else {
+                None
+            },
             overwrite: false,
             advanced_open: false,
             settings: Settings::default(),
@@ -79,7 +86,9 @@ impl App {
         if let Some(mode) = preset.mode {
             app.mode = mode;
         }
-        app.out_dir = preset.out_dir;
+        if let Some(dir) = preset.out_dir {
+            app.out_dir = Some(dir);
+        }
         app.overwrite = preset.overwrite;
         app.advanced_open = preset.advanced_open;
         app
@@ -101,6 +110,10 @@ impl App {
 
     fn start(&mut self, ctx: &egui::Context) {
         self.message = None;
+        if cfg!(feature = "appstore") && self.out_dir.is_none() {
+            self.message = Some((ERROR, "請先選擇輸出資料夾。".into()));
+            return;
+        }
         let lama_ready = self.ready(Purpose::Erase);
         let planned = model::plan_jobs(
             &self.pdfs,
@@ -409,30 +422,57 @@ impl App {
 
         section(ui, "3. 輸出位置", |ui| {
             ui.add_enabled_ui(!self.running, |ui| {
-                ui.horizontal(|ui| {
-                    let mut custom = self.out_dir.is_some();
-                    ui.radio_value(&mut custom, false, "與 PDF 相同的資料夾");
-                    ui.radio_value(&mut custom, true, "指定資料夾");
-                    if custom && self.out_dir.is_none() {
-                        self.out_dir = rfd::FileDialog::new().pick_folder();
-                    } else if !custom {
-                        self.out_dir = None;
-                    }
-                });
-                if let Some(shown) = self.out_dir.as_ref().map(|d| d.display().to_string()) {
-                    ui.horizontal(|ui| {
-                        ui.add(egui::Label::new(RichText::new(shown).monospace()).truncate());
-                        if ui.button("更改…").clicked() {
-                            if let Some(dir) = rfd::FileDialog::new().pick_folder() {
-                                self.out_dir = Some(dir);
-                            }
-                        }
-                    });
+                if cfg!(feature = "appstore") {
+                    self.sandboxed_output_dir(ui);
+                } else {
+                    self.output_dir(ui);
                 }
                 ui.checkbox(&mut self.overwrite, "覆寫已存在的檔案");
                 note(ui, "PowerPoint 正開著的檔案一律不覆寫。");
             });
         });
+    }
+
+    /// App Store 版：只有「下載項目」與使用者在面板裡選的資料夾可寫（沙盒）。
+    fn sandboxed_output_dir(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            ui.label("存到");
+            let shown = match &self.out_dir {
+                Some(dir) if model::is_downloads(dir) => "下載項目".to_owned(),
+                Some(dir) => dir.display().to_string(),
+                None => "（尚未選擇）".to_owned(),
+            };
+            ui.add(egui::Label::new(RichText::new(shown).monospace()).truncate());
+            if ui.button("更改…").clicked() {
+                if let Some(dir) = rfd::FileDialog::new().pick_folder() {
+                    self.out_dir = Some(dir);
+                }
+            }
+        });
+    }
+
+    /// 一般版：預設與 PDF 同資料夾，也可指定資料夾。
+    fn output_dir(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            let mut custom = self.out_dir.is_some();
+            ui.radio_value(&mut custom, false, "與 PDF 相同的資料夾");
+            ui.radio_value(&mut custom, true, "指定資料夾");
+            if custom && self.out_dir.is_none() {
+                self.out_dir = rfd::FileDialog::new().pick_folder();
+            } else if !custom {
+                self.out_dir = None;
+            }
+        });
+        if let Some(shown) = self.out_dir.as_ref().map(|d| d.display().to_string()) {
+            ui.horizontal(|ui| {
+                ui.add(egui::Label::new(RichText::new(shown).monospace()).truncate());
+                if ui.button("更改…").clicked() {
+                    if let Some(dir) = rfd::FileDialog::new().pick_folder() {
+                        self.out_dir = Some(dir);
+                    }
+                }
+            });
+        }
     }
 
     fn advanced(&mut self, ui: &mut egui::Ui) {
@@ -541,10 +581,10 @@ impl App {
                             };
                             ui.label(RichText::new(detail).weak());
                             if ui.small_button("開啟").clicked() {
-                                open(&[], &row.job.out);
+                                open_file(&row.job.out);
                             }
                             if ui.small_button("在 Finder 顯示").clicked() {
-                                open(&["-R"], &row.job.out);
+                                reveal_in_finder(&row.job.out);
                             }
                         }
                         Status::Skipped(plan) => {
@@ -634,10 +674,18 @@ fn file_name(path: &std::path::Path) -> String {
 }
 
 /// 用 macOS 的 `open` 開檔或在 Finder 顯示。
-fn open(flags: &[&str], path: &std::path::Path) {
-    let mut command = std::process::Command::new("open");
-    command.args(flags);
-    let _ = command.arg(path).spawn();
+// 走 NSWorkspace 而不是啟動 `open` 子程序：App Sandbox 下子程序繼承沙盒，行為不可靠。
+fn open_file(path: &std::path::Path) {
+    if let Some(url) = NSURL::from_file_path(path) {
+        NSWorkspace::sharedWorkspace().openURL(&url);
+    }
+}
+
+fn reveal_in_finder(path: &std::path::Path) {
+    if let Some(url) = NSURL::from_file_path(path) {
+        NSWorkspace::sharedWorkspace()
+            .activateFileViewerSelectingURLs(&NSArray::from_retained_slice(&[url]));
+    }
 }
 
 /// egui 內建字型沒有中文。依序找系統內建的中文字型，找到第一個就用。

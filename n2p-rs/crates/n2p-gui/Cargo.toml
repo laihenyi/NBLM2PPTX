@@ -6,6 +6,14 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 
+[features]
+# Mac App Store 版：App Sandbox 下輸出改存「下載項目」或使用者選的資料夾，
+# 並忽略所有 N2P_* 開發用環境變數（見 docs/APP_STORE.md）。
+appstore = []
+# 只給 package-macos-app.sh --sandbox-test：沙盒行為同 appstore，但保留 N2P_* 除錯掛鉤，
+# 讓沙盒版也能自動化實測。不可用於上傳的建置。
+sandbox-test = ["appstore"]
+
 [[bin]]
 name = "n2p-gui"
 path = "src/main.rs"
@@ -14,7 +22,8 @@ path = "src/main.rs"
 eframe = { version = "0.32", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
 rfd = "0.15"
 objc2.workspace = true
-objc2-foundation = { workspace = true, features = ["NSProcessInfo", "NSString"] }
+objc2-foundation = { workspace = true, features = ["NSArray", "NSProcessInfo", "NSString", "NSURL"] }
+objc2-app-kit = { workspace = true, features = ["NSWorkspace"] }
 n2p-build = { path = "../n2p-build" }
 n2p-core = { path = "../n2p-core" }
 n2p-image = { path = "../n2p-image" }

@@ -61,10 +61,14 @@ GUI 的預設等於 `--high-res-background`（可在「進階設定」關閉）�
 ```bash
 ./scripts/package-macos-app.sh --zip                 # ad-hoc 簽章，只適合本機
 ./scripts/package-macos-app.sh --developer-id        # Developer ID + Hardened Runtime
-./scripts/notarize-macos.sh                          # 公證、釘上票證，寫出 dist/NotebookLM2PPT-notarized.zip
+./scripts/notarize-macos.sh                          # 公證、釘上票證，寫出 dist/NBLM2PPTX-notarized.zip
+./scripts/package-macos-app.sh --app-store           # Mac App Store 版（沙盒），寫出 dist/NBLM2PPTX.pkg
 ```
 
-- 產物：`dist/NotebookLM2PPT.app`（bundle id `com.yikai.notebooklm2ppt`），只含圖形介面，不含 `n2p` 命令列。
+- 產物：`dist/NBLM2PPTX.app`（bundle id `com.yikai.nblm2pptx`；0.1.1 以前是 NotebookLM2PPT.app／
+  `com.yikai.notebooklm2ppt`），只含圖形介面，不含 `n2p` 命令列。
+- Mac App Store 版的差異、沙盒實測與上架流程見 [`docs/APP_STORE.md`](docs/APP_STORE.md)。
+- 圖示原稿是 `macos/AppIcon.svg`，改完執行 `./scripts/make-icon.sh` 重新產生 `AppIcon.icns`。
 - 執行檔 strip 後約 29 MB，zip 約 12 MB；ONNX Runtime 已靜態連結，只依賴 macOS 內建框架。
 - 模型（約 253 MB）不包進 app：第一次開啟時介面最上方會出現「首次使用：下載模型」，
   下載到 `~/Library/Caches/n2p/`（與命令列共用）。系統清除快取後會再次提示下載。

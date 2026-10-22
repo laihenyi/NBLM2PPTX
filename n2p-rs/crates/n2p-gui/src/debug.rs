@@ -1,5 +1,6 @@
 //! 開發用的環境變數：預載檔案、自動開始、自動取消、定時截圖（只截本視窗）。
 //! 讓不能點滑鼠的自動化檢查也能走完整個介面流程。一般使用時全部不設。
+//! App Store 版（feature `appstore`）啟動時會清掉所有 `N2P_*` 變數，這些掛鉤因此不會生效。
 //!
 //! | 變數 | 作用 |
 //! | :--- | :--- |
@@ -13,9 +14,17 @@
 //! | `N2P_GUI_AUTOSTART` | 設了就自動開始，全部結束後再截一張並關閉視窗 |
 //! | `N2P_GUI_CANCEL_AFTER` | 開始後幾秒按取消 |
 //! | `N2P_GUI_SCREENSHOT_DIR` | 每隔 `N2P_GUI_SCREENSHOT_EVERY` 秒（預設 5）截一張 PNG |
+//! | `N2P_GUI_WINDOW` | 視窗大小，例如 `960x600`（App Store 截圖用 16:10） |
 
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
+
+/// `N2P_GUI_WINDOW=寬x高`（邏輯像素）。格式不對就當作沒設。
+pub fn window_size() -> Option<[f32; 2]> {
+    let value = std::env::var("N2P_GUI_WINDOW").ok()?;
+    let (width, height) = value.split_once('x')?;
+    Some([width.trim().parse().ok()?, height.trim().parse().ok()?])
+}
 
 use eframe::egui;
 
