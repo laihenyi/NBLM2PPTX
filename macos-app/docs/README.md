@@ -35,11 +35,11 @@ python3 -m venv /tmp/spire_venv
 
 ## 實作
 
-這些規格已經落成程式碼：[`n2p-rs/`](../) —— 10 個 crate、123 個測試全綠。
+這些規格已經落成程式碼：[`macos-app/`](../)。
 
 ```bash
-cd n2p-rs
-cargo test
+cd macos-app
+cargo test --workspace
 cargo run -p n2p-cli -- convert deck.pdf -o deck.pptx   # Vision OCR + 去水印 + 16:9
 ```
 

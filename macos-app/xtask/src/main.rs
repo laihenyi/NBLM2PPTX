@@ -23,7 +23,7 @@ use clap::{Args, Parser, Subcommand};
 use compare::Thresholds;
 
 #[derive(Debug, Parser)]
-#[command(name = "xtask", about = "n2p-rs 的開發用工具", long_about = None)]
+#[command(name = "xtask", about = "NBLM2PPTX macOS App 的開發用工具", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Command,

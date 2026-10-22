@@ -7,13 +7,13 @@
 
 Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **images d'arrière-plan et couches de texte éditables séparées**.
 
-> ✨ **Mise à jour (2026-10-21)** : application native macOS (n2p-rs) v0.1.1 — conversion de PDF en PPTX modifiable sur votre Mac, sans clé d’API, notarisée par Apple. Voir « Application native macOS » ci-dessous.
+> ✨ **Mise à jour (2026-10-21)** : application native macOS v0.1.1 — conversion de PDF en PPTX modifiable sur votre Mac, sans clé d’API, notarisée par Apple. Voir « Application native macOS » ci-dessous.
 
 [English](README.md) | [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Español](README-es.md)
 
 ## Application native macOS (hors ligne, Rust)
 
-[`n2p-rs/`](n2p-rs/) est une version native qui s’exécute entièrement sur votre Mac : aucune clé d’API, aucun fichier envoyé.
+[`macos-app/`](macos-app/) est une version native qui s’exécute entièrement sur votre Mac : aucune clé d’API, aucun fichier envoyé.
 
 - **Téléchargement** : [page de la version](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.1) (`NotebookLM2PPT-notarized.zip`)
 - **OCR** : Vision intégré à macOS (sur l’appareil)
@@ -22,7 +22,7 @@ Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **image
 - **Application** : interface glisser-déposer, signée avec un Developer ID et notarisée par Apple ; les modèles (~253 Mo) sont téléchargés au premier lancement
 - **Configuration requise** : Apple Silicon ; macOS 12 ou ultérieur pour l’inférence sur GPU
 
-Compilation, utilisation en ligne de commande et notes de conception : [`n2p-rs/README.md`](n2p-rs/README.md). Licences tierces : [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md).
+Compilation, utilisation en ligne de commande et notes de conception : [`macos-app/README.md`](macos-app/README.md). Licences tierces : [`macos-app/THIRD-PARTY.md`](macos-app/THIRD-PARTY.md).
 
 ### Avant / après (version standard)
 

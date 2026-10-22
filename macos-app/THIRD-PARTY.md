@@ -1,12 +1,12 @@
 # 第三方來源與授權
 
-n2p-rs 本身採 MIT 授權（見 repo 根目錄 `LICENSE`）。以下內容來自第三方。
+NBLM2PPTX for macOS（本目錄）採 MIT 授權（見 repo 根目錄 `LICENSE`）。以下內容來自第三方。
 
-## NotebookLM2PPT（上游 Python 版）
+## NotebookLM2PPT
 
 - 來源：<https://github.com/elliottzheng/NotebookLM2PPT>
 - 授權：MIT，Copyright (c) 2026 Elliott Zheng（全文附於下方）
-- n2p-rs 是它的 Rust 改寫。下列模組移植自上游的 Python 實作，原始檔名寫在各檔的模組註解：
+- 下列模組移植自它的 Python 實作，原始檔名寫在各檔的模組註解：
   `n2p-image`（`diversity`、`inpaint`、`transform`、`watermark`）、`n2p-pdf`、`n2p-mineru`、
   `n2p-build` 的部分版面邏輯。
 - `fixtures/floyd.pdf`：上游 `examples/floyd.pdf`，用於點陣化幾何與管線測試。

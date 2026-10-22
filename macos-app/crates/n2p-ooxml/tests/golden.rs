@@ -1,7 +1,7 @@
 //! Golden tests：以 `spire.presentation` 11.8.1 的實際輸出為基準，
 //! 驗證 `n2p-ooxml` 寫出的節點結構與它一致。
 //!
-//! 基準檔位於 `n2p-rs/fixtures/probe-pptx/`，產生方式見
+//! 基準檔位於 `macos-app/fixtures/probe-pptx/`，產生方式見
 //! `docs/README.md`。若基準檔不存在，測試會明確失敗而非靜默跳過——
 //! 這是刻意的：這批檔案就是規格，缺少它們代表驗證沒有發生。
 

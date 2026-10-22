@@ -7,13 +7,13 @@
 
 将 NotebookLM 导出的 PDF 转换成**底图与文字分离**的 PPTX 演示文稿。
 
-> ✨ **更新 (2026-10-21)**: macOS 原生版（n2p-rs）v0.1.1 发布——在 Mac 本机把 PDF 转换为可编辑 PPTX，无需 API key，已通过 Apple 公证。详见下方“macOS 原生版”。
+> ✨ **更新 (2026-10-21)**: macOS 原生版v0.1.1 发布——在 Mac 本机把 PDF 转换为可编辑 PPTX，无需 API key，已通过 Apple 公证。详见下方“macOS 原生版”。
 
 [English](README.md) | [繁體中文](README-zh-TW.md) | [日本語](README-ja.md) | [Español](README-es.md) | [Français](README-fr.md)
 
 ## macOS 原生版（离线，Rust）
 
-[`n2p-rs/`](n2p-rs/) 是在 Mac 本机运行的原生版本：不需要 API key，文件不上传。
+[`macos-app/`](macos-app/) 是在 Mac 本机运行的原生版本：不需要 API key，文件不上传。
 
 - **下载**：[Releases 页面](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.1)（`NotebookLM2PPT-notarized.zip`）
 - **OCR**：macOS 内置 Vision（设备端）
@@ -22,7 +22,7 @@
 - **App**：拖放式图形界面，Developer ID 签名并通过 Apple 公证；模型（约 253 MB）在首次打开时下载
 - **需求**：Apple Silicon；GPU 推理需 macOS 12 以上
 
-构建、命令行用法与设计笔记见 [`n2p-rs/README.md`](n2p-rs/README.md)；第三方许可见 [`n2p-rs/THIRD-PARTY.md`](n2p-rs/THIRD-PARTY.md)。
+构建、命令行用法与设计笔记见 [`macos-app/README.md`](macos-app/README.md)；第三方许可见 [`macos-app/THIRD-PARTY.md`](macos-app/THIRD-PARTY.md)。
 
 ### 前后对比（标准版）
 
