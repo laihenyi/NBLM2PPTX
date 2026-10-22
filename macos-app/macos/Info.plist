@@ -4,6 +4,15 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>zh_TW</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>zh-Hant</string>
+		<string>zh-Hans</string>
+		<string>en</string>
+		<string>ja</string>
+		<string>es</string>
+		<string>fr</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>NBLM2PPTX</string>
 	<key>CFBundleName</key>

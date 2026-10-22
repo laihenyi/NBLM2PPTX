@@ -8,6 +8,7 @@ use std::sync::mpsc::Sender;
 
 use n2p_pipeline::{ConvertOptions, ConvertReport, Progress};
 
+use crate::i18n::Language;
 use crate::model::{Job, partial_path};
 
 /// 背景執行緒送回介面的事件。`index` 是工作在佇列中的位置。
@@ -42,6 +43,7 @@ pub fn spawn(
     jobs: Vec<(usize, Job, ConvertOptions)>,
     cancel: Arc<AtomicBool>,
     events: Sender<Event>,
+    lang: Language,
     wake: impl Fn() + Send + 'static,
 ) {
     std::thread::spawn(move || {
@@ -49,7 +51,7 @@ pub fn spawn(
             let _ = events.send(event);
             wake();
         };
-        let _activity = crate::activity::Activity::begin("正在轉換 PDF");
+        let _activity = crate::activity::Activity::begin(lang.strings().activity_converting);
         for (index, job, options) in jobs {
             if cancel.load(Ordering::Relaxed) {
                 send(Event::Finished {
@@ -59,7 +61,7 @@ pub fn spawn(
                 continue;
             }
             send(Event::Started { index });
-            let result = run(&job, &options, &cancel, &mut |progress| {
+            let result = run(&job, &options, &cancel, lang, &mut |progress| {
                 send(Event::Progress { index, progress })
             });
             // 模型與推論暫存會佔住數 GB，閒置時不該留著
@@ -74,6 +76,7 @@ fn run(
     job: &Job,
     options: &ConvertOptions,
     cancel: &AtomicBool,
+    lang: Language,
     report_progress: &mut dyn FnMut(Progress),
 ) -> Outcome {
     // 先寫到暫存檔，成功才改名：失敗或取消都不會毀掉既有的輸出檔
@@ -88,7 +91,7 @@ fn run(
             Ok(()) => Outcome::Done(report),
             Err(error) => {
                 let _ = std::fs::remove_file(&partial);
-                Outcome::Failed(format!("無法寫入 {}：{error}", job.out.display()))
+                Outcome::Failed(lang.write_error(&job.out, &error))
             }
         },
         Err(n2p_pipeline::Error::Cancelled) => {
@@ -103,9 +106,9 @@ fn run(
 }
 
 /// 在背景下載所有缺少的模型。
-pub fn fetch_models(events: Sender<Event>, wake: impl Fn() + Send + 'static) {
+pub fn fetch_models(events: Sender<Event>, lang: Language, wake: impl Fn() + Send + 'static) {
     std::thread::spawn(move || {
-        let _activity = crate::activity::Activity::begin("正在下載模型");
+        let _activity = crate::activity::Activity::begin(lang.strings().activity_downloading);
         let result = n2p_image::models::manifest().and_then(|models| {
             models.iter().try_for_each(|model| {
                 model
