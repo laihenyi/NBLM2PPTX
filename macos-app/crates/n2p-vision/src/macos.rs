@@ -4,7 +4,9 @@
 //! 省掉 CGImage 的整條管線（也因此不需要 objc2-core-graphics）。
 
 use objc2::AllocAnyThread;
+use objc2::msg_send;
 use objc2::rc::Retained;
+use objc2::runtime::AnyClass;
 use objc2_foundation::{NSArray, NSData, NSDictionary, NSError, NSString};
 use objc2_vision::{
     VNImageRequestHandler, VNRecognizeTextRequest, VNRecognizedTextObservation, VNRequest,
@@ -12,6 +14,17 @@ use objc2_vision::{
 };
 
 use crate::{Error, Observation, Result, VisionConfig};
+
+/// 讀取 macOS 系統偏好語言（`NSLocale.preferredLanguages`）。
+pub fn preferred_languages() -> Vec<String> {
+    let Some(cls) = AnyClass::get(c"NSLocale") else {
+        return Vec::new();
+    };
+    let langs: Retained<NSArray<NSString>> = unsafe { msg_send![cls, preferredLanguages] };
+    (0..langs.count())
+        .map(|i| langs.objectAtIndex(i).to_string())
+        .collect()
+}
 
 pub fn recognize_png(png: &[u8], config: &VisionConfig) -> Result<Vec<Observation>> {
     let request = VNRecognizeTextRequest::new();

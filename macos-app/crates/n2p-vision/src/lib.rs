@@ -37,6 +37,76 @@ pub struct Observation {
     pub bbox_norm: (f64, f64, f64, f64),
 }
 
+/// 預設支援的 OCR 辨識語言（對應本專案支援的六種語言）。
+pub const DEFAULT_LANGUAGES: &[&str] = &["zh-Hant", "zh-Hans", "ja-JP", "en-US", "es-ES", "fr-FR"];
+
+/// 依 locale 標籤（例如 `ja-JP`、`zh_CN.UTF-8`、`fr-FR`）決定 Vision 辨識語言優先序。
+///
+/// 將使用者系統偏好的語言排在第一位、英文排在第二位，其餘預設語言依序補在後面，
+/// 讓日文（平假名／片假名）、簡體中文、繁體中文與西歐語言都能在不手動指定 `--lang` 時正確辨識。
+pub fn languages_for_locale(tag: &str) -> Vec<String> {
+    let base = tag
+        .trim()
+        .split(['.', '@'])
+        .next()
+        .unwrap_or("")
+        .replace('_', "-")
+        .to_ascii_lowercase();
+    let mut parts = base.split('-');
+    let primary = parts.next().unwrap_or("");
+    let rest: Vec<&str> = parts.collect();
+
+    let preferred = match primary {
+        "ja" | "jp" => Some("ja-JP"),
+        "zh" => {
+            if rest.iter().any(|&s| s == "hans" || s == "cn" || s == "sg") {
+                Some("zh-Hans")
+            } else {
+                Some("zh-Hant")
+            }
+        }
+        "en" => Some("en-US"),
+        "es" => Some("es-ES"),
+        "fr" => Some("fr-FR"),
+        _ => None,
+    };
+
+    let mut result = Vec::with_capacity(DEFAULT_LANGUAGES.len());
+    if let Some(first) = preferred {
+        result.push(first.to_owned());
+        if first != "en-US" {
+            result.push("en-US".to_owned());
+        }
+    }
+    for &lang in DEFAULT_LANGUAGES {
+        if !result.iter().any(|existing| existing == lang) {
+            result.push(lang.to_owned());
+        }
+    }
+    result
+}
+
+/// 依目前系統語言環境回傳預設的 Vision 辨識語言清單。
+pub fn default_languages() -> Vec<String> {
+    #[cfg(target_os = "macos")]
+    for tag in macos::preferred_languages() {
+        let langs = languages_for_locale(&tag);
+        if langs.first().map(String::as_str) != DEFAULT_LANGUAGES.first().copied()
+            || tag.to_ascii_lowercase().starts_with("zh")
+        {
+            return langs;
+        }
+    }
+    for var in ["LC_ALL", "LC_MESSAGES", "LANG"] {
+        if let Ok(val) = std::env::var(var) {
+            if !val.trim().is_empty() {
+                return languages_for_locale(&val);
+            }
+        }
+    }
+    DEFAULT_LANGUAGES.iter().map(|&s| s.to_owned()).collect()
+}
+
 /// 辨識設定。
 #[derive(Debug, Clone)]
 pub struct VisionConfig {
@@ -57,7 +127,7 @@ pub struct VisionConfig {
 impl Default for VisionConfig {
     fn default() -> Self {
         Self {
-            languages: vec!["zh-Hant".to_owned(), "en-US".to_owned()],
+            languages: default_languages(),
             accurate: true,
             language_correction: true,
             minimum_text_height: 0.008,
