@@ -125,22 +125,6 @@ LibreOffice 版本與 DPI；環境不符時會先警告再比對。實測 LibreO
 （拿不到畫布高度、無匯出 PDF 命令、集合迭代會卡死、相對路徑會彈 modal），
 全部記錄在 [`docs/04-powerpoint-automation.md`](docs/04-powerpoint-automation.md)。
 
-## 模組
-
-| crate | 職責 |
-| :--- | :--- |
-| `n2p-core` | `RgbImage`、`BBox`（含 IOU） |
-| `n2p-pdf` | PDF → PNG，頁數／頁面尺寸 |
-| `n2p-image` | 邊緣色彩統計、去水印、寬屏化、文字遮罩、LaMa／SAM 推論 |
-| `n2p-layout` | 中立的版面模型，用來隔離「版面來源」 |
-| `n2p-mineru` | MinerU／Paddle JSON → 版面模型 |
-| `n2p-vision` | macOS Vision OCR → 版面模型 |
-| `n2p-ooxml` | OPC + `p:sp`/`p:pic`/`p:bg` + 合併 |
-| `n2p-build` | 版面 + 頁面影像 → PPTX |
-| `n2p-pipeline` | 串接整條流程 |
-| `n2p-cli` | `n2p` 命令 |
-| `n2p-gui` | 圖形介面（App 本體） |
-
 ## 驗證方式
 
 不是「跑起來看起來對」，而是與參考實作逐項比對：
@@ -286,8 +270,8 @@ SAM 模型（MIT，約 43 MiB）同樣由 `n2p models fetch` 下載。沒有模�
 ```
 crates/
 ├── n2p-core/       RgbImage、BBox、IOU
-├── n2p-pdf/        hayro 封裝
-├── n2p-image/      diversity / inpaint / watermark / transform
+├── n2p-pdf/        PDF → PNG（hayro）、頁數與頁面尺寸
+├── n2p-image/      去水印、寬屏化、文字遮罩、LaMa 去字修補、SAM 物件切出
 ├── n2p-layout/     中立版面模型 + LayoutProvider trait
 ├── n2p-mineru/     MinerU / Paddle JSON 解析
 ├── n2p-vision/     macOS Vision OCR
@@ -295,7 +279,7 @@ crates/
 ├── n2p-build/      版面 + 影像 → PPTX（內嵌空白範本）
 ├── n2p-pipeline/   流程編排
 ├── n2p-cli/        n2p 命令
-└── n2p-gui/        圖形介面
+└── n2p-gui/        圖形介面（App 本體）
 macos/              Info.plist、圖示、App Store 權限
 scripts/            打包、公證、圖示
 vendor/winit/       移除私有 API 的 winit
