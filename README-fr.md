@@ -7,13 +7,13 @@
 
 Convertissez les PDF exportés de NotebookLM en présentations PPTX avec **images d'arrière-plan et couches de texte éditables séparées**.
 
-> ✨ **Mise à jour (2026-10-21)** : application native macOS v0.1.1 — conversion de PDF en PPTX modifiable sur votre Mac, sans clé d’API, notarisée par Apple. Voir « Application native macOS » ci-dessous.
+> ✨ **Mise à jour (2026-10-21)** : NBLM2PPTX for macOS v0.1.1 — conversion de PDF en PPTX modifiable sur votre Mac, sans clé d’API, notarisée par Apple. Voir « Application native macOS » ci-dessous.
 
 [English](README.md) | [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [日本語](README-ja.md) | [Español](README-es.md)
 
 ## Application native macOS (hors ligne, Rust)
 
-[`macos-app/`](macos-app/) est une version native qui s’exécute entièrement sur votre Mac : aucune clé d’API, aucun fichier envoyé.
+**NBLM2PPTX for macOS** est une application native qui s’exécute entièrement sur votre Mac : aucune clé d’API, aucun fichier envoyé. Code source : [`macos-app/`](macos-app/).
 
 - **Téléchargement** : [page de la version](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.1) (`NotebookLM2PPT-notarized.zip`)
 - **OCR** : Vision intégré à macOS (sur l’appareil)

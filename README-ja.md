@@ -7,13 +7,13 @@
 
 NotebookLM からエクスポートした PDF を**背景画像とテキストが分離された** PPTX プレゼンテーションに変換します。
 
-> ✨ **更新 (2026-10-21)**: macOS ネイティブ版v0.1.1 をリリース。Mac 上だけで PDF を編集可能な PPTX に変換。API キー不要、Apple の公証済み。詳しくは下の「macOS ネイティブ版」を参照してください。
+> ✨ **更新 (2026-10-21)**: macOS ネイティブ版 NBLM2PPTX v0.1.1 をリリース。Mac 上だけで PDF を編集可能な PPTX に変換。API キー不要、Apple の公証済み。詳しくは下の「macOS ネイティブ版」を参照してください。
 
 [English](README.md) | [繁體中文](README-zh-TW.md) | [简体中文](README-zh-CN.md) | [Español](README-es.md) | [Français](README-fr.md)
 
 ## macOS ネイティブ版（オフライン、Rust）
 
-[`macos-app/`](macos-app/) は Mac 上だけで動くネイティブ版です。API キーは不要で、ファイルはアップロードされません。
+**NBLM2PPTX for macOS** は Mac 上だけで動くネイティブアプリです。API キーは不要で、ファイルはアップロードされません。ソースコードは [`macos-app/`](macos-app/) にあります。
 
 - **ダウンロード**：[Releases ページ](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.1)（`NotebookLM2PPT-notarized.zip`）
 - **OCR**：macOS 内蔵の Vision（デバイス上で処理）

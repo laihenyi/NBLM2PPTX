@@ -7,13 +7,13 @@
 
 将 NotebookLM 导出的 PDF 转换成**底图与文字分离**的 PPTX 演示文稿。
 
-> ✨ **更新 (2026-10-21)**: macOS 原生版v0.1.1 发布——在 Mac 本机把 PDF 转换为可编辑 PPTX，无需 API key，已通过 Apple 公证。详见下方“macOS 原生版”。
+> ✨ **更新 (2026-10-21)**: macOS 原生版 NBLM2PPTX v0.1.1 发布——在 Mac 本机把 PDF 转换为可编辑 PPTX，无需 API key，已通过 Apple 公证。详见下方“macOS 原生版”。
 
 [English](README.md) | [繁體中文](README-zh-TW.md) | [日本語](README-ja.md) | [Español](README-es.md) | [Français](README-fr.md)
 
 ## macOS 原生版（离线，Rust）
 
-[`macos-app/`](macos-app/) 是在 Mac 本机运行的原生版本：不需要 API key，文件不上传。
+**NBLM2PPTX for macOS** 是在 Mac 本机运行的原生 App：不需要 API key，文件不上传。源代码在 [`macos-app/`](macos-app/)。
 
 - **下载**：[Releases 页面](https://github.com/laihenyi/NBLM2PPTX/releases/tag/n2p-rs-v0.1.1)（`NotebookLM2PPT-notarized.zip`）
 - **OCR**：macOS 内置 Vision（设备端）
