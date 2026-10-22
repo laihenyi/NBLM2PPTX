@@ -122,7 +122,11 @@ struct ConvertArgs {
     mineru: Option<PathBuf>,
 
     /// Vision 辨識語言，逗號分隔
-    #[arg(long, value_name = "LANGS", default_value = "zh-Hant,en-US")]
+    #[arg(
+        long,
+        value_name = "LANGS",
+        default_value = "zh-Hant,zh-Hans,ja-JP,en-US,es-ES,fr-FR"
+    )]
     lang: String,
 
     /// 只處理指定頁，例如 `1-3,5`
@@ -176,7 +180,11 @@ struct OcrArgs {
     image: PathBuf,
 
     /// 辨識語言，逗號分隔
-    #[arg(long, value_name = "LANGS", default_value = "zh-Hant,en-US")]
+    #[arg(
+        long,
+        value_name = "LANGS",
+        default_value = "zh-Hant,zh-Hans,ja-JP,en-US,es-ES,fr-FR"
+    )]
     lang: String,
 }
 
