@@ -75,6 +75,18 @@ fn deck_is_cjk_dominant(inputs: &[PageInput<'_>]) -> bool {
     }
     total > 0 && (full as f64 / total as f64) >= 0.5
 }
+
+/// 依簡報內文判斷東亞語系（出現平假名／片假名時選日文字型）。
+fn deck_cjk_script(inputs: &[PageInput<'_>]) -> fonts::CjkScript {
+    for input in inputs {
+        for block in input.layout.text_blocks() {
+            if fonts::contains_japanese_kana(&block.text) {
+                return fonts::CjkScript::Japanese;
+            }
+        }
+    }
+    fonts::CjkScript::TraditionalChinese
+}
 /// 背景擦除時用的顏色容差（`tolerance=20`）。
 const ERASE_TOLERANCE: u8 = 20;
 /// 前景圖片向外擴張的像素數（`expand_px=2`）。
@@ -260,7 +272,8 @@ pub fn build_deck_with_progress(
     // 寫死字型名很危險：沒安裝時 PowerPoint 會靜默落到主題字型，等於沒設定。
     // 因此改成偵測系統實際裝了什麼，挑第一個可用的候選。
     let cjk = deck_is_cjk_dominant(inputs);
-    let picked = cjk.then(fonts::pick_east_asian).flatten();
+    let script = deck_cjk_script(inputs);
+    let picked = cjk.then(|| fonts::pick_east_asian_for(script)).flatten();
     let east_asian = options
         .east_asian_font_name
         .clone()

@@ -21,7 +21,18 @@
 
 use std::path::{Path, PathBuf};
 
-/// 候選字型，依偏好排序：(家族名稱, 檔名比對用的關鍵字)。
+/// 東亞文字的語系偏好。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CjkScript {
+    /// 繁體中文（預設）。
+    TraditionalChinese,
+    /// 簡體中文。
+    SimplifiedChinese,
+    /// 日文（含平假名、片假名）。
+    Japanese,
+}
+
+/// 繁體中文候選字型，依偏好排序：(家族名稱, 檔名比對用的關鍵字)。
 ///
 /// 偏好順序的理由：Noto Sans TC 最接近 NotebookLM 的實際外觀；其次是同樣設計的
 /// 思源黑體；再來才是各系統的預設黑體。
@@ -44,6 +55,73 @@ pub const CANDIDATES: &[(&str, &[&str])] = &[
     ("Heiti TC", &["stheiti", "heiti"]),
     ("LiHei Pro", &["lihei"]),
 ];
+
+/// 日文候選字型，依偏好排序。
+///
+/// macOS 的 APFS 檔名可能為 NFD（`ヒラギノ`），因此同時列出 NFC 與 NFD 關鍵字。
+pub const CANDIDATES_JP: &[(&str, &[&str])] = &[
+    (
+        "Noto Sans JP",
+        &[
+            "notosanscjkjp",
+            "notosansjp",
+            "notosanscjk-jp",
+            "notosanshanjp",
+        ],
+    ),
+    (
+        "Source Han Sans JP",
+        &["sourcehansansjp", "sourcehansans-jp"],
+    ),
+    (
+        "Hiragino Sans",
+        &["hiraginosansw", "ヒラギノ角ゴシック", "ヒラギノ角ゴシック"],
+    ),
+    ("YuGothic", &["yugothic", "游ゴシック", "游ゴシック"]),
+    ("Meiryo", &["meiryo", "メイリオ"]),
+];
+
+/// 簡體中文候選字型，依偏好排序。
+pub const CANDIDATES_SC: &[(&str, &[&str])] = &[
+    (
+        "Noto Sans SC",
+        &[
+            "notosanscjksc",
+            "notosanssc",
+            "notosanscjk-sc",
+            "notosanshansc",
+        ],
+    ),
+    (
+        "Source Han Sans SC",
+        &["sourcehansanssc", "sourcehansanscn", "sourcehansans-cn"],
+    ),
+    ("PingFang SC", &["pingfang"]),
+    ("Microsoft YaHei", &["yahei", "msyh"]),
+    ("Heiti SC", &["stheiti", "heiti"]),
+];
+
+/// 文字中是否包含日文平假名或片假名。
+pub fn contains_japanese_kana(text: &str) -> bool {
+    text.chars().any(|c| {
+        matches!(
+            c as u32,
+            0x3041..=0x3096 // 平假名
+            | 0x30A1..=0x30FA // 片假名
+            | 0x31F0..=0x31FF // 片假名拼音擴充
+            | 0xFF66..=0xFF9F // 半形片假名
+        )
+    })
+}
+
+/// 由簡報內文判斷東亞文字語系：出現平假名／片假名即視為日文，否則為繁中預設。
+pub fn detect_script(text: &str) -> CjkScript {
+    if contains_japanese_kana(text) {
+        CjkScript::Japanese
+    } else {
+        CjkScript::TraditionalChinese
+    }
+}
 
 /// 標準字型目錄（依 macOS 慣例）。
 fn font_dirs() -> Vec<PathBuf> {
@@ -74,11 +152,9 @@ pub fn installed_files() -> Vec<String> {
     names
 }
 
-/// 從檔名清單挑出第一個可用的候選字型。
-///
-/// 抽成純函式以便測試（不需要真的安裝字型）。
-pub fn pick_from(files: &[String]) -> Option<&'static str> {
-    for (family, tokens) in CANDIDATES {
+/// 從檔名清單與指定候選表挑出第一個可用的候選字型。
+fn pick_in_table(table: &[(&'static str, &[&str])], files: &[String]) -> Option<&'static str> {
+    for (family, tokens) in table {
         let found = files.iter().any(|file| {
             tokens
                 .iter()
@@ -91,9 +167,33 @@ pub fn pick_from(files: &[String]) -> Option<&'static str> {
     None
 }
 
+/// 從檔名清單挑出第一個可用的候選字型。
+///
+/// 抽成純函式以便測試（不需要真的安裝字型）。
+pub fn pick_from(files: &[String]) -> Option<&'static str> {
+    pick_in_table(CANDIDATES, files)
+}
+
+/// 依東亞語系偏好從檔名清單挑出第一個可用的候選字型；若該語系無可用字型則退回其他東亞候選。
+pub fn pick_from_for(script: CjkScript, files: &[String]) -> Option<&'static str> {
+    let tables: [&[(&'static str, &[&str])]; 3] = match script {
+        CjkScript::TraditionalChinese => [CANDIDATES, CANDIDATES_JP, CANDIDATES_SC],
+        CjkScript::SimplifiedChinese => [CANDIDATES_SC, CANDIDATES, CANDIDATES_JP],
+        CjkScript::Japanese => [CANDIDATES_JP, CANDIDATES, CANDIDATES_SC],
+    };
+    tables
+        .into_iter()
+        .find_map(|table| pick_in_table(table, files))
+}
+
 /// 挑選目前系統可用的東亞字型。
 pub fn pick_east_asian() -> Option<&'static str> {
     pick_from(&installed_files())
+}
+
+/// 依語系偏好挑選目前系統可用的東亞字型。
+pub fn pick_east_asian_for(script: CjkScript) -> Option<&'static str> {
+    pick_from_for(script, &installed_files())
 }
 
 /// 回傳每個候選字型的可用狀態，供 `n2p fonts` 顯示。
@@ -133,6 +233,38 @@ mod tests {
         assert_eq!(
             pick_from(&files(&["SourceHanSansTC-Regular.otf"])),
             Some("Source Han Sans TC")
+        );
+    }
+
+    #[test]
+    fn picks_japanese_and_simplified_chinese_fonts_by_script() {
+        let jp_installed = files(&["ヒラギノ角ゴシック W3.ttc", "STHeiti Medium.ttc"]);
+        assert_eq!(
+            pick_from_for(CjkScript::Japanese, &jp_installed),
+            Some("Hiragino Sans")
+        );
+        let noto_jp = files(&["NotoSansCJKjp-Regular.otf", "ヒラギノ角ゴシック W3.ttc"]);
+        assert_eq!(
+            pick_from_for(CjkScript::Japanese, &noto_jp),
+            Some("Noto Sans JP")
+        );
+        let sc_installed = files(&["NotoSansCJKsc-Regular.otf", "PingFang.ttc"]);
+        assert_eq!(
+            pick_from_for(CjkScript::SimplifiedChinese, &sc_installed),
+            Some("Noto Sans SC")
+        );
+    }
+
+    #[test]
+    fn detects_japanese_kana_in_slide_text() {
+        assert_eq!(
+            detect_script("日本語のプレゼンテーション"),
+            CjkScript::Japanese
+        );
+        assert_eq!(detect_script("スライド変換"), CjkScript::Japanese);
+        assert_eq!(
+            detect_script("提升學生正向幸福"),
+            CjkScript::TraditionalChinese
         );
     }
 
