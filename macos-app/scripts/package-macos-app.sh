@@ -8,7 +8,7 @@
 #   ./scripts/package-macos-app.sh --sandbox-test   # 沙盒版本機實測（開發憑證，不需 profile，不產 pkg）
 #
 # 模型不包進 app：第一次使用時由介面下載到 ~/Library/Caches/n2p/（沙盒版落在容器內）。
-# 只支援 Apple Silicon。App Store 流程見 docs/APP_STORE.md。
+# 只支援 Apple Silicon。
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -81,7 +81,7 @@ check_identity() { # $1 = 身分名稱；$2 = 額外的 find-identity 參數（�
 
 if [[ "$APP_STORE" -eq 1 ]]; then
   [[ -f "$APPSTORE_PROFILE" ]] || {
-    echo "缺少 ${APPSTORE_PROFILE}（$BUNDLE_ID 的 Mac App Store provisioning profile，見 docs/APP_STORE.md）" >&2
+    echo "缺少 ${APPSTORE_PROFILE}（$BUNDLE_ID 的 Mac App Store provisioning profile）" >&2
     exit 1
   }
   check_identity "$APPSTORE_APP_IDENTITY" "-p codesigning"
@@ -168,7 +168,7 @@ if [[ "$APP_STORE" -eq 1 ]]; then
   rm -f "$PKG"
   productbuild --component "$APP" /Applications --sign "$APPSTORE_INSTALLER_IDENTITY" "$PKG"
   pkgutil --check-signature "$PKG" | head -3
-  echo "寫出 ${PKG}（上傳：fastlane mac beta 或 fastlane mac release，見 docs/APP_STORE.md）"
+  echo "寫出 ${PKG}"
 fi
 
 if [[ "$ZIP" -eq 1 ]]; then

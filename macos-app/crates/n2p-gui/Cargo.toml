@@ -8,7 +8,7 @@ rust-version.workspace = true
 
 [features]
 # Mac App Store 版：App Sandbox 下輸出改存「下載項目」或使用者選的資料夾，
-# 並忽略所有 N2P_* 開發用環境變數（見 docs/APP_STORE.md）。
+# 並忽略所有 N2P_* 開發用環境變數。
 appstore = []
 # 只給 package-macos-app.sh --sandbox-test：沙盒行為同 appstore，但保留 N2P_* 除錯掛鉤，
 # 讓沙盒版也能自動化實測。不可用於上傳的建置。

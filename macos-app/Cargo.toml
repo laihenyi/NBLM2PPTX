@@ -44,6 +44,6 @@ objc2-vision = "0.3"
 block2 = "0.6"
 
 # Mac App Store 審核會拒絕私有 API：winit 0.30.13 的視窗模糊用了
-# CGSSetWindowBackgroundBlurRadius。vendor/winit 只移除那段 FFI 與呼叫（見 docs/APP_STORE.md）。
+# CGSSetWindowBackgroundBlurRadius。vendor/winit 只移除那段 FFI 與呼叫。
 [patch.crates-io]
 winit = { path = "vendor/winit" }

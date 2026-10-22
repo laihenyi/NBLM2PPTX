@@ -2,7 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
   Mac App Store 版（cargo feature `appstore`）的 entitlements。
-  Developer ID 版不開沙盒、不用這個檔；差異見 docs/APP_STORE.md。
+  Developer ID 版不開沙盒、不用這個檔。
 -->
 <plist version="1.0">
 <dict>

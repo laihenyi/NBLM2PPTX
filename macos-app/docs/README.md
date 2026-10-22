@@ -8,7 +8,6 @@
 | [02-ooxml-reference.md](02-ooxml-reference.md) | 本專案需要的 8 個操作的逐節點 OOXML 規格與單位換算 |
 | [03-findings-and-rust-plan.md](03-findings-and-rust-plan.md) | 8 項關鍵發現、平台修正、各階段完成狀態與驗證結果 |
 | [04-powerpoint-automation.md](04-powerpoint-automation.md) | 為何不用 PowerPoint 產生檔案、macOS AppleScript 的七個坑、驗證工具的安全規則 |
-| [APP_STORE.md](APP_STORE.md) | Mac App Store 版：沙盒差異、一次性設定、上架流程、沙盒實測、商店素材與審核風險 |
 
 ## 取得方式
 
