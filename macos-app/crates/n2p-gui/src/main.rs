@@ -5,6 +5,7 @@
 mod activity;
 mod app;
 mod debug;
+mod i18n;
 mod model;
 mod worker;
 

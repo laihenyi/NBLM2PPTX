@@ -5,6 +5,8 @@ use std::path::{Path, PathBuf};
 use n2p_build::{BackgroundResolution, EraseMode};
 use n2p_pipeline::ConvertOptions;
 
+use crate::i18n::Language;
+
 /// 使用者選的輸出版本。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OutputMode {
@@ -37,23 +39,30 @@ pub enum Variant {
 }
 
 impl Variant {
-    pub fn label(self) -> &'static str {
+    pub fn label(self, lang: Language) -> &'static str {
+        let s = lang.strings();
         match self {
-            Variant::Standard => "標準版",
-            Variant::Objects => "物件版",
+            Variant::Standard => s.variant_standard_label,
+            Variant::Objects => s.variant_objects_label,
         }
     }
 
-    fn suffix(self) -> &'static str {
+    pub fn suffix(self, lang: Language) -> &'static str {
+        let s = lang.strings();
         match self {
-            Variant::Standard => "_可編輯",
-            Variant::Objects => "_可編輯_物件",
+            Variant::Standard => s.variant_standard_suffix,
+            Variant::Objects => s.variant_objects_suffix,
         }
     }
 }
 
 /// 輸出檔路徑：`<PDF 檔名><後綴>.pptx`，放在 `out_dir`（未指定時與 PDF 同資料夾）。
-pub fn output_path(pdf: &Path, out_dir: Option<&Path>, variant: Variant) -> PathBuf {
+pub fn output_path(
+    pdf: &Path,
+    out_dir: Option<&Path>,
+    variant: Variant,
+    lang: Language,
+) -> PathBuf {
     let stem = pdf
         .file_stem()
         .map(|s| s.to_string_lossy().into_owned())
@@ -62,7 +71,7 @@ pub fn output_path(pdf: &Path, out_dir: Option<&Path>, variant: Variant) -> Path
         .map(Path::to_path_buf)
         .or_else(|| pdf.parent().map(Path::to_path_buf))
         .unwrap_or_default();
-    dir.join(format!("{stem}{}.pptx", variant.suffix()))
+    dir.join(format!("{stem}{}.pptx", variant.suffix(lang)))
 }
 
 /// 使用者的「下載項目」。沙盒裡 `HOME` 是容器目錄，容器內的 `Downloads` 會連到
@@ -114,11 +123,12 @@ pub enum Plan {
 }
 
 impl Plan {
-    pub fn describe(self) -> &'static str {
+    pub fn describe(self, lang: Language) -> &'static str {
+        let s = lang.strings();
         match self {
-            Plan::Convert => "轉換",
-            Plan::SkipExists => "已存在，跳過（要重做請勾選「覆寫已存在的檔案」）",
-            Plan::SkipLocked => "PowerPoint 正開著這個檔案，跳過（請先關閉）",
+            Plan::Convert => s.plan_convert,
+            Plan::SkipExists => s.plan_skip_exists,
+            Plan::SkipLocked => s.plan_skip_locked,
         }
     }
 }
@@ -129,11 +139,12 @@ pub fn plan_jobs(
     mode: OutputMode,
     out_dir: Option<&Path>,
     overwrite: bool,
+    lang: Language,
 ) -> Vec<(Job, Plan)> {
     let mut jobs = Vec::new();
     for pdf in pdfs {
         for &variant in mode.variants() {
-            let out = output_path(pdf, out_dir, variant);
+            let out = output_path(pdf, out_dir, variant, lang);
             let plan = if lock_file(&out).exists() {
                 Plan::SkipLocked
             } else if out.exists() && !overwrite {
@@ -224,20 +235,21 @@ pub fn add_pdfs(list: &mut Vec<PathBuf>, incoming: impl IntoIterator<Item = Path
 }
 
 /// 單一工作內的進度（0.0–1.0）與階段說明。產生投影片最慢，所以佔最大比例。
-pub fn progress_fraction(progress: n2p_pipeline::Progress) -> (f32, String) {
+pub fn progress_fraction(progress: n2p_pipeline::Progress, lang: Language) -> (f32, String) {
     use n2p_pipeline::Progress;
+    let s = lang.strings();
     let ratio = |page: usize, total: usize| page as f32 / total.max(1) as f32;
     match progress {
         Progress::Render { page, total } => (
             0.05 * ratio(page, total),
-            format!("讀取頁面 {}/{total}", page + 1),
+            lang.stage_render(page + 1, total),
         ),
-        Progress::Layout => (0.05, "辨識文字".into()),
+        Progress::Layout => (0.05, s.stage_layout.into()),
         Progress::Build { page, total } => (
             0.15 + 0.8 * ratio(page, total),
-            format!("產生投影片 {}/{total}", page + 1),
+            lang.stage_build(page + 1, total),
         ),
-        Progress::Save => (0.95, "寫出檔案".into()),
+        Progress::Save => (0.95, s.stage_save.into()),
     }
 }
 
@@ -256,12 +268,46 @@ mod tests {
     fn output_names_follow_the_variant() {
         let pdf = Path::new("/書稿/CH4_用信任點亮學生.pdf");
         assert_eq!(
-            output_path(pdf, None, Variant::Standard),
+            output_path(pdf, None, Variant::Standard, Language::ZhTw),
             Path::new("/書稿/CH4_用信任點亮學生_可編輯.pptx")
         );
         assert_eq!(
-            output_path(pdf, Some(Path::new("/輸出")), Variant::Objects),
+            output_path(
+                pdf,
+                Some(Path::new("/輸出")),
+                Variant::Objects,
+                Language::ZhTw
+            ),
             Path::new("/輸出/CH4_用信任點亮學生_可編輯_物件.pptx")
+        );
+    }
+
+    #[test]
+    fn output_names_follow_the_selected_language() {
+        let pdf = Path::new("/slides/deck.pdf");
+        assert_eq!(
+            output_path(pdf, None, Variant::Standard, Language::Ja),
+            Path::new("/slides/deck_編集可能.pptx")
+        );
+        assert_eq!(
+            output_path(pdf, None, Variant::Objects, Language::Ja),
+            Path::new("/slides/deck_編集可能_オブジェクト.pptx")
+        );
+        assert_eq!(
+            output_path(pdf, None, Variant::Standard, Language::En),
+            Path::new("/slides/deck_editable.pptx")
+        );
+        assert_eq!(
+            output_path(pdf, None, Variant::Objects, Language::ZhCn),
+            Path::new("/slides/deck_可编辑_对象.pptx")
+        );
+        assert_eq!(
+            output_path(pdf, None, Variant::Objects, Language::Es),
+            Path::new("/slides/deck_editable_objetos.pptx")
+        );
+        assert_eq!(
+            output_path(pdf, None, Variant::Objects, Language::Fr),
+            Path::new("/slides/deck_modifiable_objets.pptx")
         );
     }
 
@@ -294,12 +340,24 @@ mod tests {
         let pdf = dir.join("講義.pdf");
         std::fs::write(dir.join("講義_可編輯.pptx"), b"x").unwrap();
 
-        let plans = plan_jobs(std::slice::from_ref(&pdf), OutputMode::Both, None, false);
+        let plans = plan_jobs(
+            std::slice::from_ref(&pdf),
+            OutputMode::Both,
+            None,
+            false,
+            Language::ZhTw,
+        );
         assert_eq!(plans.len(), 2);
         assert_eq!(plans[0].1, Plan::SkipExists);
         assert_eq!(plans[1].1, Plan::Convert);
 
-        let plans = plan_jobs(std::slice::from_ref(&pdf), OutputMode::Standard, None, true);
+        let plans = plan_jobs(
+            std::slice::from_ref(&pdf),
+            OutputMode::Standard,
+            None,
+            true,
+            Language::ZhTw,
+        );
         assert_eq!(plans[0].1, Plan::Convert);
     }
 
@@ -310,7 +368,13 @@ mod tests {
         std::fs::write(dir.join("講義_可編輯.pptx"), b"x").unwrap();
         std::fs::write(dir.join("~$講義_可編輯.pptx"), b"lock").unwrap();
 
-        let plans = plan_jobs(std::slice::from_ref(&pdf), OutputMode::Standard, None, true);
+        let plans = plan_jobs(
+            std::slice::from_ref(&pdf),
+            OutputMode::Standard,
+            None,
+            true,
+            Language::ZhTw,
+        );
         assert_eq!(plans[0].1, Plan::SkipLocked);
     }
 
@@ -384,7 +448,10 @@ mod tests {
             Progress::Build { page: 1, total: 2 },
             Progress::Save,
         ];
-        let fractions: Vec<f32> = steps.iter().map(|p| progress_fraction(*p).0).collect();
+        let fractions: Vec<f32> = steps
+            .iter()
+            .map(|p| progress_fraction(*p, Language::ZhTw).0)
+            .collect();
         assert!(fractions.windows(2).all(|w| w[0] <= w[1]), "{fractions:?}");
         assert!(fractions.iter().all(|f| (0.0..1.0).contains(f)));
     }

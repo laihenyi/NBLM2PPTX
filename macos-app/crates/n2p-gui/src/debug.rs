@@ -15,6 +15,7 @@
 //! | `N2P_GUI_CANCEL_AFTER` | 開始後幾秒按取消 |
 //! | `N2P_GUI_SCREENSHOT_DIR` | 每隔 `N2P_GUI_SCREENSHOT_EVERY` 秒（預設 5）截一張 PNG |
 //! | `N2P_GUI_WINDOW` | 視窗大小，例如 `960x600`（App Store 截圖用 16:10） |
+//! | `N2P_GUI_LANG` | 介面語言（`zh-TW`、`zh-CN`、`en`、`ja`、`es`、`fr`） |
 
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
@@ -28,6 +29,7 @@ pub fn window_size() -> Option<[f32; 2]> {
 
 use eframe::egui;
 
+use crate::i18n::Language;
 use crate::model::{OutputMode, Settings};
 
 /// 預載到介面的設定。
@@ -39,6 +41,7 @@ pub struct Preset {
     pub pages: Option<String>,
     pub overwrite: bool,
     pub advanced_open: bool,
+    pub lang: Option<Language>,
 }
 
 #[derive(Default)]
@@ -77,6 +80,7 @@ impl DebugHooks {
             pages: var("N2P_GUI_PAGES"),
             overwrite: var("N2P_GUI_OVERWRITE").is_some(),
             advanced_open: var("N2P_GUI_ADVANCED").is_some(),
+            lang: var("N2P_GUI_LANG").and_then(|v| Language::from_tag(&v)),
         };
         Self {
             preset: Some(preset),
