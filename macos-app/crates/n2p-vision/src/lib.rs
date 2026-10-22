@@ -35,6 +35,8 @@ pub struct Observation {
     pub confidence: f32,
     /// 正規化邊界框：`(x, y, width, height)`，**原點左上、y 向下**。
     pub bbox_norm: (f64, f64, f64, f64),
+    /// 旋轉文字的四個正規化頂點 `[top_left, top_right, bottom_right, bottom_left]`（原點左上、y 向下）。
+    pub corners_norm: Option<[(f64, f64); 4]>,
 }
 
 /// 辨識設定。
@@ -196,6 +198,51 @@ fn norm_to_px(value: f64, scale: f64, round_up: bool) -> i64 {
     }
 }
 
+/// 依四個頂點計算「反旋轉後的真實行框（以中心對齊）」與「順時針旋轉角度（千分之一度）」。
+///
+/// 當文字傾斜 ≥ 3° 時，`boundingBox` 的軸對齊高度會包含 `行寬 × sin(θ)`，導致字高被高估 3～4 倍；
+/// 此處改由頂點向量求得真實基線長與字高，讓字級估算與旋轉文字框幾何維持精確。
+fn oriented_line_metrics(observation: &Observation, size_pt: (f64, f64)) -> (BBox, i32) {
+    let (x, y, w, h) = observation.bbox_norm;
+    let axis_bbox = BBox::new(
+        norm_to_px(x, size_pt.0, false),
+        norm_to_px(y, size_pt.1, false),
+        norm_to_px(x + w, size_pt.0, true),
+        norm_to_px(y + h, size_pt.1, true),
+    );
+    let Some([tl, tr, br, bl]) = observation.corners_norm else {
+        return (axis_bbox, 0);
+    };
+    let (pw, ph) = (size_pt.0.max(1.0), size_pt.1.max(1.0));
+    let (tl_x, tl_y) = (tl.0 * pw, tl.1 * ph);
+    let (tr_x, tr_y) = (tr.0 * pw, tr.1 * ph);
+    let (br_x, br_y) = (br.0 * pw, br.1 * ph);
+    let (bl_x, bl_y) = (bl.0 * pw, bl.1 * ph);
+
+    let vx = ((tr_x - tl_x) + (br_x - bl_x)) * 0.5;
+    let vy = ((tr_y - tl_y) + (br_y - bl_y)) * 0.5;
+    let angle_deg = vy.atan2(vx).to_degrees();
+    if !angle_deg.is_finite() || angle_deg.abs() < 3.0 {
+        return (axis_bbox, 0);
+    }
+
+    let unrotated_w = vx.hypot(vy).max(1.0);
+    let hx = ((bl_x - tl_x) + (br_x - tr_x)) * 0.5;
+    let hy = ((bl_y - tl_y) + (br_y - tr_y)) * 0.5;
+    let unrotated_h = hx.hypot(hy).max(1.0);
+    let cx = (tl_x + tr_x + br_x + bl_x) * 0.25;
+    let cy = (tl_y + tr_y + br_y + bl_y) * 0.25;
+
+    let line_bbox = BBox::new(
+        (cx - unrotated_w * 0.5).floor() as i64,
+        (cy - unrotated_h * 0.5).floor() as i64,
+        (cx + unrotated_w * 0.5).ceil() as i64,
+        (cy + unrotated_h * 0.5).ceil() as i64,
+    );
+    let rotation_mdeg = (angle_deg * 1000.0).round() as i32;
+    (line_bbox, rotation_mdeg)
+}
+
 fn block_from_observation(observation: &Observation, size_pt: (f64, f64)) -> Block {
     let (x, y, w, h) = observation.bbox_norm;
     let bbox = BBox::new(
@@ -204,14 +251,16 @@ fn block_from_observation(observation: &Observation, size_pt: (f64, f64)) -> Blo
         norm_to_px(x + w, size_pt.0, true),
         norm_to_px(y + h, size_pt.1, true),
     );
+    let (line_bbox, rotation_mdeg) = oriented_line_metrics(observation, size_pt);
     let mut block = Block::new(BlockKind::Text, bbox);
     block.text = observation.text.clone();
+    block.rotation_mdeg = rotation_mdeg;
     block.lines = vec![Line {
         spans: vec![Span {
             text: Some(observation.text.clone()),
             image_path: None,
         }],
-        bbox: Some(bbox),
+        bbox: Some(line_bbox),
     }];
     block
 }
@@ -253,6 +302,11 @@ pub fn group_observations(observations: &[Observation], size_pt: (f64, f64)) -> 
     for observation in sorted {
         let merged = groups.last_mut().and_then(|group| {
             let last = group.last()?;
+            let (_, last_rot) = oriented_line_metrics(last, size_pt);
+            let (_, next_rot) = oriented_line_metrics(observation, size_pt);
+            if (last_rot - next_rot).abs() > 8_000 {
+                return None;
+            }
             let last_bottom = last.bbox_norm.1 + last.bbox_norm.3;
             let next_top = observation.bbox_norm.1;
             let small = last.bbox_norm.3.min(observation.bbox_norm.3);
@@ -291,15 +345,12 @@ pub fn group_observations(observations: &[Observation], size_pt: (f64, f64)) -> 
                 .join("\n");
             let mut block = Block::new(BlockKind::Text, bbox);
             block.text = text.clone();
+            let mut rot_sum = 0i64;
             block.lines = group
                 .iter()
                 .map(|o| {
-                    let line_bbox = BBox::new(
-                        norm_to_px(o.bbox_norm.0, size_pt.0, false),
-                        norm_to_px(o.bbox_norm.1, size_pt.1, false),
-                        norm_to_px(o.bbox_norm.0 + o.bbox_norm.2, size_pt.0, true),
-                        norm_to_px(o.bbox_norm.1 + o.bbox_norm.3, size_pt.1, true),
-                    );
+                    let (line_bbox, rot) = oriented_line_metrics(o, size_pt);
+                    rot_sum += rot as i64;
                     Line {
                         spans: vec![Span {
                             text: Some(o.text.clone()),
@@ -309,6 +360,7 @@ pub fn group_observations(observations: &[Observation], size_pt: (f64, f64)) -> 
                     }
                 })
                 .collect();
+            block.rotation_mdeg = (rot_sum / group.len().max(1) as i64) as i32;
             block
         })
         .collect()
@@ -343,6 +395,7 @@ mod tests {
             text: text.into(),
             confidence: 0.9,
             bbox_norm: (x, y, w, h),
+            corners_norm: None,
         }
     }
 

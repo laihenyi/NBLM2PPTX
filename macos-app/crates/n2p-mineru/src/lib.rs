@@ -194,6 +194,7 @@ fn parse_block(item: &Value) -> Result<Block> {
         bbox,
         text,
         lines,
+        rotation_mdeg: 0,
     })
 }
 

@@ -130,6 +130,8 @@ pub struct TextBox {
     pub text_alpha: Option<u8>,
     /// 是否粗體。
     pub bold: bool,
+    /// 順時針旋轉角度（度）。接近 0 時不寫入 `rot` 屬性。
+    pub rotation_deg: f64,
 }
 
 impl Default for TextBox {
@@ -153,6 +155,7 @@ impl Default for TextBox {
             fill: None,
             text_alpha: None,
             bold: false,
+            rotation_deg: 0.0,
         }
     }
 }
@@ -221,6 +224,12 @@ impl TextBox {
         self
     }
 
+    /// 設定順時針旋轉角度（度）。
+    pub fn rotation(mut self, deg: f64) -> Self {
+        self.rotation_deg = deg;
+        self
+    }
+
     /// 產生 `<p:sp>`。
     pub fn build(&self, shape_id: u32) -> Element {
         let (x, y) = self.rect.emu_offset();
@@ -270,19 +279,23 @@ impl TextBox {
             .child(Element::new("a:lstStyle"))
             .children(paragraphs);
 
-        let mut sp_pr = Element::new("p:spPr").child(
-            Element::new("a:xfrm")
-                .child(
-                    Element::new("a:off")
-                        .attr("x", x.to_string())
-                        .attr("y", y.to_string()),
-                )
-                .child(
-                    Element::new("a:ext")
-                        .attr("cx", cx.to_string())
-                        .attr("cy", cy.to_string()),
-                ),
-        );
+        let mut xfrm = Element::new("a:xfrm");
+        if self.rotation_deg.abs() >= 1.0 && self.rotation_deg.is_finite() {
+            let rot = (self.rotation_deg * 60_000.0).round() as i64;
+            xfrm.set_attr("rot", rot.to_string());
+        }
+        xfrm = xfrm
+            .child(
+                Element::new("a:off")
+                    .attr("x", x.to_string())
+                    .attr("y", y.to_string()),
+            )
+            .child(
+                Element::new("a:ext")
+                    .attr("cx", cx.to_string())
+                    .attr("cy", cy.to_string()),
+            );
+        let mut sp_pr = Element::new("p:spPr").child(xfrm);
         sp_pr = sp_pr.child(Element::new("a:prstGeom").attr("prst", "rect"));
         // 覆蓋式：填底色蓋住原稿文字；否則無填色
         sp_pr = match self.fill {
