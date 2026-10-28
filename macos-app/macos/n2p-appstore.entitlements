@@ -19,8 +19,5 @@
 	<!-- 讀取使用者拖入或在面板選的 PDF，寫入使用者選的輸出資料夾 -->
 	<key>com.apple.security.files.user-selected.read-write</key>
 	<true/>
-	<!-- 預設輸出位置：下載項目 -->
-	<key>com.apple.security.files.downloads.read-write</key>
-	<true/>
 </dict>
 </plist>

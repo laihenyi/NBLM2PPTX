@@ -65,18 +65,6 @@ pub fn output_path(pdf: &Path, out_dir: Option<&Path>, variant: Variant) -> Path
     dir.join(format!("{stem}{}.pptx", variant.suffix()))
 }
 
-/// 使用者的「下載項目」。沙盒裡 `HOME` 是容器目錄，容器內的 `Downloads` 會連到
-/// 真正的 `~/Downloads`（需要 `files.downloads.read-write` 權限）。
-pub fn downloads_dir() -> Option<PathBuf> {
-    std::env::var_os("HOME").map(|home| PathBuf::from(home).join("Downloads"))
-}
-
-/// 面板選回 `~/Downloads` 時拿到的是真實路徑，不是容器內的連結，比對前先解析連結。
-pub fn is_downloads(dir: &Path) -> bool {
-    let canonical = |p: &Path| std::fs::canonicalize(p).ok();
-    downloads_dir().is_some_and(|d| canonical(&d).is_some() && canonical(&d) == canonical(dir))
-}
-
 /// PowerPoint 開啟檔案時在同目錄建立的鎖檔：`~$<檔名>`。
 pub fn lock_file(path: &Path) -> PathBuf {
     let name = path

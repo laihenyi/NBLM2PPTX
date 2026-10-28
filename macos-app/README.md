@@ -60,7 +60,7 @@ GUI 的預設等於 `--high-res-background`（可在「進階設定」關閉）�
 - 產物：`dist/NBLM2PPTX.app`（bundle id `com.yikai.nblm2pptx`；0.1.1 以前是 NotebookLM2PPT.app／
   `com.yikai.notebooklm2ppt`），只含圖形介面，不含 `n2p` 命令列。
 - Mac App Store 版（cargo feature `appstore`）開啟 App Sandbox（`macos/n2p-appstore.entitlements`）：
-  輸出預設存到「下載項目」，可改選其他資料夾；啟動時忽略所有 `N2P_*` 開發用環境變數。
+  輸出只能存到使用者在面板選的資料夾（第一次按「開始轉換」時會詢問）；啟動時忽略所有 `N2P_*` 開發用環境變數。
 - 圖示原稿是 `macos/AppIcon.svg`，改完執行 `./scripts/make-icon.sh` 重新產生 `AppIcon.icns`。
 - 執行檔 strip 後約 29 MB，zip 約 12 MB；ONNX Runtime 已靜態連結，只依賴 macOS 內建框架。
 - 模型（約 253 MB）不包進 app：第一次開啟時介面最上方會出現「首次使用：下載模型」，

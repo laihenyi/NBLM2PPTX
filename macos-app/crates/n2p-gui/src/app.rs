@@ -8,7 +8,7 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 use eframe::egui::{self, Color32, RichText};
 use n2p_image::models::{ModelFile, ModelState, Purpose};
 use objc2_app_kit::NSWorkspace;
-use objc2_foundation::{NSArray, NSURL};
+use objc2_foundation::{NSArray, NSFileManager, NSString, NSURL};
 
 use crate::debug::DebugHooks;
 use crate::model::{self, Job, OutputMode, Plan, Settings};
@@ -59,12 +59,8 @@ impl App {
         let mut app = Self {
             pdfs: Vec::new(),
             mode: OutputMode::Standard,
-            // 沙盒下拖進來的 PDF 只開放那個檔案、寫不到它所在的資料夾，預設改存「下載項目」
-            out_dir: if cfg!(feature = "appstore") {
-                model::downloads_dir()
-            } else {
-                None
-            },
+            // 一般版預設與 PDF 同資料夾。App Store 版沒有預設：沙盒只開放使用者在面板選的資料夾
+            out_dir: None,
             overwrite: false,
             advanced_open: false,
             settings: Settings::default(),
@@ -111,8 +107,11 @@ impl App {
     fn start(&mut self, ctx: &egui::Context) {
         self.message = None;
         if cfg!(feature = "appstore") && self.out_dir.is_none() {
-            self.message = Some((ERROR, "請先選擇輸出資料夾。".into()));
-            return;
+            self.out_dir = pick_output_dir();
+            if self.out_dir.is_none() {
+                self.message = Some((ERROR, "請先選擇輸出資料夾。".into()));
+                return;
+            }
         }
         let lama_ready = self.ready(Purpose::Erase);
         let planned = model::plan_jobs(
@@ -433,18 +432,24 @@ impl App {
         });
     }
 
-    /// App Store 版：只有「下載項目」與使用者在面板裡選的資料夾可寫（沙盒）。
+    /// App Store 版：沙盒只能寫入使用者在面板裡選的資料夾。
     fn sandboxed_output_dir(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             ui.label("存到");
-            let shown = match &self.out_dir {
-                Some(dir) if model::is_downloads(dir) => "下載項目".to_owned(),
-                Some(dir) => dir.display().to_string(),
-                None => "（尚未選擇）".to_owned(),
+            let (shown, full, button) = match &self.out_dir {
+                Some(dir) => (display_name(dir), dir.display().to_string(), "更改…"),
+                None => (
+                    "（尚未選擇，開始轉換時會詢問）".to_owned(),
+                    String::new(),
+                    "選擇…",
+                ),
             };
-            ui.add(egui::Label::new(RichText::new(shown).monospace()).truncate());
-            if ui.button("更改…").clicked() {
-                if let Some(dir) = rfd::FileDialog::new().pick_folder() {
+            let label = ui.add(egui::Label::new(shown).truncate());
+            if !full.is_empty() {
+                label.on_hover_text(full);
+            }
+            if ui.button(button).clicked() {
+                if let Some(dir) = pick_output_dir() {
                     self.out_dir = Some(dir);
                 }
             }
@@ -675,6 +680,20 @@ fn file_name(path: &std::path::Path) -> String {
 
 /// 用 macOS 的 `open` 開檔或在 Finder 顯示。
 // 走 NSWorkspace 而不是啟動 `open` 子程序：App Sandbox 下子程序繼承沙盒，行為不可靠。
+fn pick_output_dir() -> Option<PathBuf> {
+    rfd::FileDialog::new()
+        .set_title("選擇輸出資料夾")
+        .pick_folder()
+}
+
+/// Finder 顯示的資料夾名稱（例如「下載項目」），不露出含使用者名稱的完整路徑。
+fn display_name(path: &std::path::Path) -> String {
+    let path = NSString::from_str(&path.to_string_lossy());
+    NSFileManager::defaultManager()
+        .displayNameAtPath(&path)
+        .to_string()
+}
+
 fn open_file(path: &std::path::Path) {
     if let Some(url) = NSURL::from_file_path(path) {
         NSWorkspace::sharedWorkspace().openURL(&url);
