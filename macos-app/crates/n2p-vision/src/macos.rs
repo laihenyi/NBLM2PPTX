@@ -65,6 +65,10 @@ pub fn recognize_png(png: &[u8], config: &VisionConfig) -> Result<Vec<Observatio
         let text = best.string().to_string();
         let confidence = best.confidence();
         let rect = unsafe { observation.boundingBox() };
+        let tl = unsafe { observation.topLeft() };
+        let tr = unsafe { observation.topRight() };
+        let br = unsafe { observation.bottomRight() };
+        let bl = unsafe { observation.bottomLeft() };
 
         // Vision 的原點在左下、y 向上；轉成左上、y 向下。
         let x = rect.origin.x;
@@ -76,6 +80,12 @@ pub fn recognize_png(png: &[u8], config: &VisionConfig) -> Result<Vec<Observatio
             text,
             confidence,
             bbox_norm: (x, y_top, width, height),
+            corners_norm: Some([
+                (tl.x, 1.0 - tl.y),
+                (tr.x, 1.0 - tr.y),
+                (br.x, 1.0 - br.y),
+                (bl.x, 1.0 - bl.y),
+            ]),
         });
     }
 
